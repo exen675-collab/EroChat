@@ -10,14 +10,14 @@
 </head>
 
 <body class="overflow-hidden">
-    <div class="flex h-screen">
+    <div class="flex app-shell">
         <!-- Settings Panel (Sidebar) -->
         <aside id="settingsPanel"
-            class="w-96 bg-black/90 border-r border-purple-900/30 overflow-y-auto flex-shrink-0 transform translate-x-0">
+            class="w-96 border-r border-purple-900/30 overflow-y-auto flex-shrink-0 transform -translate-x-full lg:translate-x-0">
             <div class="p-6">
                 <h1
                     class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-6">
-                    ⚙️ Settings
+                    Control Center
                 </h1>
 
                 <!-- Characters Section -->
@@ -84,7 +84,7 @@
                                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                                 </path>
                             </svg>
-                            Fetch OpenRouter Models
+                            Load OpenRouter Models
                         </button>
                     </div>
                 </div>
@@ -114,7 +114,7 @@
                                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                                 </path>
                             </svg>
-                            Fetch Models
+                            Load Models
                         </button>
 
                         <div>
@@ -199,7 +199,7 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                 <!-- Action Buttons -->
                 <div class="space-y-3">
                     <button id="saveSettingsBtn" class="w-full py-3 btn-primary rounded-xl font-semibold">
-                        Save Settings
+                        Save Preferences
                     </button>
                     <button id="clearChatBtn"
                         class="w-full py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 rounded-xl font-medium text-red-400 transition-all flex items-center justify-center gap-2">
@@ -208,7 +208,7 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
                             </path>
                         </svg>
-                        Clear Chat
+                        Clear Conversation
                     </button>
                 </div>
             </div>
@@ -228,10 +228,10 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                     <div>
                         <h1
                             class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
-                            💋 EroChat + SwarmUI
+                            EroChat Studio
                         </h1>
                         <div id="currentCharacterDisplay" class="text-sm text-gray-400 flex items-center gap-2">
-                            <span>Talking to:</span>
+                            <span>Active character:</span>
                             <span id="currentCharacterName" class="text-pink-400 font-medium">Default Character</span>
                         </div>
                     </div>
@@ -309,7 +309,7 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
             <!-- Input Area -->
             <div class="glass border-t border-purple-900/30 p-4">
                 <div class="max-w-4xl mx-auto flex gap-3">
-                    <textarea id="messageInput" rows="1" placeholder="Type your message... (Press Enter to send)"
+                    <textarea id="messageInput" rows="1" placeholder="Write your message… (Enter to send, Shift+Enter for new line)"
                         class="flex-1 px-5 py-3 rounded-xl resize-none overflow-hidden"
                         style="min-height: 48px; max-height: 150px;"></textarea>
                     <button id="sendBtn" class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2">

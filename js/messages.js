@@ -79,7 +79,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     const character = getCurrentCharacter();
     const messageId = id || generateId();
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'message-ai max-w-5xl';
+    messageDiv.className = 'message-ai max-w-6xl';
     messageDiv.id = messageId;
     
     // Remove the image prompt block from display
@@ -88,7 +88,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     let imageSection = '';
     if (imageUrl) {
         imageSection = `
-            <div class="w-1/3 flex-shrink-0">
+            <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="image-container h-full">
                     <img src="${imageUrl}" alt="Generated" class="w-full h-full object-cover rounded-xl shadow-2xl" style="max-height: 400px;">
                 </div>
@@ -97,7 +97,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     } else if (content.includes('---IMAGE_PROMPT')) {
         // Image is being generated
         imageSection = `
-            <div class="w-1/3 flex-shrink-0">
+            <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="image-container bg-gray-900/50 rounded-xl p-8 flex items-center justify-center h-full" style="min-height: 300px;">
                     <div class="text-center">
                         <div class="spinner mx-auto mb-3"></div>
@@ -115,15 +115,15 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center flex-shrink-0">
                 <span class="text-xl">${character.avatar}</span>
             </div>
-            <div class="flex-1 flex gap-4 ${hasImage ? 'flex-row' : 'flex-col'}">
-                <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'w-2/3' : 'w-full'}">
+            <div class="flex-1 flex gap-4 ${hasImage ? 'flex-col lg:flex-row' : 'flex-col'}">
+                <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'w-full lg:w-2/3' : 'w-full'}">
                     <p class="text-gray-300 leading-relaxed">${formatMessage(escapeHtml(displayContent))}</p>
                 </div>
                 ${imageSection}
             </div>
         </div>
         ${hasImage ? `
-        <div class="flex gap-2 mt-2 ml-13 pl-13">
+        <div class="flex gap-2 mt-2 ml-12 pl-1">
             <button onclick="window.regenerateImage('${messageId}')" class="text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>

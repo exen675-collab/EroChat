@@ -6,6 +6,7 @@ let fetchedModels = [];
 // Filter and populate models based on search query
 function filterAndPopulateModels(searchQuery = '') {
     const query = searchQuery.toLowerCase().trim();
+    const previousValue = elements.openrouterModel.value;
 
     // Clear current options
     elements.openrouterModel.innerHTML = '<option value="">Select a model...</option>';
@@ -25,6 +26,11 @@ function filterAndPopulateModels(searchQuery = '') {
         option.textContent = `${model.name} (${model.id})`;
         elements.openrouterModel.appendChild(option);
     });
+
+
+    if (previousValue && filteredModels.some(model => model.id === previousValue)) {
+        elements.openrouterModel.value = previousValue;
+    }
 
     // Update select label to show filter results
     if (query && filteredModels.length > 0) {
@@ -95,7 +101,7 @@ export async function fetchOpenRouterModels(silent = false) {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
-            Fetch OpenRouter Models
+            Load OpenRouter Models
         `;
     }
 }

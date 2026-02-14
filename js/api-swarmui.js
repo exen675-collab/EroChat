@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { updateConnectionStatus } from './utils.js';
+import { updateConnectionStatus, normalizeBaseUrl } from './utils.js';
 
 // Helper function to parse models from SwarmUI response
 function parseModels(data) {
@@ -45,7 +45,7 @@ function parseModels(data) {
 // Fetch available models from SwarmUI
 export async function fetchSwarmModels(silent = false) {
     if (typeof silent !== 'boolean') silent = false;
-    const url = elements.swarmUrl.value;
+    const url = normalizeBaseUrl(elements.swarmUrl.value);
 
     try {
         elements.fetchModelsBtn.disabled = true;
@@ -129,14 +129,14 @@ export async function fetchSwarmModels(silent = false) {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
-            Fetch Models
+            Load Models
         `;
     }
 }
 
 // Get new session from SwarmUI
 export async function getSwarmSession() {
-    const url = elements.swarmUrl.value;
+    const url = normalizeBaseUrl(elements.swarmUrl.value);
 
     try {
         const response = await fetch(`${url}/API/GetNewSession`, {
@@ -160,8 +160,8 @@ export async function getSwarmSession() {
 }
 
 // Generate image using SwarmUI
-export async function generateImage(prompt) {
-    const url = elements.swarmUrl.value;
+export async function generateImage(prompt, width = null, height = null) {
+    const url = normalizeBaseUrl(elements.swarmUrl.value);
 
     try {
         elements.imageIndicator.classList.remove('hidden');
@@ -180,8 +180,8 @@ export async function generateImage(prompt) {
                 prompt: prompt,
                 negativeprompt: " (bad quality:1.15), (worst quality:1.3)",
                 model: elements.swarmModel.value,
-                width: parseInt(elements.imgWidth.value),
-                height: parseInt(elements.imgHeight.value),
+                width: width ? parseInt(width) : parseInt(elements.imgWidth.value),
+                height: height ? parseInt(height) : parseInt(elements.imgHeight.value),
                 steps: parseInt(elements.steps.value),
                 cfgscale: parseFloat(elements.cfgScale.value),
                 sampler_name: elements.sampler.value,
@@ -210,8 +210,8 @@ export async function generateImage(prompt) {
                     images: 1,
                     prompt: prompt,
                     model: elements.swarmModel.value,
-                    width: parseInt(elements.imgWidth.value),
-                    height: parseInt(elements.imgHeight.value),
+                    width: width ? parseInt(width) : parseInt(elements.imgWidth.value),
+                    height: height ? parseInt(height) : parseInt(elements.imgHeight.value),
                     steps: parseInt(elements.steps.value),
                     cfgscale: parseFloat(elements.cfgScale.value),
                     sampler_name: elements.sampler.value,
