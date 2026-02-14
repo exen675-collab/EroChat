@@ -40,6 +40,9 @@ export const elements = {
     charName: document.getElementById('charName'),
     charAvatar: document.getElementById('charAvatar'),
     charSystemPrompt: document.getElementById('charSystemPrompt'),
+    charDescription: document.getElementById('charDescription'),
+    thumbnailPreview: document.getElementById('thumbnailPreview'),
+    generateThumbnailBtn: document.getElementById('generateThumbnailBtn'),
     
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),

@@ -7,6 +7,7 @@ An AI-powered erotic roleplay chat application that combines OpenRouter's langua
 - **🤖 AI-Powered Chat** - Engage in intimate, creative conversations using OpenRouter's API
 - **🎨 Automatic Image Generation** - Every AI response is visualized with images generated via your local SwarmUI instance
 - **👤 Custom Characters** - Create and manage multiple characters with unique personalities and system prompts
+- **🖼️ Character Thumbnails** - Generate visual character portraits using SwarmUI for better character recognition
 - **⚙️ Flexible Configuration** - Adjust generation settings including model, sampler, CFG scale, steps, and image dimensions
 - **💾 Local Storage** - All settings and chat history persist in your browser's localStorage
 - **📱 Responsive Design** - Modern, sleek interface with glassmorphism styling and purple/pink gradients
@@ -74,8 +75,28 @@ The default system prompt instructs the AI to be seductive, explicit, and automa
 
 1. Click "+ New" in the Characters section
 2. Set a name and avatar emoji
-3. Customize the system prompt to define personality
-4. Save and start chatting!
+3. **Generate a Thumbnail** (optional but recommended):
+   - Enter a description of the character's appearance in the "Character Description" field
+   - Click "Generate Thumbnail" to create a visual portrait using SwarmUI
+   - Wait for the image to generate (typically 5-10 seconds)
+   - The thumbnail will appear in the preview area
+4. Customize the system prompt to define personality
+5. Save and start chatting!
+
+### Character Thumbnails
+
+Character thumbnails provide visual identity to your characters:
+- **Automatic Generation**: Uses your local SwarmUI instance to create portraits
+- **Portrait Optimized**: Generated at 512x768 resolution for character portraits
+- **Persistent Storage**: Thumbnails are saved as base64 data in localStorage
+- **Edit Anytime**: Click the edit button (pencil icon) on any character to regenerate thumbnails
+- **Fallback**: Characters without thumbnails display their emoji avatar
+
+**Tips for Better Thumbnails**:
+- Be specific in your description (e.g., "beautiful woman with long red hair, green eyes, wearing elegant dress")
+- Include style preferences (e.g., "anime style", "realistic", "fantasy art")
+- Mention key features like hair color, eye color, clothing, expression
+- The system automatically adds quality tags like "masterpiece, best quality, ultra-detailed"
 
 **Image Prompt Format**: Character prompts should include image generation instructions:
 ```
