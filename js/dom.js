@@ -13,7 +13,7 @@ export const elements = {
     currentCharacterName: document.getElementById('currentCharacterName'),
     welcomeAvatar: document.getElementById('welcomeAvatar'),
     welcomeMessage: document.getElementById('welcomeMessage'),
-    
+
     // Settings inputs
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
@@ -28,7 +28,7 @@ export const elements = {
     cfgValue: document.getElementById('cfgValue'),
     sampler: document.getElementById('sampler'),
     systemPrompt: document.getElementById('systemPrompt'),
-    
+
     // Character elements
     charactersList: document.getElementById('charactersList'),
     addCharacterBtn: document.getElementById('addCharacterBtn'),
@@ -46,7 +46,8 @@ export const elements = {
     charUserInfo: document.getElementById('charUserInfo'),
     thumbnailPreview: document.getElementById('thumbnailPreview'),
     generateThumbnailBtn: document.getElementById('generateThumbnailBtn'),
-    
+    generatePromptBtn: document.getElementById('generatePromptBtn'),
+
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),

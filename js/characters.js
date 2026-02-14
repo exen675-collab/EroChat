@@ -193,6 +193,55 @@ export function closeCharacterModal() {
     editingCharacterId = null;
 }
 
+// Generate system prompt on demand
+export async function generateSystemPromptOnDemand() {
+    const name = elements.charName.value.trim();
+    const description = elements.charDescription.value.trim();
+    const background = elements.charBackground.value.trim();
+    const userInfo = elements.charUserInfo.value.trim();
+
+    if (!name || !description || !userInfo) {
+        alert('Please fill in Name, Description, and User Info first.');
+        return;
+    }
+
+    if (!elements.openrouterKey.value) {
+        alert('Please enter your OpenRouter API key in settings.');
+        return;
+    }
+
+    const originalBtnContent = elements.generatePromptBtn.innerHTML;
+    elements.generatePromptBtn.disabled = true;
+    elements.generatePromptBtn.innerHTML = `
+        <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Generating...
+    `;
+
+    try {
+        const systemPrompt = await generateCharacterSystemPrompt({
+            name,
+            description,
+            background,
+            userInfo
+        });
+
+        if (systemPrompt) {
+            elements.charSystemPrompt.value = systemPrompt;
+            alert('System prompt generated successfully! You can now review and edit it.');
+        } else {
+            throw new Error('Model returned an empty prompt.');
+        }
+    } catch (error) {
+        console.error('Prompt generation error:', error);
+        alert('Failed to generate prompt: ' + error.message);
+    } finally {
+        elements.generatePromptBtn.disabled = false;
+        elements.generatePromptBtn.innerHTML = originalBtnContent;
+    }
+}
+
 // Save character (create or update)
 export async function saveCharacter() {
     const name = elements.charName.value.trim();

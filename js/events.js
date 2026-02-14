@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { toggleSidebar, autoResizeTextarea } from './ui.js';
-import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail } from './characters.js';
+import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { saveToLocalStorage } from './storage.js';
@@ -41,6 +41,7 @@ export function setupEventListeners() {
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
     elements.saveCharBtn.addEventListener('click', saveCharacter);
     elements.generateThumbnailBtn.addEventListener('click', generateThumbnail);
+    elements.generatePromptBtn.addEventListener('click', generateSystemPromptOnDemand);
 
     // Close modal on overlay click
     elements.characterModal.addEventListener('click', (e) => {
