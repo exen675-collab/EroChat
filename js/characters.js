@@ -3,6 +3,7 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
 import { escapeHtml, formatMessage } from './utils.js';
+import { generateCharacterSystemPrompt } from './api-openrouter.js';
 
 // Track if we're editing an existing character
 let editingCharacterId = null;
@@ -142,6 +143,9 @@ export function openCharacterModal(characterId = null) {
             elements.charAvatar.value = character.avatar;
             elements.charSystemPrompt.value = character.systemPrompt;
             elements.charDescription.value = character.description || '';
+            elements.charBackground.value = character.background || '';
+            elements.charUserInfo.value = character.userInfo || '';
+            elements.charAppearance.value = character.appearance || '';
 
             // Set current thumbnail for editing
             currentThumbnail = character.thumbnail || null;
@@ -159,13 +163,11 @@ export function openCharacterModal(characterId = null) {
         elements.modalTitle.textContent = 'Create Character';
         elements.charName.value = '';
         elements.charAvatar.value = '🤖';
+        elements.charAppearance.value = '';
         elements.charDescription.value = '';
-        elements.charSystemPrompt.value = `You are a seductive and creative erotic roleplay partner named [Character Name]. You describe scenes in a vivid, sensual, extremely detailed way. You always stay in character.
-
-After your text response, ALWAYS append EXACTLY this block (nothing more):
----IMAGE_PROMPT START---
-masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW English prompt for Stable Diffusion – current scene, characters, poses, clothing/lack of it, lighting, mood, body details, facial expression, camera angle etc.]
----IMAGE_PROMPT END---`;
+        elements.charBackground.value = '';
+        elements.charUserInfo.value = '';
+        elements.charSystemPrompt.value = '';
         currentThumbnail = null;
         resetThumbnailPreview();
     }
@@ -192,20 +194,68 @@ export function closeCharacterModal() {
 }
 
 // Save character (create or update)
-export function saveCharacter() {
+export async function saveCharacter() {
     const name = elements.charName.value.trim();
     const avatar = elements.charAvatar.value.trim() || '🤖';
-    const systemPrompt = elements.charSystemPrompt.value.trim();
+    let systemPrompt = elements.charSystemPrompt.value.trim();
     const description = elements.charDescription.value.trim();
+    const background = elements.charBackground.value.trim();
+    const userInfo = elements.charUserInfo.value.trim();
+    const appearance = elements.charAppearance.value.trim();
 
     if (!name) {
         alert('Please enter a character name.');
         return;
     }
 
-    if (!systemPrompt) {
-        alert('Please enter a system prompt.');
+    if (!description) {
+        alert('Please enter a description / personality.');
         return;
+    }
+
+    if (!userInfo) {
+        alert('Please enter user info and description.');
+        return;
+    }
+
+    if (!systemPrompt) {
+        if (editingCharacterId) {
+            alert('Please enter a system prompt.');
+            return;
+        }
+
+        if (!elements.openrouterKey.value) {
+            alert('Please enter your OpenRouter API key in settings to auto-generate a system prompt.');
+            return;
+        }
+
+        const originalSaveLabel = elements.saveCharBtn.innerHTML;
+        elements.saveCharBtn.disabled = true;
+        elements.saveCharBtn.innerHTML = 'Generating Prompt...';
+
+        try {
+            systemPrompt = await generateCharacterSystemPrompt({
+                name,
+                description,
+                background,
+                userInfo
+            });
+
+            if (!systemPrompt) {
+                throw new Error('Model returned an empty system prompt.');
+            }
+
+            elements.charSystemPrompt.value = systemPrompt;
+        } catch (error) {
+            console.error('System prompt generation error:', error);
+            alert('Failed to generate system prompt: ' + error.message);
+            elements.saveCharBtn.disabled = false;
+            elements.saveCharBtn.innerHTML = originalSaveLabel;
+            return;
+        }
+
+        elements.saveCharBtn.disabled = false;
+        elements.saveCharBtn.innerHTML = originalSaveLabel;
     }
 
     if (editingCharacterId) {
@@ -217,7 +267,10 @@ export function saveCharacter() {
                 name,
                 avatar,
                 systemPrompt,
-                description
+                description,
+                background,
+                userInfo,
+                appearance
             };
             // Only update thumbnail if a new one was generated
             if (currentThumbnail) {
@@ -233,6 +286,9 @@ export function saveCharacter() {
             avatar,
             systemPrompt,
             description,
+            background,
+            userInfo,
+            appearance,
             isDefault: false,
             messages: []
         };
@@ -256,11 +312,11 @@ let currentThumbnail = null;
 
 // Generate thumbnail for character
 export async function generateThumbnail() {
-    const description = elements.charDescription.value.trim();
+    const description = elements.charAppearance.value.trim();
     const name = elements.charName.value.trim();
 
     if (!description) {
-        alert('Please enter a character description for image generation.');
+        alert('Please enter a character appearance for image generation.');
         return;
     }
 

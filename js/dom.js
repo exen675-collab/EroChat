@@ -40,7 +40,10 @@ export const elements = {
     charName: document.getElementById('charName'),
     charAvatar: document.getElementById('charAvatar'),
     charSystemPrompt: document.getElementById('charSystemPrompt'),
+    charAppearance: document.getElementById('charAppearance'),
     charDescription: document.getElementById('charDescription'),
+    charBackground: document.getElementById('charBackground'),
+    charUserInfo: document.getElementById('charUserInfo'),
     thumbnailPreview: document.getElementById('thumbnailPreview'),
     generateThumbnailBtn: document.getElementById('generateThumbnailBtn'),
     
