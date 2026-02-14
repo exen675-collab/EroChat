@@ -32,3 +32,9 @@ export function updateConnectionStatus(connected) {
         text.className = 'text-gray-400';
     }
 }
+
+
+// Normalize base URL by trimming spaces and trailing slash
+export function normalizeBaseUrl(url) {
+    return (url || '').trim().replace(/\/$/, '');
+}

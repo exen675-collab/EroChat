@@ -1,9 +1,15 @@
 import { elements } from './dom.js';
 
 // Toggle sidebar visibility (mobile)
-export function toggleSidebar() {
-    elements.settingsPanel.classList.toggle('-translate-x-full');
-    elements.overlay.classList.toggle('hidden');
+export function toggleSidebar(forceOpen = null) {
+    if (window.innerWidth >= 1024) return;
+
+    const shouldOpen = forceOpen !== null
+        ? forceOpen
+        : elements.settingsPanel.classList.contains('-translate-x-full');
+
+    elements.settingsPanel.classList.toggle('-translate-x-full', !shouldOpen);
+    elements.overlay.classList.toggle('hidden', !shouldOpen);
 }
 
 // Auto-resize textarea as user types
