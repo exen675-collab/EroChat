@@ -6,18 +6,18 @@ let fetchedModels = [];
 // Filter and populate models based on search query
 function filterAndPopulateModels(searchQuery = '') {
     const query = searchQuery.toLowerCase().trim();
-    
+
     // Clear current options
     elements.openrouterModel.innerHTML = '<option value="">Select a model...</option>';
-    
+
     // Filter models
-    const filteredModels = query 
-        ? fetchedModels.filter(model => 
-            model.name.toLowerCase().includes(query) || 
+    const filteredModels = query
+        ? fetchedModels.filter(model =>
+            model.name.toLowerCase().includes(query) ||
             model.id.toLowerCase().includes(query)
-          )
+        )
         : fetchedModels;
-    
+
     // Populate select with filtered models
     filteredModels.forEach(model => {
         const option = document.createElement('option');
@@ -25,7 +25,7 @@ function filterAndPopulateModels(searchQuery = '') {
         option.textContent = `${model.name} (${model.id})`;
         elements.openrouterModel.appendChild(option);
     });
-    
+
     // Update select label to show filter results
     if (query && filteredModels.length > 0) {
         elements.openrouterModel.options[0].textContent = `Select a model (${filteredModels.length} found)...`;
@@ -44,21 +44,22 @@ export function setupModelSearch() {
 }
 
 // Fetch all available models from OpenRouter
-export async function fetchOpenRouterModels() {
+export async function fetchOpenRouterModels(silent = false) {
+    if (typeof silent !== 'boolean') silent = false;
     const apiKey = elements.openrouterKey.value;
-    
+
     if (!apiKey) {
-        alert('Please enter your OpenRouter API key first.');
+        if (!silent) alert('Please enter your OpenRouter API key first.');
         return;
     }
-    
+
     try {
         elements.fetchOpenRouterModelsBtn.disabled = true;
         elements.fetchOpenRouterModelsBtn.innerHTML = `
             <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
             Fetching...
         `;
-        
+
         const response = await fetch('https://openrouter.ai/api/v1/models', {
             method: 'GET',
             headers: {
@@ -67,27 +68,27 @@ export async function fetchOpenRouterModels() {
                 'X-Title': 'EroChat + SwarmUI'
             }
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to fetch models. Check your API key.');
         }
-        
+
         const data = await response.json();
         fetchedModels = data.data || [];
-        
+
         // Clear search input
         elements.openrouterModelSearch.value = '';
         elements.openrouterModelSearch.disabled = false;
         elements.openrouterModelSearch.placeholder = 'Type to search models...';
-        
+
         // Populate select with all models
         filterAndPopulateModels();
-        
-        alert(`Successfully fetched ${fetchedModels.length} models from OpenRouter!`);
-        
+
+        if (!silent) alert(`Successfully fetched ${fetchedModels.length} models from OpenRouter!`);
+
     } catch (error) {
         console.error('Error fetching OpenRouter models:', error);
-        alert('Failed to fetch models: ' + error.message);
+        if (!silent) alert('Failed to fetch models: ' + error.message);
     } finally {
         elements.fetchOpenRouterModelsBtn.disabled = false;
         elements.fetchOpenRouterModelsBtn.innerHTML = `
@@ -116,12 +117,12 @@ export async function sendChatRequest(apiMessages) {
             max_tokens: 2000
         })
     });
-    
+
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error?.message || 'Failed to get response');
     }
-    
+
     const data = await response.json();
     return data.choices[0].message.content;
 }

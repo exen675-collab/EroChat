@@ -65,8 +65,23 @@ export function renderCharactersList() {
 
 // Select a character
 export function selectCharacter(charId) {
+    // Save current messages to the previous character before switching
+    const oldCharIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
+    if (oldCharIndex !== -1) {
+        state.characters[oldCharIndex].messages = [...state.messages];
+    } else if (state.currentCharacterId === 'default') {
+        // Handle default if it's not in the array for some reason (though it should be)
+        const defaultInList = state.characters.find(c => c.id === 'default');
+        if (defaultInList) {
+            defaultInList.messages = [...state.messages];
+        }
+    }
+
     state.currentCharacterId = charId;
     const character = getCurrentCharacter();
+
+    // Load messages for the new character
+    state.messages = character.messages || [];
 
     // Update system prompt in settings
     elements.systemPrompt.value = character.systemPrompt;
@@ -74,6 +89,10 @@ export function selectCharacter(charId) {
 
     renderCharactersList();
     updateCurrentCharacterUI();
+
+    // Import and call renderMessages to refresh the chat view
+    import('./messages.js').then(m => m.renderMessages());
+
     saveToLocalStorage();
 }
 
@@ -98,14 +117,11 @@ export function deleteCharacter(charId) {
 
         // If we deleted the current character, switch to default
         if (state.currentCharacterId === charId) {
-            state.currentCharacterId = 'default';
-            elements.systemPrompt.value = defaultCharacter.systemPrompt;
-            state.settings.systemPrompt = defaultCharacter.systemPrompt;
+            selectCharacter('default');
+        } else {
+            renderCharactersList();
+            saveToLocalStorage();
         }
-
-        renderCharactersList();
-        updateCurrentCharacterUI();
-        saveToLocalStorage();
     }
 }
 
@@ -217,7 +233,8 @@ export function saveCharacter() {
             avatar,
             systemPrompt,
             description,
-            isDefault: false
+            isDefault: false,
+            messages: []
         };
         // Add thumbnail if one was generated
         if (currentThumbnail) {

@@ -6,11 +6,22 @@ import { renderMessages } from './messages.js';
 
 // Save state to localStorage
 export function saveToLocalStorage() {
+    // Sync current messages to the current character in the list
+    const currentCharIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
+    if (currentCharIndex !== -1) {
+        state.characters[currentCharIndex].messages = [...state.messages];
+    } else if (state.currentCharacterId === 'default') {
+        const defaultInList = state.characters.find(c => c.id === 'default');
+        if (defaultInList) {
+            defaultInList.messages = [...state.messages];
+        }
+    }
+
     const data = {
         settings: state.settings,
-        messages: state.messages,
         characters: state.characters,
         currentCharacterId: state.currentCharacterId
+        // No longer saving top-level messages
     };
     localStorage.setItem('erochat_data', JSON.stringify(data));
 }
@@ -18,6 +29,8 @@ export function saveToLocalStorage() {
 // Load state from localStorage
 export function loadFromLocalStorage() {
     const data = localStorage.getItem('erochat_data');
+    let migratedMessages = null;
+
     if (data) {
         try {
             const parsed = JSON.parse(data);
@@ -31,24 +44,43 @@ export function loadFromLocalStorage() {
             if (parsed.currentCharacterId) {
                 state.currentCharacterId = parsed.currentCharacterId;
             }
+            // Temporarily store old top-level messages for migration
             if (parsed.messages && parsed.messages.length > 0) {
-                state.messages = parsed.messages;
+                migratedMessages = parsed.messages;
             }
         } catch (e) {
             console.error('Failed to load from localStorage:', e);
         }
     }
-    
+
     // Ensure we have at least the default character
     if (state.characters.length === 0) {
         state.characters = [{ ...defaultCharacter }];
     }
-    
+
     // Set default character if none selected
     if (!state.currentCharacterId) {
         state.currentCharacterId = 'default';
     }
-    
+
+    // Handle migration if needed
+    if (migratedMessages) {
+        const currentChar = state.characters.find(c => c.id === (state.currentCharacterId || 'default')) ||
+            state.characters.find(c => c.id === 'default');
+        if (currentChar && (!currentChar.messages || currentChar.messages.length === 0)) {
+            currentChar.messages = migratedMessages;
+        }
+    }
+
+    // Populate active messages from current character
+    const character = state.characters.find(c => c.id === state.currentCharacterId) ||
+        state.characters.find(c => c.id === 'default') ||
+        state.characters[0];
+
+    if (character) {
+        state.messages = character.messages || [];
+    }
+
     renderCharactersList();
     updateCurrentCharacterUI();
     renderMessages();

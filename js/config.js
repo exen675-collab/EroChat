@@ -9,7 +9,8 @@ After your text response, ALWAYS append EXACTLY this block (nothing more):
 ---IMAGE_PROMPT START---
 masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW English prompt for Stable Diffusion – current scene, characters, poses, clothing/lack of it, lighting, mood, body details, facial expression, camera angle etc.]
 ---IMAGE_PROMPT END---`,
-    isDefault: true
+    isDefault: true,
+    messages: []
 };
 
 // Default settings

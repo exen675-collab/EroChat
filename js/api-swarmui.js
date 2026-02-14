@@ -5,9 +5,9 @@ import { updateConnectionStatus } from './utils.js';
 // Helper function to parse models from SwarmUI response
 function parseModels(data) {
     let models = [];
-    
+
     console.log('SwarmUI models response:', data);
-    
+
     if (data.models && Array.isArray(data.models)) {
         // Models could be strings or objects with a name property
         models = data.models.map(m => typeof m === 'string' ? m : (m.name || m.title || JSON.stringify(m)));
@@ -29,7 +29,7 @@ function parseModels(data) {
                         return null;
                     })
                     .filter(item => item && typeof item === 'string');
-                
+
                 if (arr.length > 0) {
                     models = arr;
                     break;
@@ -37,27 +37,28 @@ function parseModels(data) {
             }
         }
     }
-    
+
     console.log('Available models:', models);
     return models;
 }
 
 // Fetch available models from SwarmUI
-export async function fetchSwarmModels() {
+export async function fetchSwarmModels(silent = false) {
+    if (typeof silent !== 'boolean') silent = false;
     const url = elements.swarmUrl.value;
-    
+
     try {
         elements.fetchModelsBtn.disabled = true;
         elements.fetchModelsBtn.innerHTML = `
             <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
             Fetching...
         `;
-        
+
         // Get session first
         if (!state.sessionId) {
             await getSwarmSession();
         }
-        
+
         const response = await fetch(`${url}/API/ListModels`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,11 +68,11 @@ export async function fetchSwarmModels() {
                 depth: 2
             })
         });
-        
+
         if (!response.ok) {
             // Try to refresh session and retry
             await getSwarmSession();
-            
+
             const retryResponse = await fetch(`${url}/API/ListModels`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -81,47 +82,47 @@ export async function fetchSwarmModels() {
                     depth: 2
                 })
             });
-            
+
             if (!retryResponse.ok) throw new Error('Failed to fetch models');
-            
+
             const retryData = await retryResponse.json();
             const models = parseModels(retryData);
-            
+
             // Populate select
             elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
-            
+
             models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model;
                 option.textContent = model;
                 elements.swarmModel.appendChild(option);
             });
-            
+
             updateConnectionStatus(true);
-            alert(`Successfully fetched ${models.length} models!`);
+            if (!silent) alert(`Successfully fetched ${models.length} models!`);
             return;
         }
-        
+
         const data = await response.json();
         const models = parseModels(data);
-        
+
         // Populate select
         elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
-        
+
         models.forEach(model => {
             const option = document.createElement('option');
             option.value = model;
             option.textContent = model;
             elements.swarmModel.appendChild(option);
         });
-        
+
         updateConnectionStatus(true);
-        alert(`Successfully fetched ${models.length} models!`);
-        
+        if (!silent) alert(`Successfully fetched ${models.length} models!`);
+
     } catch (error) {
         console.error('Error fetching models:', error);
         updateConnectionStatus(false);
-        alert('Failed to fetch models. Make sure SwarmUI is running at the specified URL.');
+        if (!silent) alert('Failed to fetch models. Make sure SwarmUI is running at the specified URL.');
     } finally {
         elements.fetchModelsBtn.disabled = false;
         elements.fetchModelsBtn.innerHTML = `
@@ -136,21 +137,21 @@ export async function fetchSwarmModels() {
 // Get new session from SwarmUI
 export async function getSwarmSession() {
     const url = elements.swarmUrl.value;
-    
+
     try {
         const response = await fetch(`${url}/API/GetNewSession`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
         });
-        
+
         if (!response.ok) throw new Error('Failed to get session');
-        
+
         const data = await response.json();
         state.sessionId = data.session_id;
         updateConnectionStatus(true);
         return data.session_id;
-        
+
     } catch (error) {
         console.error('Error getting session:', error);
         updateConnectionStatus(false);
@@ -161,15 +162,15 @@ export async function getSwarmSession() {
 // Generate image using SwarmUI
 export async function generateImage(prompt) {
     const url = elements.swarmUrl.value;
-    
+
     try {
         elements.imageIndicator.classList.remove('hidden');
-        
+
         // Get session if needed
         if (!state.sessionId) {
             await getSwarmSession();
         }
-        
+
         const response = await fetch(`${url}/API/GenerateText2Image`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -195,11 +196,11 @@ export async function generateImage(prompt) {
                 scheduler: "karras",
             })
         });
-        
+
         if (!response.ok) {
             // Try to refresh session
             await getSwarmSession();
-            
+
             // Retry
             const retryResponse = await fetch(`${url}/API/GenerateText2Image`, {
                 method: 'POST',
@@ -217,25 +218,25 @@ export async function generateImage(prompt) {
                     seed: -1
                 })
             });
-            
+
             if (!retryResponse.ok) throw new Error('Failed to generate image after retry');
-            
+
             const retryData = await retryResponse.json();
             if (retryData.images && retryData.images.length > 0) {
                 const imagePath = retryData.images[0];
                 return `${url}/${imagePath}`;
             }
         }
-        
+
         const data = await response.json();
-        
+
         if (data.images && data.images.length > 0) {
             const imagePath = data.images[0];
             return `${url}/${imagePath}`;
         }
-        
+
         throw new Error('No image generated');
-        
+
     } catch (error) {
         console.error('Error generating image:', error);
         throw error;

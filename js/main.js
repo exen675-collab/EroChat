@@ -10,6 +10,8 @@ import { escapeHtml } from './utils.js';
 import { setupEventListeners } from './events.js';
 import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
+import { fetchOpenRouterModels } from './api-openrouter.js';
+import { fetchSwarmModels } from './api-swarmui.js';
 
 // Main send message function
 export async function sendMessage() {
@@ -124,6 +126,31 @@ export async function sendMessage() {
     }
 }
 
+// Auto-fetch models if keys are present
+async function autoFetchModels() {
+    console.log('Checking for auto-fetch...');
+
+    // Auto-fetch SwarmUI models if URL is present
+    if (elements.swarmUrl.value) {
+        console.log('Auto-fetching SwarmUI models...');
+        try {
+            await fetchSwarmModels(true);
+        } catch (e) {
+            console.warn('Auto-fetch SwarmUI models failed:', e);
+        }
+    }
+
+    // Auto-fetch OpenRouter models if key is present
+    if (elements.openrouterKey.value) {
+        console.log('Auto-fetching OpenRouter models...');
+        try {
+            await fetchOpenRouterModels(true);
+        } catch (e) {
+            console.warn('Auto-fetch OpenRouter models failed:', e);
+        }
+    }
+}
+
 // Initialize application
 function init() {
     // Setup event listeners
@@ -140,6 +167,9 @@ function init() {
 
     // Focus input on load
     elements.messageInput.focus();
+
+    // Trigger auto-fetching
+    autoFetchModels();
 
     console.log('EroChat initialized successfully!');
 }
