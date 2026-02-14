@@ -328,7 +328,7 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                                 <p class="text-sm">No thumbnail</p>
                             </div>
                         </div>
-                        <input type="text" id="charDescription" placeholder="Describe character appearance for image generation..." 
+                        <input type="text" id="charAppearance" placeholder="Describe character appearance for thumbnail generation..." 
                             class="w-full px-4 py-3 rounded-lg text-sm mb-2">
                         <button id="generateThumbnailBtn" class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,14 +337,35 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                             Generate Thumbnail
                         </button>
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Description / Personality *</label>
+                        <textarea id="charDescription" rows="4"
+                            class="w-full px-4 py-3 rounded-lg text-sm resize-y"
+                            placeholder="Describe the character's personality, speaking style, goals, boundaries, and vibe..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Background / Other Details (optional)</label>
+                        <textarea id="charBackground" rows="3"
+                            class="w-full px-4 py-3 rounded-lg text-sm resize-y"
+                            placeholder="Backstory, lore, relationships, setting details, kinks/preferences, etc."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">User Info and Description *</label>
+                        <textarea id="charUserInfo" rows="3"
+                            class="w-full px-4 py-3 rounded-lg text-sm resize-y"
+                            placeholder="Describe the user persona this character should interact with (name, tone, role, context, preferences)."></textarea>
+                    </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">System Prompt *</label>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">System Prompt</label>
                         <textarea id="charSystemPrompt" rows="8" 
                             class="w-full px-4 py-3 rounded-lg text-sm resize-none"
-                            placeholder="Describe your character's personality, behavior, and how they should respond..."></textarea>
+                            placeholder="Generated automatically with Claude 4.5 Sonnet when you save a new character. You can edit it later."></textarea>
                         <p class="text-xs text-gray-500 mt-1">
-                            Tip: Include instructions for image generation at the end using ---IMAGE_PROMPT START--- and ---IMAGE_PROMPT END---
+                            New characters: prompt is generated from the fields above via OpenRouter (Claude 4.5 Sonnet).
                         </p>
                     </div>
                 </div>

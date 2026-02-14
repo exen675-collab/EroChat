@@ -126,3 +126,47 @@ export async function sendChatRequest(apiMessages) {
     const data = await response.json();
     return data.choices[0].message.content;
 }
+
+
+// Generate a high-quality system prompt for a character using Claude 4.5 Sonnet via OpenRouter
+export async function generateCharacterSystemPrompt({ name, description, background, userInfo }) {
+    const generatorModel = 'anthropic/claude-sonnet-4.5';
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${elements.openrouterKey.value}`,
+            'HTTP-Referer': window.location.href,
+            'X-Title': 'EroChat + SwarmUI'
+        },
+        body: JSON.stringify({
+            model: generatorModel,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert prompt engineer for immersive character roleplay. Write production-ready system prompts. Return only the final system prompt text without markdown fences or extra commentary.'
+                },
+                {
+                    role: 'user',
+                    content: `Create a high-quality, detailed system prompt for an AI roleplay character with the following data.\n\nCharacter name: ${name}\nDescription / personality: ${description}\nBackground / other details: ${background || 'None provided'}\nUser info and description: ${userInfo}\n\nRequirements:\n- Keep the character fully consistent and in-character.\n- Make the writing style vivid and expressive.\n- Include practical behavioral rules, memory priorities, tone guidance, and interaction style with the user profile.\n- Include clear formatting for output quality and scene continuity.\n- At the end, include an image prompt block exactly in this format:\n---IMAGE_PROMPT START---\n[highly detailed Stable Diffusion prompt matching current scene]\n---IMAGE_PROMPT END---\n- Return only the completed system prompt.`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 2200
+        })
+    });
+
+    if (!response.ok) {
+        let errorMessage = 'Failed to generate system prompt';
+        try {
+            const error = await response.json();
+            errorMessage = error.error?.message || errorMessage;
+        } catch {
+            // ignore json parsing failures
+        }
+        throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+}
