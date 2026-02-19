@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { toggleSidebar, autoResizeTextarea } from './ui.js';
+import { normalizeBaseUrl } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
@@ -50,12 +51,20 @@ export function setupEventListeners() {
         }
     });
 
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) {
+            elements.settingsPanel.classList.remove('-translate-x-full');
+            elements.overlay.classList.add('hidden');
+        }
+    });
+
     // Save settings
     elements.saveSettingsBtn.addEventListener('click', () => {
         state.settings = {
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
-            swarmUrl: elements.swarmUrl.value,
+            swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
             imgWidth: parseInt(elements.imgWidth.value),
             imgHeight: parseInt(elements.imgHeight.value),

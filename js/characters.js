@@ -10,10 +10,17 @@ let editingCharacterId = null;
 
 // Get current character
 export function getCurrentCharacter() {
-    if (state.currentCharacterId === 'default') {
-        return defaultCharacter;
-    }
-    return state.characters.find(c => c.id === state.currentCharacterId) || defaultCharacter;
+    const selected = state.characters.find(c => c.id === state.currentCharacterId);
+    if (selected) return selected;
+
+    const storedDefault = state.characters.find(c => c.id === 'default');
+    if (storedDefault) return storedDefault;
+
+    return {
+        ...defaultCharacter,
+        systemPrompt: state.settings.systemPrompt || defaultCharacter.systemPrompt,
+        messages: state.messages || []
+    };
 }
 
 // Render characters list in sidebar
@@ -95,6 +102,10 @@ export function selectCharacter(charId) {
     import('./messages.js').then(m => m.renderMessages());
 
     saveToLocalStorage();
+
+    if (window.innerWidth < 1024) {
+        import('./ui.js').then(ui => ui.toggleSidebar(false));
+    }
 }
 
 // Update current character UI elements

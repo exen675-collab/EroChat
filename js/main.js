@@ -43,6 +43,8 @@ export async function sendMessage() {
     // Show typing indicator
     elements.typingIndicator.classList.remove('hidden');
     state.isGenerating = true;
+    elements.sendBtn.disabled = true;
+    elements.sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
 
     try {
         // Get current character's system prompt
@@ -123,6 +125,8 @@ export async function sendMessage() {
 
     } finally {
         state.isGenerating = false;
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
     }
 }
 
