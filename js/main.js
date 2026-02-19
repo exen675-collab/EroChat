@@ -1,8 +1,8 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
-import { getCurrentCharacter } from './characters.js';
-import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage } from './messages.js';
+import { getCurrentCharacter, saveGeneratedImageToCurrentCharacter } from './characters.js';
+import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, openImageZoom, closeImageZoom, openCharacterGallery, closeCharacterGallery } from './messages.js';
 import { generateImage } from './api-swarmui.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom } from './ui.js';
@@ -81,6 +81,7 @@ export async function sendMessage() {
                 const msgIndex = state.messages.findIndex(m => m.id === aiMessageId);
                 if (msgIndex !== -1) {
                     state.messages[msgIndex].imageUrl = imageUrl;
+                    saveGeneratedImageToCurrentCharacter(imageUrl);
                     saveToLocalStorage();
                 }
             } catch (imgError) {
@@ -168,6 +169,19 @@ function init() {
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;
+    window.openImageZoom = openImageZoom;
+    window.openCharacterGallery = openCharacterGallery;
+
+    // Image modal behavior
+    elements.closeImageZoomBtn.addEventListener('click', closeImageZoom);
+    elements.imageZoomModal.addEventListener('click', (e) => {
+        if (e.target === elements.imageZoomModal) closeImageZoom();
+    });
+
+    elements.closeGalleryBtn.addEventListener('click', closeCharacterGallery);
+    elements.characterGalleryModal.addEventListener('click', (e) => {
+        if (e.target === elements.characterGalleryModal) closeCharacterGallery();
+    });
 
     // Focus input on load
     elements.messageInput.focus();

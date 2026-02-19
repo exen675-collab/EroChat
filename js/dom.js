@@ -14,6 +14,15 @@ export const elements = {
     welcomeAvatar: document.getElementById('welcomeAvatar'),
     welcomeMessage: document.getElementById('welcomeMessage'),
 
+    // Image modals
+    imageZoomModal: document.getElementById('imageZoomModal'),
+    zoomedImage: document.getElementById('zoomedImage'),
+    closeImageZoomBtn: document.getElementById('closeImageZoomBtn'),
+    characterGalleryModal: document.getElementById('characterGalleryModal'),
+    closeGalleryBtn: document.getElementById('closeGalleryBtn'),
+    characterGalleryGrid: document.getElementById('characterGalleryGrid'),
+    galleryTitle: document.getElementById('galleryTitle'),
+
     // Settings inputs
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),

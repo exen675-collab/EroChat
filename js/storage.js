@@ -39,7 +39,11 @@ export function loadFromLocalStorage() {
                 updateSettingsUI();
             }
             if (parsed.characters) {
-                state.characters = parsed.characters;
+                state.characters = parsed.characters.map(char => ({
+                    ...char,
+                    messages: char.messages || [],
+                    generatedImages: char.generatedImages || []
+                }));
             }
             if (parsed.currentCharacterId) {
                 state.currentCharacterId = parsed.currentCharacterId;
