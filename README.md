@@ -1,179 +1,103 @@
-# 💋 EroChat + SwarmUI
+# EroChat
 
-An AI-powered erotic roleplay chat application that combines OpenRouter's language models with local SwarmUI image generation for immersive, visually-enhanced conversations.
+EroChat is a simple browser app for AI roleplay chat with automatic image generation.
 
-## ✨ Features
+It connects:
+- **OpenRouter** for text replies
+- **SwarmUI** for image generation
 
-- **🤖 AI-Powered Chat** - Engage in intimate, creative conversations using OpenRouter's API
-- **🎨 Automatic Image Generation** - Every AI response is visualized with images generated via your local SwarmUI instance
-- **👤 Custom Characters** - Create and manage multiple characters with unique personalities and system prompts
-- **🖼️ Character Thumbnails** - Generate visual character portraits using SwarmUI for better character recognition
-- **⚙️ Flexible Configuration** - Adjust generation settings including model, sampler, CFG scale, steps, and image dimensions
-- **💾 Local Storage** - All settings and chat history persist in your browser's localStorage
-- **📱 Responsive Design** - Modern, sleek interface with glassmorphism styling and purple/pink gradients
-- **🔑 API Integration** - Support for multiple LLM models via OpenRouter
+No build tools, no backend setup, no framework required.
 
-## 🚀 Getting Started
+## What it does
 
-### Prerequisites
+- Chat with custom characters
+- Generate an image for each AI response
+- Create character thumbnails
+- Save chats and settings in your browser
+- Works on desktop and mobile layouts
 
-- A modern web browser
-- An [OpenRouter](https://openrouter.ai/) API key
-- [SwarmUI](https://github.com/mcmonkeyprojects/SwarmUI) running locally (or on a remote server)
+## Quick start
 
-### Installation
+### 1) What you need
 
-1. Clone this repository:
+- A modern browser
+- An OpenRouter API key: https://openrouter.ai/
+- A running SwarmUI instance (local or remote)
+
+### 2) Run the app
+
+Clone the repo and open it as static files:
+
 ```bash
 git clone <repository-url>
 cd EroChat
+python -m http.server 8080
 ```
 
-2. **No build step required!** This is a vanilla JavaScript application. Simply open `index.html` in your browser or serve it with any static file server.
+Then open: `http://localhost:8080`
 
-   Using Python:
-   ```bash
-   python -m http.server 8080
-   ```
+(You can also use any static server like `npx serve .`)
 
-   Using Node.js (npx):
-   ```bash
-   npx serve .
-   ```
-
-3. Open `http://localhost:8080` (or your preferred port) in your browser.
-
-## ⚙️ Configuration
-
-### 1. OpenRouter Setup
-
-1. Get your API key from [OpenRouter](https://openrouter.ai/keys)
-2. Enter the key in the Settings sidebar
-3. Click "Fetch OpenRouter Models" to load available models
-4. Select your preferred model
-
-### 2. SwarmUI Setup
-
-1. Ensure SwarmUI is running (default: `http://localhost:7801`)
-2. If using a different URL, update the "Base URL" field
-3. Click "Fetch Models" to load your installed checkpoints
-4. Select your preferred model
-
-### 3. Generation Settings
-
-Customize image generation parameters:
-- **Width/Height**: Output image dimensions (default: 832×1216)
-- **Steps**: Sampling steps (20-40, default: 25)
-- **CFG Scale**: Classifier-free guidance scale (6-8, default: 7)
-- **Sampler**: Choose from Euler a, DPM++, DDIM, etc.
-
-### 4. System Prompt
-
-The default system prompt instructs the AI to be seductive, explicit, and automatically append image prompts after each response. You can customize this for each character.
-
-## 🎭 Creating Characters
-
-1. Click "+ New" in the Characters section
-2. Set a name and avatar emoji
-3. **Generate a Thumbnail** (optional but recommended):
-   - Enter a description of the character's appearance in the "Character Description" field
-   - Click "Generate Thumbnail" to create a visual portrait using SwarmUI
-   - Wait for the image to generate (typically 5-10 seconds)
-   - The thumbnail will appear in the preview area
-4. Customize the system prompt to define personality
-5. Save and start chatting!
-
-### Character Thumbnails
-
-Character thumbnails provide visual identity to your characters:
-- **Automatic Generation**: Uses your local SwarmUI instance to create portraits
-- **Portrait Optimized**: Generated at 512x768 resolution for character portraits
-- **Persistent Storage**: Thumbnails are saved as base64 data in localStorage
-- **Edit Anytime**: Click the edit button (pencil icon) on any character to regenerate thumbnails
-- **Fallback**: Characters without thumbnails display their emoji avatar
-
-**Tips for Better Thumbnails**:
-- Be specific in your description (e.g., "beautiful woman with long red hair, green eyes, wearing elegant dress")
-- Include style preferences (e.g., "anime style", "realistic", "fantasy art")
-- Mention key features like hair color, eye color, clothing, expression
-- The system automatically adds quality tags like "masterpiece, best quality, ultra-detailed"
-
-**Image Prompt Format**: Character prompts should include image generation instructions:
-```
----IMAGE_PROMPT START---
-masterpiece, best quality, ultra-detailed, 8k, realistic, [scene description...]
----IMAGE_PROMPT END---
-```
-
-## 📁 Project Structure
-
-```
-EroChat/
-├── index.html          # Main HTML structure
-├── css/
-│   └── styles.css      # Custom styles + Tailwind
-└── js/
-    ├── main.js         # Application entry point
-    ├── config.js       # Default configurations
-    ├── state.js        # Global state management
-    ├── dom.js          # DOM element references
-    ├── events.js       # Event listeners
-    ├── ui.js           # UI utilities
-    ├── messages.js     # Message rendering & image handling
-    ├── characters.js   # Character management
-    ├── api-openrouter.js  # OpenRouter API integration
-    ├── api-swarmui.js     # SwarmUI API integration
-    ├── storage.js      # localStorage persistence
-    └── utils.js        # Utility functions
-```
-
-## 🔧 Technologies Used
-
-- **Frontend**: Vanilla JavaScript (ES6+ modules), HTML5
-- **Styling**: Tailwind CSS (CDN) + Custom CSS (glassmorphism effects)
-- **APIs**: OpenRouter Chat API, SwarmUI API
-- **Storage**: Browser localStorage
-
-## 📝 API Endpoints Used
+## Setup in the app
 
 ### OpenRouter
-- `POST https://openrouter.ai/api/v1/chat/completions` - Chat completion
-- `GET https://openrouter.ai/api/v1/models` - List available models
+
+1. Paste your API key in Settings
+2. Click **Fetch OpenRouter Models**
+3. Pick a model
 
 ### SwarmUI
-- `POST /API/GenerateText2Image` - Generate images
-- `GET /API/ListModels` - List available models
-- `GET /API/GetCurrentStatus` - Check server status
 
-## 🔒 Privacy & Security
+1. Make sure SwarmUI is running (default `http://localhost:7801`)
+2. Update Base URL if needed
+3. Click **Fetch Models**
+4. Pick a model
 
-- **API keys** are stored only in your browser's localStorage
-- **Chat history** is stored locally and never sent to external servers
-- **Images** are generated locally via your own SwarmUI instance
-- No data collection or telemetry
+## Characters
 
-## 🐛 Troubleshooting
+You can create multiple characters with their own:
+- name + emoji/avatar
+- system prompt
+- optional generated thumbnail
 
-| Issue | Solution |
-|-------|----------|
-| "OpenRouter API key required" | Enter your API key in settings |
-| "No SwarmUI model selected" | Click "Fetch Models" and select a model |
-| Images not generating | Check that SwarmUI is running and accessible |
-| Connection status shows "Disconnected" | Verify SwarmUI URL and ensure it's running |
-| Slow responses | Try a different OpenRouter model or reduce max tokens |
+Tip: for better thumbnails, write a clear visual description (style, hair, clothing, mood, etc.).
 
-## 🤝 Contributing
+## Project structure
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+```text
+EroChat/
+├── index.html
+├── css/
+│   └── styles.css
+└── js/
+    ├── main.js
+    ├── config.js
+    ├── state.js
+    ├── dom.js
+    ├── events.js
+    ├── ui.js
+    ├── messages.js
+    ├── characters.js
+    ├── api-openrouter.js
+    ├── api-swarmui.js
+    ├── storage.js
+    └── utils.js
+```
 
-## 📜 License
+## Privacy
 
-MIT License - feel free to use, modify, and distribute.
+- API keys stay in your browser storage
+- Chat history stays in your browser storage
+- Images are generated by your SwarmUI instance
 
-## ⚠️ Disclaimer
+## Troubleshooting
 
-This application is intended for adult users only (18+). Users are responsible for complying with OpenRouter's Terms of Service and their local laws.
+- **No reply from AI** → Check API key + selected OpenRouter model
+- **No images** → Check SwarmUI URL, model selection, and server status
+- **Slow responses** → Try a lighter model or lower generation settings
 
----
+## Notes
 
-Built with 💜 for creative AI interactions
+- Intended for adults (18+)
+- Use responsibly and follow provider/local rules
+- MIT licensed
