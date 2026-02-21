@@ -25,8 +25,8 @@ export async function sendMessage() {
         return;
     }
 
-    if (!elements.swarmModel.value) {
-        alert('Please select a SwarmUI model in settings.');
+    if (state.settings.enableImageGeneration !== false && !elements.swarmModel.value) {
+        alert('Please select a SwarmUI model in settings or disable image generation.');
         toggleSidebar();
         return;
     }
@@ -72,7 +72,7 @@ export async function sendMessage() {
         saveToLocalStorage();
 
         // Generate image if prompt exists
-        if (imagePrompt) {
+        if (state.settings.enableImageGeneration !== false && imagePrompt) {
             try {
                 const imageUrl = await generateImage(imagePrompt);
                 updateAIMessageImage(aiMessageId, imageUrl);

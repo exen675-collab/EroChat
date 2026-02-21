@@ -94,7 +94,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
                 </div>
             </div>
         `;
-    } else if (content.includes('---IMAGE_PROMPT')) {
+    } else if (state.settings.enableImageGeneration !== false && content.includes('---IMAGE_PROMPT')) {
         // Image is being generated
         imageSection = `
             <div class="w-full lg:w-1/3 flex-shrink-0">

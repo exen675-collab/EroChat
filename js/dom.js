@@ -20,6 +20,7 @@ export const elements = {
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),
+    enableImageGeneration: document.getElementById('enableImageGeneration'),
     imgWidth: document.getElementById('imgWidth'),
     imgHeight: document.getElementById('imgHeight'),
     steps: document.getElementById('steps'),

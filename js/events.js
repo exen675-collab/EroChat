@@ -66,6 +66,7 @@ export function setupEventListeners() {
             openrouterModel: elements.openrouterModel.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
+            enableImageGeneration: elements.enableImageGeneration.checked,
             imgWidth: parseInt(elements.imgWidth.value),
             imgHeight: parseInt(elements.imgHeight.value),
             steps: parseInt(elements.steps.value),
