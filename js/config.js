@@ -19,6 +19,7 @@ export const defaultSettings = {
     openrouterModel: 'anthropic/claude-3.5-sonnet',
     swarmUrl: 'http://localhost:7801',
     swarmModel: '',
+    enableImageGeneration: true,
     imgWidth: 832,
     imgHeight: 1216,
     steps: 25,

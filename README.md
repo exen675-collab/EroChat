@@ -11,7 +11,7 @@ No build tools, no backend setup, no framework required.
 ## What it does
 
 - Chat with custom characters
-- Generate an image for each AI response
+- Generate an image for each AI response (optional toggle)
 - Create character thumbnails
 - Save chats and settings in your browser
 - Works on desktop and mobile layouts
@@ -46,12 +46,15 @@ Then open: `http://localhost:8080`
 2. Click **Fetch OpenRouter Models**
 3. Pick a model
 
-### SwarmUI
+### SwarmUI (optional)
 
-1. Make sure SwarmUI is running (default `http://localhost:7801`)
-2. Update Base URL if needed
-3. Click **Fetch Models**
-4. Pick a model
+1. Enable image generation if you want automatic images
+2. Make sure SwarmUI is running (default `http://localhost:7801`)
+3. Update Base URL if needed
+4. Click **Fetch Models**
+5. Pick a model
+
+If image generation is disabled, chat works without selecting a SwarmUI model.
 
 ## Characters
 

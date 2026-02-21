@@ -92,6 +92,7 @@ export function updateSettingsUI() {
     elements.openrouterModel.value = state.settings.openrouterModel;
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
+    elements.enableImageGeneration.checked = state.settings.enableImageGeneration !== false;
     elements.imgWidth.value = state.settings.imgWidth;
     elements.imgHeight.value = state.settings.imgHeight;
     elements.steps.value = state.settings.steps;
