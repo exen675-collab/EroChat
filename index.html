@@ -443,6 +443,32 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
         </div>
     </div>
 
+    <!-- Image Zoom Modal -->
+    <div id="imageZoomModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+        <button id="closeImageZoomBtn" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Close zoomed image">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <img id="zoomedImage" src="" alt="Zoomed generated image" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl zoomed-image">
+    </div>
+
+    <!-- Character Gallery Modal -->
+    <div id="characterGalleryModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+        <div class="glass rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-purple-900/30 flex items-center justify-between">
+                <h2 id="galleryTitle" class="text-lg font-semibold text-pink-400">Character Gallery</h2>
+                <button id="closeGalleryBtn" class="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Close character gallery">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="characterGalleryGrid" class="p-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
 </body>
 

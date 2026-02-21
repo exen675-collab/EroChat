@@ -210,3 +210,12 @@ select:focus {
         height: 100vh;
     }
 }
+
+
+.image-clickable {
+    cursor: zoom-in;
+}
+
+.zoomed-image {
+    border: 1px solid rgba(236, 72, 153, 0.35);
+}
