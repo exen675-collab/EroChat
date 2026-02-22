@@ -206,7 +206,9 @@ select:focus {
 
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-auto-rows: auto;
+    grid-auto-flow: row;
     gap: 1rem;
     align-items: start;
 }
@@ -214,12 +216,13 @@ select:focus {
 .gallery-card {
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    overflow: visible;
 }
 
 .gallery-image-wrap {
-    aspect-ratio: 3 / 4;
-    max-height: 460px;
+    position: relative;
+    width: 100%;
+    height: clamp(260px, 42vh, 460px);
 }
 
 .gallery-image {
@@ -228,6 +231,7 @@ select:focus {
     height: 100%;
     object-fit: cover;
 }
+
 
 @media (max-width: 1024px) {
     .app-shell {
@@ -317,5 +321,9 @@ select:focus {
 
     .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .gallery-image-wrap {
+        height: clamp(190px, 34vh, 320px);
     }
 }

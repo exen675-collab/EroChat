@@ -116,7 +116,7 @@ export function renderGallery() {
     elements.galleryGrid.innerHTML = '';
     filteredImages.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'gallery-card glass rounded-xl overflow-hidden border border-purple-900/30';
+        card.className = 'gallery-card glass rounded-xl border border-purple-900/30';
         card.innerHTML = `
             <div class="gallery-image-wrap bg-black/30 overflow-hidden">
                 <img src="${item.imageUrl}" alt="Generated image" class="gallery-image w-full h-full object-cover cursor-zoom-in" data-full-image="${item.imageUrl}">
