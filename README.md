@@ -6,7 +6,7 @@ It connects:
 - **OpenRouter** for text replies
 - **SwarmUI** for image generation
 
-No build tools, no backend setup, no framework required.
+Now powered by a React frontend loaded from CDN (no local build step), no backend setup required.
 
 ## What it does
 
@@ -73,18 +73,7 @@ EroChat/
 ├── css/
 │   └── styles.css
 └── js/
-    ├── main.js
-    ├── config.js
-    ├── state.js
-    ├── dom.js
-    ├── events.js
-    ├── ui.js
-    ├── messages.js
-    ├── characters.js
-    ├── api-openrouter.js
-    ├── api-swarmui.js
-    ├── storage.js
-    └── utils.js
+    └── react-app.js
 ```
 
 ## Privacy
