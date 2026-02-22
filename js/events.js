@@ -116,6 +116,17 @@ export function setupEventListeners() {
     // Setup model search functionality
     setupModelSearch();
 
+    // Persist model selections immediately when changed
+    elements.openrouterModel.addEventListener('change', () => {
+        state.settings.openrouterModel = elements.openrouterModel.value;
+        saveToLocalStorage();
+    });
+
+    elements.swarmModel.addEventListener('change', () => {
+        state.settings.swarmModel = elements.swarmModel.value;
+        saveToLocalStorage();
+    });
+
     // Character modal events
     elements.addCharacterBtn.addEventListener('click', () => openCharacterModal());
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);

@@ -46,6 +46,7 @@ function parseModels(data) {
 export async function fetchSwarmModels(silent = false) {
     if (typeof silent !== 'boolean') silent = false;
     const url = normalizeBaseUrl(elements.swarmUrl.value);
+    const preferredModel = state.settings.swarmModel || elements.swarmModel.value;
 
     try {
         elements.fetchModelsBtn.disabled = true;
@@ -98,6 +99,10 @@ export async function fetchSwarmModels(silent = false) {
                 elements.swarmModel.appendChild(option);
             });
 
+            if (preferredModel && models.includes(preferredModel)) {
+                elements.swarmModel.value = preferredModel;
+            }
+
             updateConnectionStatus(true);
             if (!silent) alert(`Successfully fetched ${models.length} models!`);
             return;
@@ -115,6 +120,10 @@ export async function fetchSwarmModels(silent = false) {
             option.textContent = model;
             elements.swarmModel.appendChild(option);
         });
+
+        if (preferredModel && models.includes(preferredModel)) {
+            elements.swarmModel.value = preferredModel;
+        }
 
         updateConnectionStatus(true);
         if (!silent) alert(`Successfully fetched ${models.length} models!`);

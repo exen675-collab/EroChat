@@ -1,12 +1,13 @@
 import { elements } from './dom.js';
+import { state } from './state.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
 
 // Filter and populate models based on search query
-function filterAndPopulateModels(searchQuery = '') {
+function filterAndPopulateModels(searchQuery = '', preferredModelId = null) {
     const query = searchQuery.toLowerCase().trim();
-    const previousValue = elements.openrouterModel.value;
+    const previousValue = preferredModelId || elements.openrouterModel.value || state.settings.openrouterModel;
 
     // Clear current options
     elements.openrouterModel.innerHTML = '<option value="">Select a model...</option>';
@@ -88,7 +89,7 @@ export async function fetchOpenRouterModels(silent = false) {
         elements.openrouterModelSearch.placeholder = 'Type to search models...';
 
         // Populate select with all models
-        filterAndPopulateModels();
+        filterAndPopulateModels('', state.settings.openrouterModel);
 
         if (!silent) alert(`Successfully fetched ${fetchedModels.length} models from OpenRouter!`);
 
