@@ -157,8 +157,8 @@ function App() {
   };
 
   return (
-    <div className="flex app-shell">
-      <aside className={`w-96 border-r border-purple-900/30 overflow-y-auto flex-shrink-0 ${sidebarOpen ? '' : '-translate-x-full'} lg:translate-x-0`}>
+    <div className="flex app-shell relative">
+      <aside className={`fixed lg:relative inset-y-0 left-0 z-50 w-80 sm:w-96 border-r border-purple-900/30 overflow-y-auto flex-shrink-0 transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-6 space-y-4">
           <h1 className="text-2xl font-bold text-pink-400">Control Center (React)</h1>
           <button className="w-full py-2 btn-secondary rounded" onClick={() => openCharacterModal()}>New Character</button>
@@ -195,7 +195,9 @@ function App() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-screen">
+      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
+
+      <main className="flex-1 flex flex-col h-screen min-w-0">
         <div className="p-3 border-b border-purple-900/30 flex items-center justify-between">
           <button className="lg:hidden" onClick={() => setSidebarOpen((v) => !v)}>☰</button>
           <h2>{currentCharacter?.avatar} {currentCharacter?.name}</h2>
