@@ -204,6 +204,31 @@ select:focus {
     min-height: 48px;
 }
 
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.gallery-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.gallery-image-wrap {
+    aspect-ratio: 3 / 4;
+    max-height: 460px;
+}
+
+.gallery-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 @media (max-width: 1024px) {
     .app-shell {
         border-radius: 0;
@@ -288,5 +313,9 @@ select:focus {
 
     #sendBtn span {
         display: none;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 }

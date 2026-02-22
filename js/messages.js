@@ -152,6 +152,26 @@ export function updateAIMessageImage(messageId, imageUrl) {
     }
 }
 
+// Add generated image to persistent gallery store
+export function addImageToGallery(imageUrl, source = 'chat', messageId = null) {
+    if (!imageUrl) return;
+
+    const character = getCurrentCharacter();
+    const galleryItem = {
+        id: generateId(),
+        imageUrl,
+        characterId: state.currentCharacterId || 'default',
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        source,
+        messageId,
+        createdAt: new Date().toISOString()
+    };
+
+    state.galleryImages.unshift(galleryItem);
+    saveToLocalStorage();
+}
+
 // Regenerate image for a message
 export async function regenerateImage(messageId) {
     const message = state.messages.find(m => m.id === messageId);
@@ -184,6 +204,7 @@ export async function regenerateImage(messageId) {
     try {
         const imageUrl = await generateImage(imagePrompt);
         updateAIMessageImage(messageId, imageUrl);
+        addImageToGallery(imageUrl, 'regenerate', messageId);
         
         // Update message in state
         message.imageUrl = imageUrl;

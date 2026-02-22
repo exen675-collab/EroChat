@@ -245,6 +245,10 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
+                    <button id="openGalleryBtn" class="px-3 py-1 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2">
+                        <span>🖼️</span>
+                        <span>Gallery</span>
+                    </button>
                     <div id="connectionStatus"
                         class="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-800/50 text-sm">
                         <span class="w-2 h-2 rounded-full bg-gray-500"></span>
@@ -253,80 +257,99 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                 </div>
             </header>
 
-            <!-- Chat Messages -->
-            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6">
-                <!-- Welcome Message -->
-                <div class="message-ai max-w-3xl">
-                    <div class="flex items-start gap-3">
-                        <div
-                            class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center flex-shrink-0">
-                            <span class="text-xl" id="welcomeAvatar">🤖</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
-                                <p class="text-gray-300 leading-relaxed" id="welcomeMessage">
-                                    Welcome to <strong class="text-pink-400">EroChat + SwarmUI</strong>! I'm your AI
-                                    companion ready for intimate conversations.
-                                    Every response I give will be automatically visualized using your local SwarmUI
-                                    instance.
-                                </p>
-                                <p class="text-gray-400 text-sm mt-3">
-                                    Please configure your settings in the sidebar to get started. Make sure SwarmUI is
-                                    running locally!
-                                </p>
+            <div id="chatView" class="flex-1 flex flex-col min-h-0">
+                <!-- Chat Messages -->
+                <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <!-- Welcome Message -->
+                    <div class="message-ai max-w-3xl">
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center flex-shrink-0">
+                                <span class="text-xl" id="welcomeAvatar">🤖</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
+                                    <p class="text-gray-300 leading-relaxed" id="welcomeMessage">
+                                        Welcome to <strong class="text-pink-400">EroChat + SwarmUI</strong>! I'm your AI
+                                        companion ready for intimate conversations.
+                                        Every response I give will be automatically visualized using your local SwarmUI
+                                        instance.
+                                    </p>
+                                    <p class="text-gray-400 text-sm mt-3">
+                                        Please configure your settings in the sidebar to get started. Make sure SwarmUI is
+                                        running locally!
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Typing Indicator -->
-            <div id="typingIndicator" class="hidden px-6 pb-4">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center">
-                        <span class="text-xl" id="typingAvatar">🤖</span>
-                    </div>
-                    <div class="glass rounded-2xl px-4 py-3 flex items-center gap-2">
-                        <div class="flex gap-1">
-                            <span class="w-2 h-2 bg-purple-400 rounded-full loading-pulse"></span>
-                            <span class="w-2 h-2 bg-pink-400 rounded-full loading-pulse"
-                                style="animation-delay: 0.2s"></span>
-                            <span class="w-2 h-2 bg-red-400 rounded-full loading-pulse"
-                                style="animation-delay: 0.4s"></span>
+                <!-- Typing Indicator -->
+                <div id="typingIndicator" class="hidden px-6 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center">
+                            <span class="text-xl" id="typingAvatar">🤖</span>
                         </div>
-                        <span class="text-gray-400 text-sm ml-2">Thinking...</span>
+                        <div class="glass rounded-2xl px-4 py-3 flex items-center gap-2">
+                            <div class="flex gap-1">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full loading-pulse"></span>
+                                <span class="w-2 h-2 bg-pink-400 rounded-full loading-pulse"
+                                    style="animation-delay: 0.2s"></span>
+                                <span class="w-2 h-2 bg-red-400 rounded-full loading-pulse"
+                                    style="animation-delay: 0.4s"></span>
+                            </div>
+                            <span class="text-gray-400 text-sm ml-2">Thinking...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Generation Indicator -->
+                <div id="imageIndicator" class="hidden px-6 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                            <span class="text-xl">🎨</span>
+                        </div>
+                        <div class="glass rounded-2xl px-4 py-3 flex items-center gap-3">
+                            <div class="spinner"></div>
+                            <span class="text-gray-400 text-sm">Generating image...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="glass border-t border-purple-900/30 p-4">
+                    <div class="max-w-4xl mx-auto flex gap-3">
+                        <textarea id="messageInput" rows="1" placeholder="Write your message… (Enter to send, Shift+Enter for new line)"
+                            class="flex-1 px-5 py-3 rounded-xl resize-none overflow-hidden"
+                            style="min-height: 48px; max-height: 150px;"></textarea>
+                        <button id="sendBtn" class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2">
+                            <span>Send</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Image Generation Indicator -->
-            <div id="imageIndicator" class="hidden px-6 pb-4">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                        <span class="text-xl">🎨</span>
-                    </div>
-                    <div class="glass rounded-2xl px-4 py-3 flex items-center gap-3">
-                        <div class="spinner"></div>
-                        <span class="text-gray-400 text-sm">Generating image...</span>
+            <!-- Gallery View (subpage style) -->
+            <div id="galleryView" class="hidden flex-1 min-h-0 flex flex-col">
+                <div class="p-4 border-b border-purple-900/30 flex items-center justify-between gap-4">
+                    <h2 class="text-xl font-bold text-pink-400">Image Gallery</h2>
+                    <div class="flex items-center gap-3 flex-wrap justify-end">
+                        <select id="galleryCharacterFilter" class="px-3 py-2 rounded-lg text-sm min-w-[220px]">
+                            <option value="all">All characters</option>
+                        </select>
+                        <select id="galleryThumbnailCharacter" class="px-3 py-2 rounded-lg text-sm min-w-[220px]"></select>
+                        <button id="backToChatBtn" class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium">Back to Chat</button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="glass border-t border-purple-900/30 p-4">
-                <div class="max-w-4xl mx-auto flex gap-3">
-                    <textarea id="messageInput" rows="1" placeholder="Write your message… (Enter to send, Shift+Enter for new line)"
-                        class="flex-1 px-5 py-3 rounded-xl resize-none overflow-hidden"
-                        style="min-height: 48px; max-height: 150px;"></textarea>
-                    <button id="sendBtn" class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2">
-                        <span>Send</span>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                    </button>
+                <div id="galleryGrid" class="p-4 overflow-y-auto flex-1 gallery-grid">
+                    <!-- Gallery items -->
                 </div>
             </div>
         </main>
@@ -441,6 +464,16 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Gallery Image Lightbox -->
+    <div id="galleryLightbox" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/85 p-4">
+        <button id="closeLightboxBtn" class="absolute top-4 right-4 p-2 rounded-lg bg-black/40 hover:bg-black/60 text-white" aria-label="Close image preview">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <img id="lightboxImage" src="" alt="Preview" class="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-purple-700/40">
     </div>
 
     <script type="module" src="js/main.js"></script>

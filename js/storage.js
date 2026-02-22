@@ -3,6 +3,41 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
+import { generateId } from './utils.js';
+
+function migrateGalleryFromCharacterMessages() {
+    const migrated = [];
+    const seen = new Set();
+
+    const allCharacters = state.characters.length > 0
+        ? state.characters
+        : [{ ...defaultCharacter }];
+
+    allCharacters.forEach(character => {
+        const characterMessages = Array.isArray(character.messages) ? character.messages : [];
+
+        characterMessages.forEach(message => {
+            if (message.role !== 'assistant' || !message.imageUrl) return;
+
+            const dedupeKey = `${character.id}::${message.id || ''}::${message.imageUrl}`;
+            if (seen.has(dedupeKey)) return;
+            seen.add(dedupeKey);
+
+            migrated.push({
+                id: generateId(),
+                imageUrl: message.imageUrl,
+                characterId: character.id || 'default',
+                characterName: character.name || 'Unknown Character',
+                characterAvatar: character.avatar || '🤖',
+                source: 'chat',
+                messageId: message.id || null,
+                createdAt: new Date().toISOString()
+            });
+        });
+    });
+
+    return migrated;
+}
 
 // Save state to localStorage
 export function saveToLocalStorage() {
@@ -20,7 +55,9 @@ export function saveToLocalStorage() {
     const data = {
         settings: state.settings,
         characters: state.characters,
-        currentCharacterId: state.currentCharacterId
+        currentCharacterId: state.currentCharacterId,
+        galleryImages: state.galleryImages,
+        galleryFilterCharacterId: state.galleryFilterCharacterId
         // No longer saving top-level messages
     };
     localStorage.setItem('erochat_data', JSON.stringify(data));
@@ -43,6 +80,12 @@ export function loadFromLocalStorage() {
             }
             if (parsed.currentCharacterId) {
                 state.currentCharacterId = parsed.currentCharacterId;
+            }
+            if (Array.isArray(parsed.galleryImages)) {
+                state.galleryImages = parsed.galleryImages;
+            }
+            if (parsed.galleryFilterCharacterId) {
+                state.galleryFilterCharacterId = parsed.galleryFilterCharacterId;
             }
             // Temporarily store old top-level messages for migration
             if (parsed.messages && parsed.messages.length > 0) {
@@ -79,6 +122,14 @@ export function loadFromLocalStorage() {
 
     if (character) {
         state.messages = character.messages || [];
+    }
+
+    if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {
+        state.galleryImages = migrateGalleryFromCharacterMessages();
+    }
+
+    if (!state.galleryFilterCharacterId) {
+        state.galleryFilterCharacterId = 'all';
     }
 
     renderCharactersList();

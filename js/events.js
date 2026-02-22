@@ -1,8 +1,9 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { toggleSidebar, autoResizeTextarea } from './ui.js';
+import * as ui from './ui.js';
+import { defaultCharacter } from './config.js';
 import { normalizeBaseUrl } from './utils.js';
-import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand } from './characters.js';
+import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { saveToLocalStorage } from './storage.js';
@@ -11,6 +12,39 @@ import { sendMessage } from './main.js';
 
 // Setup all event listeners
 export function setupEventListeners() {
+    const toggleSidebar = ui.toggleSidebar;
+    const autoResizeTextarea = ui.autoResizeTextarea;
+    const renderGallery = ui.renderGallery;
+    const closeGallery = ui.closeGallery;
+    const openGallery = ui.openGallery;
+    const openLightbox = (imageUrl) => {
+        if (!imageUrl) return;
+        elements.lightboxImage.src = imageUrl;
+        elements.galleryLightbox.classList.remove('hidden');
+        elements.galleryLightbox.classList.add('flex');
+    };
+    const closeLightbox = () => {
+        elements.galleryLightbox.classList.remove('flex');
+        elements.galleryLightbox.classList.add('hidden');
+        elements.lightboxImage.src = '';
+    };
+    const applyCharacterThumbnail = (characterId, imageUrl) => {
+        if (!characterId || !imageUrl) return false;
+
+        const index = state.characters.findIndex(c => c.id === characterId);
+        if (index !== -1) {
+            state.characters[index].thumbnail = imageUrl;
+        } else if (characterId === 'default') {
+            state.characters.unshift({ ...defaultCharacter, thumbnail: imageUrl, messages: [...(state.messages || [])] });
+        } else {
+            return false;
+        }
+
+        saveToLocalStorage();
+        renderCharactersList();
+        return true;
+    };
+
     // Sidebar toggle
     elements.toggleSettings.addEventListener('click', toggleSidebar);
     elements.overlay.addEventListener('click', toggleSidebar);
@@ -28,6 +62,52 @@ export function setupEventListeners() {
 
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
+
+    // Gallery
+    elements.openGalleryBtn.addEventListener('click', openGallery);
+    elements.backToChatBtn.addEventListener('click', closeGallery);
+    elements.galleryCharacterFilter.addEventListener('change', (e) => {
+        state.galleryFilterCharacterId = e.target.value || 'all';
+        renderGallery();
+        saveToLocalStorage();
+    });
+    elements.galleryGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.set-thumbnail-btn');
+        if (btn) {
+            const imageUrl = btn.getAttribute('data-image-url');
+            const targetCharacterId = elements.galleryThumbnailCharacter.value;
+
+            if (!targetCharacterId) {
+                alert('Please choose a character first.');
+                return;
+            }
+
+            const ok = applyCharacterThumbnail(targetCharacterId, imageUrl);
+            if (!ok) {
+                alert('Failed to set thumbnail for selected character.');
+                return;
+            }
+
+            alert('Thumbnail updated successfully!');
+            return;
+        }
+
+        const image = e.target.closest('.gallery-image');
+        if (image) {
+            openLightbox(image.getAttribute('data-full-image') || image.getAttribute('src'));
+        }
+    });
+    elements.closeLightboxBtn.addEventListener('click', closeLightbox);
+    elements.galleryLightbox.addEventListener('click', (e) => {
+        if (e.target === elements.galleryLightbox) {
+            closeLightbox();
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !elements.galleryLightbox.classList.contains('hidden')) {
+            closeLightbox();
+        }
+    });
 
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);

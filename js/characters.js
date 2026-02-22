@@ -27,8 +27,9 @@ export function getCurrentCharacter() {
 export function renderCharactersList() {
     elements.charactersList.innerHTML = '';
 
-    // Add default character first
-    const allCharacters = [{ ...defaultCharacter }, ...state.characters.filter(c => !c.isDefault)];
+    const storedDefault = state.characters.find(c => c.id === 'default');
+    const defaultEntry = storedDefault || { ...defaultCharacter };
+    const allCharacters = [defaultEntry, ...state.characters.filter(c => c.id !== 'default' && !c.isDefault)];
 
     allCharacters.forEach(char => {
         const isActive = state.currentCharacterId === char.id;
@@ -69,6 +70,26 @@ export function renderCharactersList() {
         `;
         elements.charactersList.appendChild(charDiv);
     });
+}
+
+// Set character thumbnail from gallery image
+export function setCharacterThumbnail(characterId, imageUrl) {
+    if (!characterId || !imageUrl) return false;
+
+    const index = state.characters.findIndex(c => c.id === characterId);
+
+    if (index !== -1) {
+        state.characters[index].thumbnail = imageUrl;
+    } else if (characterId === 'default') {
+        state.characters.unshift({ ...defaultCharacter, thumbnail: imageUrl, messages: [...state.messages] });
+    } else {
+        return false;
+    }
+
+    renderCharactersList();
+    updateCurrentCharacterUI();
+    saveToLocalStorage();
+    return true;
 }
 
 // Select a character

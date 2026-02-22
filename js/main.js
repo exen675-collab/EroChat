@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 import { getCurrentCharacter } from './characters.js';
-import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage } from './messages.js';
+import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery } from './messages.js';
 import { generateImage } from './api-swarmui.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom } from './ui.js';
@@ -76,6 +76,7 @@ export async function sendMessage() {
             try {
                 const imageUrl = await generateImage(imagePrompt);
                 updateAIMessageImage(aiMessageId, imageUrl);
+                addImageToGallery(imageUrl, 'chat', aiMessageId);
 
                 // Update message in state
                 const msgIndex = state.messages.findIndex(m => m.id === aiMessageId);
