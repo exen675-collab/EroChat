@@ -1,0 +1,7 @@
+services:
+  erochat:
+    build: .
+    container_name: erochat
+    ports:
+      - "20121:80"
+    restart: unless-stopped
