@@ -23,6 +23,7 @@ export const elements = {
     lightboxVideo: document.getElementById('lightboxVideo'),
     closeLightboxBtn: document.getElementById('closeLightboxBtn'),
     currentCharacterName: document.getElementById('currentCharacterName'),
+    currentUsername: document.getElementById('currentUsername'),
     welcomeAvatar: document.getElementById('welcomeAvatar'),
     welcomeMessage: document.getElementById('welcomeMessage'),
 
