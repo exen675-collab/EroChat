@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
 
-let fetchedGrokModels = [];
+export const PREMIUM_CHAT_MODEL = 'grok-4-1-fast-reasoning';
 
 function setCredits(credits) {
     const numericCredits = Number.parseInt(credits, 10);
@@ -51,44 +51,6 @@ async function postToGrokProxy(endpoint, payload) {
     return data;
 }
 
-function filterAndPopulateGrokModels(searchQuery = '', preferredModelId = null) {
-    const query = searchQuery.toLowerCase().trim();
-    const previousValue = preferredModelId || elements.grokModel.value || state.settings.grokModel;
-
-    elements.grokModel.innerHTML = '<option value="">Select a model...</option>';
-
-    const filteredModels = query
-        ? fetchedGrokModels.filter(model =>
-            model.name.toLowerCase().includes(query) || model.id.toLowerCase().includes(query)
-        )
-        : fetchedGrokModels;
-
-    filteredModels.forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.id;
-        option.textContent = `${model.name} (${model.id})`;
-        elements.grokModel.appendChild(option);
-    });
-
-    if (previousValue && filteredModels.some(model => model.id === previousValue)) {
-        elements.grokModel.value = previousValue;
-    }
-
-    if (query && filteredModels.length > 0) {
-        elements.grokModel.options[0].textContent = `Select a model (${filteredModels.length} found)...`;
-    } else if (query && filteredModels.length === 0) {
-        elements.grokModel.options[0].textContent = 'No models match your search';
-    } else {
-        elements.grokModel.options[0].textContent = 'Select a model...';
-    }
-}
-
-export function setupGrokModelSearch() {
-    elements.grokModelSearch.addEventListener('input', (e) => {
-        filterAndPopulateGrokModels(e.target.value);
-    });
-}
-
 export async function fetchCreditsSummary(silent = false) {
     try {
         const response = await fetch('/api/credits/me', { cache: 'no-store' });
@@ -113,57 +75,9 @@ export async function fetchCreditsSummary(silent = false) {
     }
 }
 
-export async function fetchGrokModels(silent = false) {
-    if (typeof silent !== 'boolean') silent = false;
-
-    try {
-        elements.fetchGrokModelsBtn.disabled = true;
-        elements.fetchGrokModelsBtn.innerHTML = `
-            <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-            Fetching...
-        `;
-
-        const response = await fetch('/api/premium/models', {
-            method: 'GET',
-            cache: 'no-store'
-        });
-
-        const data = await parseJsonResponse(response);
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to fetch service models.');
-        }
-
-        fetchedGrokModels = (data.data || [])
-            .filter(model => typeof model?.id === 'string')
-            .map(model => ({ id: model.id, name: model.id }));
-
-        elements.grokModelSearch.value = '';
-        elements.grokModelSearch.disabled = false;
-        elements.grokModelSearch.placeholder = 'Type to search models...';
-
-        filterAndPopulateGrokModels('', state.settings.grokModel);
-
-        if (!silent) {
-            alert(`Successfully fetched ${fetchedGrokModels.length} service models.`);
-        }
-    } catch (error) {
-        console.error('Error fetching service models:', error);
-        if (!silent) alert(`Failed to fetch models: ${error.message}`);
-    } finally {
-        elements.fetchGrokModelsBtn.disabled = false;
-        elements.fetchGrokModelsBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            Load Service Models
-        `;
-    }
-}
-
 export async function sendGrokChatRequest(apiMessages, options = {}) {
     const payload = {
-        model: options.model || elements.grokModel.value,
+        model: PREMIUM_CHAT_MODEL,
         messages: apiMessages,
         temperature: options.temperature ?? 0.9,
         max_tokens: options.maxTokens ?? 2000

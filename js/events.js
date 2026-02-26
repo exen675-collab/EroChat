@@ -6,7 +6,6 @@ import { normalizeBaseUrl } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
-import { fetchGrokModels, setupGrokModelSearch } from './api-grok.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
@@ -159,11 +158,9 @@ export function setupEventListeners() {
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);
     elements.fetchOpenRouterModelsBtn.addEventListener('click', fetchOpenRouterModels);
-    elements.fetchGrokModelsBtn.addEventListener('click', fetchGrokModels);
 
     // Setup model search functionality
     setupModelSearch();
-    setupGrokModelSearch();
 
     // Persist model selections immediately when changed
     elements.openrouterModel.addEventListener('change', () => {
@@ -173,11 +170,6 @@ export function setupEventListeners() {
 
     elements.textProvider.addEventListener('change', () => {
         state.settings.textProvider = elements.textProvider.value;
-        saveToLocalStorage();
-    });
-
-    elements.grokModel.addEventListener('change', () => {
-        state.settings.grokModel = elements.grokModel.value;
         saveToLocalStorage();
     });
 
@@ -220,7 +212,6 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
-            grokModel: elements.grokModel.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
             imageProvider: elements.imageProvider.value,

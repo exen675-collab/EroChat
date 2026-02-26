@@ -18,7 +18,6 @@ export const defaultSettings = {
     textProvider: 'premium',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
-    grokModel: 'grok-4-0709',
     swarmUrl: 'http://localhost:7801',
     swarmModel: '',
     imageProvider: 'local',

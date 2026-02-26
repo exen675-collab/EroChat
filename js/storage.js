@@ -182,7 +182,6 @@ export function updateSettingsUI() {
     elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
-    elements.grokModel.value = state.settings.grokModel || '';
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
     elements.imageProvider.value = state.settings.imageProvider || 'local';

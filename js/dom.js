@@ -33,8 +33,6 @@ export const elements = {
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
-    grokModel: document.getElementById('grokModel'),
-    grokModelSearch: document.getElementById('grokModelSearch'),
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),
     imageProvider: document.getElementById('imageProvider'),
@@ -70,7 +68,6 @@ export const elements = {
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
-    fetchGrokModelsBtn: document.getElementById('fetchGrokModelsBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     clearChatBtn: document.getElementById('clearChatBtn')
 };

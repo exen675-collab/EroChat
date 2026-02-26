@@ -38,6 +38,7 @@ const DEFAULT_USER_CREDITS = getIntEnv('DEFAULT_USER_CREDITS', 100);
 const CREDIT_COST_GROK_CHAT = getIntEnv('CREDIT_COST_GROK_CHAT', 1);
 const CREDIT_COST_GROK_IMAGE = getIntEnv('CREDIT_COST_GROK_IMAGE', 2);
 const CREDIT_COST_GROK_VIDEO = getIntEnv('CREDIT_COST_GROK_VIDEO', 3);
+const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
@@ -425,46 +426,18 @@ async function handleChargedGrokRequest(req, res, { path, payload, cost }) {
   }
 }
 
-app.get('/api/premium/models', requireApiAuth, async (req, res) => {
-  if (!ensureGrokConfigured(res)) return;
-
-  try {
-    const response = await fetch('https://api.x.ai/v1/models', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${GROK_API_KEY}`
-      }
-    });
-
-    const rawBody = await response.text();
-    const parsedBody = jsonOrNull(rawBody);
-
-    if (!response.ok) {
-      const upstreamMessage = parsedBody?.error?.message || rawBody || `Failed to fetch Grok models (${response.status}).`;
-      res.status(response.status).json({ error: upstreamMessage });
-      return;
-    }
-
-    res.status(200).json(parsedBody && typeof parsedBody === 'object' ? parsedBody : { data: [] });
-  } catch (error) {
-    console.error('Failed to fetch Grok models:', error);
-    res.status(500).json({ error: 'Failed to fetch Grok models.' });
-  }
-});
-
 app.post('/api/premium/chat', requireApiAuth, async (req, res) => {
-  const model = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
   const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;
 
-  if (!model || !messages || messages.length === 0) {
-    res.status(400).json({ error: 'Model and messages are required.' });
+  if (!messages || messages.length === 0) {
+    res.status(400).json({ error: 'Messages are required.' });
     return;
   }
 
   await handleChargedGrokRequest(req, res, {
     path: '/v1/chat/completions',
     payload: {
-      model,
+      model: PREMIUM_GROK_CHAT_MODEL,
       messages,
       temperature: Number.isFinite(req.body?.temperature) ? req.body.temperature : 0.9,
       max_tokens: Number.isFinite(req.body?.max_tokens) ? req.body.max_tokens : 2000

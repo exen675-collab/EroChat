@@ -12,7 +12,7 @@ import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
-import { fetchGrokModels, fetchCreditsSummary } from './api-grok.js';
+import { fetchCreditsSummary } from './api-grok.js';
 
 async function loadCurrentUser() {
     try {
@@ -51,12 +51,6 @@ export async function sendMessage() {
     // Validate settings
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
-
-    if (textProvider === 'premium' && !elements.grokModel.value) {
-        alert('Please select a premium model in settings.');
-        toggleSidebar();
-        return;
-    }
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
@@ -198,12 +192,6 @@ async function autoFetchModels() {
         }
     }
 
-    console.log('Auto-fetching premium models...');
-    try {
-        await fetchGrokModels(true);
-    } catch (e) {
-        console.warn('Auto-fetch premium models failed:', e);
-    }
 }
 
 // Initialize application

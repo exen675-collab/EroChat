@@ -238,12 +238,7 @@ export async function generateSystemPromptOnDemand() {
     }
 
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    if (textProvider === 'premium') {
-        if (!elements.grokModel.value) {
-            alert('Please select a premium model in settings.');
-            return;
-        }
-    } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
+    if (textProvider !== 'premium' && (!elements.openrouterKey.value || !elements.openrouterModel.value)) {
         alert('Please enter your OpenRouter API key and select a model in settings.');
         return;
     }
@@ -312,12 +307,7 @@ export async function saveCharacter() {
         }
 
         const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-        if (textProvider === 'premium') {
-            if (!elements.grokModel.value) {
-                alert('Please select a premium model in settings to auto-generate a system prompt.');
-                return;
-            }
-        } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
+        if (textProvider !== 'premium' && (!elements.openrouterKey.value || !elements.openrouterModel.value)) {
             alert('Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.');
             return;
         }

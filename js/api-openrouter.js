@@ -260,7 +260,6 @@ async function generateCharacterSystemPromptGrok({ name, description, background
             }
         ],
         {
-            model: elements.grokModel.value,
             temperature: 0.7,
             maxTokens: 2200
         }
