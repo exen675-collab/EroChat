@@ -136,8 +136,8 @@ export async function sendOpenRouterChatRequest(apiMessages) {
 
 // Send chat completion request to selected provider
 export async function sendChatRequest(apiMessages) {
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
-    if (textProvider === 'grok') {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
+    if (textProvider === 'premium') {
         return sendGrokChatRequest(apiMessages);
     }
     return sendOpenRouterChatRequest(apiMessages);
@@ -270,8 +270,8 @@ async function generateCharacterSystemPromptGrok({ name, description, background
 }
 
 export async function generateCharacterSystemPrompt(payload) {
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
-    if (textProvider === 'grok') {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
+    if (textProvider === 'premium') {
         return generateCharacterSystemPromptGrok(payload);
     }
     return generateCharacterSystemPromptOpenRouter(payload);

@@ -220,7 +220,6 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
-            grokKey: elements.grokKey.value,
             grokModel: elements.grokModel.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,

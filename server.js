@@ -15,7 +15,17 @@ const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
-const GROK_API_KEY = (process.env.GROK_API_KEY || '').trim();
+const GROK_API_KEY_FILE = process.env.GROK_API_KEY_FILE || path.join(ROOT_DIR, 'grok.key');
+
+function readSecretFromFile(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+const GROK_API_KEY = (process.env.GROK_API_KEY || readSecretFromFile(GROK_API_KEY_FILE) || '').trim();
 
 function getIntEnv(name, fallback) {
   const raw = process.env[name];
@@ -74,9 +84,9 @@ function jsonOrNull(text) {
 
 function getCreditCosts() {
   return {
-    grokChat: CREDIT_COST_GROK_CHAT,
-    grokImage: CREDIT_COST_GROK_IMAGE,
-    grokVideo: CREDIT_COST_GROK_VIDEO
+    chat: CREDIT_COST_GROK_CHAT,
+    image: CREDIT_COST_GROK_IMAGE,
+    video: CREDIT_COST_GROK_VIDEO
   };
 }
 
@@ -160,7 +170,7 @@ function requireApiAuth(req, res, next) {
 
 function ensureGrokConfigured(res) {
   if (GROK_API_KEY) return true;
-  res.status(503).json({ error: 'Grok is not configured on the server.' });
+  res.status(503).json({ error: 'Premium service is not configured on the server.' });
   return false;
 }
 
@@ -415,7 +425,7 @@ async function handleChargedGrokRequest(req, res, { path, payload, cost }) {
   }
 }
 
-app.get('/api/grok/models', requireApiAuth, async (req, res) => {
+app.get('/api/premium/models', requireApiAuth, async (req, res) => {
   if (!ensureGrokConfigured(res)) return;
 
   try {
@@ -442,7 +452,7 @@ app.get('/api/grok/models', requireApiAuth, async (req, res) => {
   }
 });
 
-app.post('/api/grok/chat', requireApiAuth, async (req, res) => {
+app.post('/api/premium/chat', requireApiAuth, async (req, res) => {
   const model = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
   const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;
 
@@ -463,7 +473,7 @@ app.post('/api/grok/chat', requireApiAuth, async (req, res) => {
   });
 });
 
-app.post('/api/grok/image', requireApiAuth, async (req, res) => {
+app.post('/api/premium/image', requireApiAuth, async (req, res) => {
   const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
   if (!prompt) {
     res.status(400).json({ error: 'Prompt is required.' });
@@ -491,7 +501,7 @@ app.post('/api/grok/image', requireApiAuth, async (req, res) => {
   });
 });
 
-app.post('/api/grok/video', requireApiAuth, async (req, res) => {
+app.post('/api/premium/video', requireApiAuth, async (req, res) => {
   const imageUrl = req.body?.image?.url;
   if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
     res.status(400).json({ error: 'Image URL is required.' });
@@ -513,7 +523,7 @@ app.post('/api/grok/video', requireApiAuth, async (req, res) => {
   });
 });
 
-app.get('/api/grok/video/:requestId', requireApiAuth, async (req, res) => {
+app.get('/api/premium/video/:requestId', requireApiAuth, async (req, res) => {
   if (!ensureGrokConfigured(res)) return;
 
   const requestId = (req.params?.requestId || '').trim();

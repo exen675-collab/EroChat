@@ -20,7 +20,7 @@ function setCredits(credits) {
 function updateCreditsTooltip() {
     if (!elements.currentCredits || !state.creditCosts) return;
     const costs = state.creditCosts;
-    elements.currentCredits.title = `Grok costs - Chat: ${costs.grokChat}, Image: ${costs.grokImage}, Video: ${costs.grokVideo}`;
+    elements.currentCredits.title = `Premium costs - Chat: ${costs.chat}, Image: ${costs.image}, Video: ${costs.video}`;
 }
 
 function applyCreditsMetadata(meta) {
@@ -123,7 +123,7 @@ export async function fetchGrokModels(silent = false) {
             Fetching...
         `;
 
-        const response = await fetch('/api/grok/models', {
+        const response = await fetch('/api/premium/models', {
             method: 'GET',
             cache: 'no-store'
         });
@@ -131,7 +131,7 @@ export async function fetchGrokModels(silent = false) {
         const data = await parseJsonResponse(response);
 
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to fetch Grok models.');
+            throw new Error(data.error || 'Failed to fetch service models.');
         }
 
         fetchedGrokModels = (data.data || [])
@@ -145,10 +145,10 @@ export async function fetchGrokModels(silent = false) {
         filterAndPopulateGrokModels('', state.settings.grokModel);
 
         if (!silent) {
-            alert(`Successfully fetched ${fetchedGrokModels.length} models from Grok API!`);
+            alert(`Successfully fetched ${fetchedGrokModels.length} service models.`);
         }
     } catch (error) {
-        console.error('Error fetching Grok models:', error);
+        console.error('Error fetching service models:', error);
         if (!silent) alert(`Failed to fetch models: ${error.message}`);
     } finally {
         elements.fetchGrokModelsBtn.disabled = false;
@@ -156,7 +156,7 @@ export async function fetchGrokModels(silent = false) {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
-            Load Grok Models
+            Load Service Models
         `;
     }
 }
@@ -169,7 +169,7 @@ export async function sendGrokChatRequest(apiMessages, options = {}) {
         max_tokens: options.maxTokens ?? 2000
     };
 
-    const data = await postToGrokProxy('/api/grok/chat', payload);
+    const data = await postToGrokProxy('/api/premium/chat', payload);
     return data.choices?.[0]?.message?.content || '';
 }
 
@@ -193,14 +193,14 @@ export async function generateGrokImage(prompt, width = null, height = null) {
 
     let data;
     try {
-        data = await postToGrokProxy('/api/grok/image', body);
+        data = await postToGrokProxy('/api/premium/image', body);
     } catch (error) {
         const canRetryWithMinimalPayload = /400|aspect|resolution|parameter|payload/i.test(String(error.message));
         if (!canRetryWithMinimalPayload) {
             throw error;
         }
 
-        data = await postToGrokProxy('/api/grok/image', {
+        data = await postToGrokProxy('/api/premium/image', {
             model: 'grok-imagine-image',
             prompt,
             n: 1,
@@ -227,7 +227,7 @@ export async function generateGrokImage(prompt, width = null, height = null) {
 export async function generateGrokVideoFromImage(imageUrl) {
     const preparedImageUrl = await prepareImageForVideoGeneration(imageUrl);
 
-    const startData = await postToGrokProxy('/api/grok/video', {
+    const startData = await postToGrokProxy('/api/premium/video', {
         model: 'grok-imagine-video',
         prompt: 'Animate this image into a short cinematic video.',
         duration: 4,
@@ -261,7 +261,7 @@ export async function generateGrokVideoFromImage(imageUrl) {
     while (Date.now() - startTime < maxWaitMs) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
 
-        const statusResponse = await fetch(`/api/grok/video/${encodeURIComponent(requestId)}`, {
+        const statusResponse = await fetch(`/api/premium/video/${encodeURIComponent(requestId)}`, {
             method: 'GET',
             cache: 'no-store'
         });

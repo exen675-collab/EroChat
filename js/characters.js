@@ -237,10 +237,10 @@ export async function generateSystemPromptOnDemand() {
         return;
     }
 
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
-    if (textProvider === 'grok') {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
+    if (textProvider === 'premium') {
         if (!elements.grokModel.value) {
-            alert('Please select a Grok model in settings.');
+            alert('Please select a premium model in settings.');
             return;
         }
     } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
@@ -311,10 +311,10 @@ export async function saveCharacter() {
             return;
         }
 
-        const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
-        if (textProvider === 'grok') {
+        const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
+        if (textProvider === 'premium') {
             if (!elements.grokModel.value) {
-                alert('Please select a Grok model in settings to auto-generate a system prompt.');
+                alert('Please select a premium model in settings to auto-generate a system prompt.');
                 return;
             }
         } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {

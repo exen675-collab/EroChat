@@ -15,10 +15,9 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
 
 // Default settings
 export const defaultSettings = {
-    textProvider: 'openrouter',
+    textProvider: 'premium',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
-    grokKey: '',
     grokModel: 'grok-4-0709',
     swarmUrl: 'http://localhost:7801',
     swarmModel: '',

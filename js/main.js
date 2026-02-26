@@ -49,22 +49,22 @@ export async function sendMessage() {
     if (!content || state.isGenerating) return;
 
     // Validate settings
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
 
-    if (textProvider === 'grok' && !elements.grokModel.value) {
-        alert('Please select a Grok model in settings.');
+    if (textProvider === 'premium' && !elements.grokModel.value) {
+        alert('Please select a premium model in settings.');
         toggleSidebar();
         return;
     }
 
-    if (textProvider !== 'grok' && !elements.openrouterKey.value) {
+    if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
         toggleSidebar();
         return;
     }
 
-    if (textProvider !== 'grok' && !elements.openrouterModel.value) {
+    if (textProvider !== 'premium' && !elements.openrouterModel.value) {
         alert('Please select an OpenRouter model in settings.');
         toggleSidebar();
         return;
@@ -198,11 +198,11 @@ async function autoFetchModels() {
         }
     }
 
-    console.log('Auto-fetching Grok models...');
+    console.log('Auto-fetching premium models...');
     try {
         await fetchGrokModels(true);
     } catch (e) {
-        console.warn('Auto-fetch Grok models failed:', e);
+        console.warn('Auto-fetch premium models failed:', e);
     }
 }
 

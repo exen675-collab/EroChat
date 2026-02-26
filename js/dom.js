@@ -33,7 +33,6 @@ export const elements = {
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
-    grokKey: document.getElementById('grokKey'),
     grokModel: document.getElementById('grokModel'),
     grokModelSearch: document.getElementById('grokModelSearch'),
     swarmUrl: document.getElementById('swarmUrl'),
