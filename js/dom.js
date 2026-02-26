@@ -24,6 +24,7 @@ export const elements = {
     closeLightboxBtn: document.getElementById('closeLightboxBtn'),
     currentCharacterName: document.getElementById('currentCharacterName'),
     currentUsername: document.getElementById('currentUsername'),
+    currentCredits: document.getElementById('currentCredits'),
     welcomeAvatar: document.getElementById('welcomeAvatar'),
     welcomeMessage: document.getElementById('welcomeMessage'),
 

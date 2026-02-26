@@ -3,6 +3,54 @@ import { state } from './state.js';
 
 let fetchedGrokModels = [];
 
+function setCredits(credits) {
+    const numericCredits = Number.parseInt(credits, 10);
+    if (!Number.isFinite(numericCredits)) return;
+
+    if (!state.currentUser) {
+        state.currentUser = {};
+    }
+    state.currentUser.credits = numericCredits;
+
+    if (elements.currentCredits) {
+        elements.currentCredits.textContent = String(numericCredits);
+    }
+}
+
+function updateCreditsTooltip() {
+    if (!elements.currentCredits || !state.creditCosts) return;
+    const costs = state.creditCosts;
+    elements.currentCredits.title = `Grok costs - Chat: ${costs.grokChat}, Image: ${costs.grokImage}, Video: ${costs.grokVideo}`;
+}
+
+function applyCreditsMetadata(meta) {
+    if (meta && Number.isFinite(meta.remaining)) {
+        setCredits(meta.remaining);
+    }
+}
+
+async function parseJsonResponse(response) {
+    return response.json().catch(() => ({}));
+}
+
+async function postToGrokProxy(endpoint, payload) {
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok) {
+        throw new Error(data.error || `Request failed (${response.status})`);
+    }
+
+    applyCreditsMetadata(data?._credits);
+    return data;
+}
+
 function filterAndPopulateGrokModels(searchQuery = '', preferredModelId = null) {
     const query = searchQuery.toLowerCase().trim();
     const previousValue = preferredModelId || elements.grokModel.value || state.settings.grokModel;
@@ -41,14 +89,32 @@ export function setupGrokModelSearch() {
     });
 }
 
+export async function fetchCreditsSummary(silent = false) {
+    try {
+        const response = await fetch('/api/credits/me', { cache: 'no-store' });
+        const data = await parseJsonResponse(response);
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch credits.');
+        }
+
+        if (Number.isFinite(data.credits)) {
+            setCredits(data.credits);
+        }
+
+        state.creditCosts = data.costs || null;
+        updateCreditsTooltip();
+        return data;
+    } catch (error) {
+        if (!silent) {
+            alert(`Failed to load credits: ${error.message}`);
+        }
+        throw error;
+    }
+}
+
 export async function fetchGrokModels(silent = false) {
     if (typeof silent !== 'boolean') silent = false;
-    const apiKey = elements.grokKey.value;
-
-    if (!apiKey) {
-        if (!silent) alert('Please enter your Grok API key first.');
-        return;
-    }
 
     try {
         elements.fetchGrokModelsBtn.disabled = true;
@@ -57,18 +123,17 @@ export async function fetchGrokModels(silent = false) {
             Fetching...
         `;
 
-        const response = await fetch('https://api.x.ai/v1/models', {
+        const response = await fetch('/api/grok/models', {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            }
+            cache: 'no-store'
         });
 
+        const data = await parseJsonResponse(response);
+
         if (!response.ok) {
-            throw new Error('Failed to fetch models. Check your API key.');
+            throw new Error(data.error || 'Failed to fetch Grok models.');
         }
 
-        const data = await response.json();
         fetchedGrokModels = (data.data || [])
             .filter(model => typeof model?.id === 'string')
             .map(model => ({ id: model.id, name: model.id }));
@@ -79,10 +144,12 @@ export async function fetchGrokModels(silent = false) {
 
         filterAndPopulateGrokModels('', state.settings.grokModel);
 
-        if (!silent) alert(`Successfully fetched ${fetchedGrokModels.length} models from Grok API!`);
+        if (!silent) {
+            alert(`Successfully fetched ${fetchedGrokModels.length} models from Grok API!`);
+        }
     } catch (error) {
         console.error('Error fetching Grok models:', error);
-        if (!silent) alert('Failed to fetch models: ' + error.message);
+        if (!silent) alert(`Failed to fetch models: ${error.message}`);
     } finally {
         elements.fetchGrokModelsBtn.disabled = false;
         elements.fetchGrokModelsBtn.innerHTML = `
@@ -94,33 +161,21 @@ export async function fetchGrokModels(silent = false) {
     }
 }
 
-export async function sendGrokChatRequest(apiMessages) {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.grokKey.value}`
-        },
-        body: JSON.stringify({
-            model: elements.grokModel.value,
-            messages: apiMessages,
-            temperature: 0.9,
-            max_tokens: 2000
-        })
-    });
+export async function sendGrokChatRequest(apiMessages, options = {}) {
+    const payload = {
+        model: options.model || elements.grokModel.value,
+        messages: apiMessages,
+        temperature: options.temperature ?? 0.9,
+        max_tokens: options.maxTokens ?? 2000
+    };
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to get response');
-    }
-
-    const data = await response.json();
+    const data = await postToGrokProxy('/api/grok/chat', payload);
     return data.choices?.[0]?.message?.content || '';
 }
 
 export async function generateGrokImage(prompt, width = null, height = null) {
-    const w = width ? parseInt(width) : parseInt(elements.imgWidth.value);
-    const h = height ? parseInt(height) : parseInt(elements.imgHeight.value);
+    const w = width ? parseInt(width, 10) : parseInt(elements.imgWidth.value, 10);
+    const h = height ? parseInt(height, 10) : parseInt(elements.imgHeight.value, 10);
 
     const body = {
         model: 'grok-imagine-image',
@@ -134,54 +189,26 @@ export async function generateGrokImage(prompt, width = null, height = null) {
         body.aspect_ratio = aspectRatio;
     }
 
-    // xAI docs currently support 1k and 2k resolution flags.
     body.resolution = Math.max(w, h) > 1408 ? '2k' : '1k';
 
-    let response = await fetch('https://api.x.ai/v1/images/generations', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.grokKey.value}`
-        },
-        body: JSON.stringify(body)
-    });
+    let data;
+    try {
+        data = await postToGrokProxy('/api/grok/image', body);
+    } catch (error) {
+        const canRetryWithMinimalPayload = /400|aspect|resolution|parameter|payload/i.test(String(error.message));
+        if (!canRetryWithMinimalPayload) {
+            throw error;
+        }
 
-    // Retry with minimal payload if provider rejects optional parameters.
-    if (!response.ok && response.status === 400) {
-        response = await fetch('https://api.x.ai/v1/images/generations', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${elements.grokKey.value}`
-            },
-            body: JSON.stringify({
-                model: 'grok-imagine-image',
-                prompt,
-                n: 1,
-                response_format: 'b64_json'
-            })
+        data = await postToGrokProxy('/api/grok/image', {
+            model: 'grok-imagine-image',
+            prompt,
+            n: 1,
+            response_format: 'b64_json'
         });
     }
 
-    if (!response.ok) {
-        let errorMessage = `Failed to generate image (${response.status})`;
-        try {
-            const error = await response.json();
-            errorMessage = error.error?.message || errorMessage;
-        } catch {
-            try {
-                const rawText = await response.text();
-                if (rawText) errorMessage = rawText;
-            } catch {
-                // ignore parsing failures
-            }
-        }
-        throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
     const image = data.data?.[0];
-
     if (!image) {
         throw new Error('No image generated');
     }
@@ -198,39 +225,16 @@ export async function generateGrokImage(prompt, width = null, height = null) {
 }
 
 export async function generateGrokVideoFromImage(imageUrl) {
-    if (!elements.grokKey.value) {
-        throw new Error('Missing Grok API key');
-    }
-
     const preparedImageUrl = await prepareImageForVideoGeneration(imageUrl);
 
-    const startResponse = await fetch('https://api.x.ai/v1/videos/generations', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.grokKey.value}`
-        },
-        body: JSON.stringify({
-            model: 'grok-imagine-video',
-            prompt: 'Animate this image into a short cinematic video.',
-            duration: 4,
-            resolution: '480p',
-            image: { url: preparedImageUrl }
-        })
+    const startData = await postToGrokProxy('/api/grok/video', {
+        model: 'grok-imagine-video',
+        prompt: 'Animate this image into a short cinematic video.',
+        duration: 4,
+        resolution: '480p',
+        image: { url: preparedImageUrl }
     });
 
-    if (!startResponse.ok) {
-        let errorMessage = `Failed to start video generation (${startResponse.status})`;
-        try {
-            const error = await startResponse.json();
-            errorMessage = error.error?.message || errorMessage;
-        } catch {
-            // ignore parsing failures
-        }
-        throw new Error(errorMessage);
-    }
-
-    const startData = await startResponse.json();
     const immediateVideoUrl =
         startData.video?.url ||
         startData.url ||
@@ -257,12 +261,12 @@ export async function generateGrokVideoFromImage(imageUrl) {
     while (Date.now() - startTime < maxWaitMs) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
 
-        const statusResponse = await fetch(`https://api.x.ai/v1/videos/${requestId}`, {
+        const statusResponse = await fetch(`/api/grok/video/${encodeURIComponent(requestId)}`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${elements.grokKey.value}`
-            }
+            cache: 'no-store'
         });
+
+        const statusData = await parseJsonResponse(statusResponse);
 
         if (!statusResponse.ok) {
             if (statusResponse.status === 202 || statusResponse.status === 429) {
@@ -270,17 +274,9 @@ export async function generateGrokVideoFromImage(imageUrl) {
                 continue;
             }
 
-            let errorMessage = `Failed to check video status (${statusResponse.status})`;
-            try {
-                const error = await statusResponse.json();
-                errorMessage = error.error?.message || errorMessage;
-            } catch {
-                // ignore parsing failures
-            }
-            throw new Error(errorMessage);
+            throw new Error(statusData.error || `Failed to check video status (${statusResponse.status})`);
         }
 
-        const statusData = await statusResponse.json();
         const statusVideoUrl =
             statusData.video?.url ||
             statusData.url ||

@@ -248,42 +248,25 @@ async function generateCharacterSystemPromptGrok({ name, description, background
     ---IMAGE_PROMPT END---
     `;
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.grokKey.value}`
-        },
-        body: JSON.stringify({
+    const content = await sendGrokChatRequest(
+        [
+            {
+                role: 'system',
+                content: 'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
+            },
+            {
+                role: 'user',
+                content: `TEMPLATE:${ROLEPLAY_TEMPLATE}---CHARACTER DATA:- Agent name: ${name}- Description: ${description}- Background: ${background}- Player data: ${JSON.stringify(userInfo)}Fill the template with the data above.`
+            }
+        ],
+        {
             model: elements.grokModel.value,
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
-                },
-                {
-                    role: 'user',
-                    content: `TEMPLATE:${ROLEPLAY_TEMPLATE}---CHARACTER DATA:- Agent name: ${name}- Description: ${description}- Background: ${background}- Player data: ${JSON.stringify(userInfo)}Fill the template with the data above.`
-                }
-            ],
             temperature: 0.7,
-            max_tokens: 2200
-        })
-    });
-
-    if (!response.ok) {
-        let errorMessage = 'Failed to generate system prompt';
-        try {
-            const error = await response.json();
-            errorMessage = error.error?.message || errorMessage;
-        } catch {
-            // ignore json parsing failures
+            maxTokens: 2200
         }
-        throw new Error(errorMessage);
-    }
+    );
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || '';
+    return content.trim();
 }
 
 export async function generateCharacterSystemPrompt(payload) {

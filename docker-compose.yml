@@ -8,6 +8,11 @@ services:
       PORT: 20121
       SESSION_SECRET: change-this-secret
       COOKIE_SECURE: "false"
+      GROK_API_KEY: ""
+      DEFAULT_USER_CREDITS: 100
+      CREDIT_COST_GROK_CHAT: 1
+      CREDIT_COST_GROK_IMAGE: 2
+      CREDIT_COST_GROK_VIDEO: 3
     volumes:
       - ./data:/app/data
     restart: unless-stopped

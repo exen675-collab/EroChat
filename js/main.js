@@ -12,7 +12,7 @@ import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
-import { fetchGrokModels } from './api-grok.js';
+import { fetchGrokModels, fetchCreditsSummary } from './api-grok.js';
 
 async function loadCurrentUser() {
     try {
@@ -29,12 +29,18 @@ async function loadCurrentUser() {
 }
 
 function updateCurrentUserUI() {
-    if (!elements.currentUsername) return;
+    if (!elements.currentUsername || !elements.currentCredits) return;
     if (!state.currentUser?.username) {
         elements.currentUsername.textContent = 'Unknown user';
+        elements.currentCredits.textContent = '--';
         return;
     }
     elements.currentUsername.textContent = `@${state.currentUser.username}`;
+    if (Number.isFinite(state.currentUser.credits)) {
+        elements.currentCredits.textContent = String(state.currentUser.credits);
+    } else {
+        elements.currentCredits.textContent = '--';
+    }
 }
 
 // Main send message function
@@ -45,12 +51,6 @@ export async function sendMessage() {
     // Validate settings
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
-
-    if (textProvider === 'grok' && !elements.grokKey.value) {
-        alert('Please enter your Grok API key in settings.');
-        toggleSidebar();
-        return;
-    }
 
     if (textProvider === 'grok' && !elements.grokModel.value) {
         alert('Please select a Grok model in settings.');
@@ -72,12 +72,6 @@ export async function sendMessage() {
 
     if (state.settings.enableImageGeneration !== false && imageProvider === 'local' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
-        toggleSidebar();
-        return;
-    }
-
-    if (state.settings.enableImageGeneration !== false && imageProvider === 'grok' && !elements.grokKey.value) {
-        alert('Please enter your Grok API key for image generation or switch image provider.');
         toggleSidebar();
         return;
     }
@@ -204,13 +198,11 @@ async function autoFetchModels() {
         }
     }
 
-    if (elements.grokKey.value) {
-        console.log('Auto-fetching Grok models...');
-        try {
-            await fetchGrokModels(true);
-        } catch (e) {
-            console.warn('Auto-fetch Grok models failed:', e);
-        }
+    console.log('Auto-fetching Grok models...');
+    try {
+        await fetchGrokModels(true);
+    } catch (e) {
+        console.warn('Auto-fetch Grok models failed:', e);
     }
 }
 
@@ -226,6 +218,11 @@ async function init() {
         return;
     }
     updateCurrentUserUI();
+    try {
+        await fetchCreditsSummary(true);
+    } catch (error) {
+        console.warn('Failed to fetch credits summary:', error);
+    }
 
     // Load data from localStorage
     loadFromLocalStorage();

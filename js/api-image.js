@@ -18,9 +18,5 @@ export async function generateImage(prompt, width = null, height = null) {
 }
 
 export async function generateVideoFromImage(imageUrl) {
-    if (!elements.grokKey.value) {
-        throw new Error('Please enter your Grok API key in settings.');
-    }
-
     return generateGrokVideoFromImage(imageUrl);
 }

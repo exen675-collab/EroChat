@@ -239,8 +239,8 @@ export async function generateSystemPromptOnDemand() {
 
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
     if (textProvider === 'grok') {
-        if (!elements.grokKey.value || !elements.grokModel.value) {
-            alert('Please enter your Grok API key and select a Grok model in settings.');
+        if (!elements.grokModel.value) {
+            alert('Please select a Grok model in settings.');
             return;
         }
     } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
@@ -313,8 +313,8 @@ export async function saveCharacter() {
 
         const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
         if (textProvider === 'grok') {
-            if (!elements.grokKey.value || !elements.grokModel.value) {
-                alert('Please enter your Grok API key and select a Grok model in settings to auto-generate a system prompt.');
+            if (!elements.grokModel.value) {
+                alert('Please select a Grok model in settings to auto-generate a system prompt.');
                 return;
             }
         } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
@@ -416,10 +416,6 @@ export async function generateThumbnail() {
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
     if (imageProvider === 'local' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model first.');
-        return;
-    }
-    if (imageProvider === 'grok' && !elements.grokKey.value) {
-        alert('Please enter your Grok API key first.');
         return;
     }
 
