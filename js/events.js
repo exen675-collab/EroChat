@@ -97,6 +97,15 @@ export function setupEventListeners() {
 
     // Gallery
     elements.openGalleryBtn.addEventListener('click', openGallery);
+    elements.logoutBtn.addEventListener('click', async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout request failed:', error);
+        } finally {
+            window.location.href = '/';
+        }
+    });
     elements.backToChatBtn.addEventListener('click', closeGallery);
     elements.galleryCharacterFilter.addEventListener('change', (e) => {
         state.galleryFilterCharacterId = e.target.value || 'all';

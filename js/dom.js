@@ -13,6 +13,7 @@ export const elements = {
     imageIndicator: document.getElementById('imageIndicator'),
     connectionStatus: document.getElementById('connectionStatus'),
     openGalleryBtn: document.getElementById('openGalleryBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
     backToChatBtn: document.getElementById('backToChatBtn'),
     galleryGrid: document.getElementById('galleryGrid'),
     galleryCharacterFilter: document.getElementById('galleryCharacterFilter'),

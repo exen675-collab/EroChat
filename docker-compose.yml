@@ -3,5 +3,11 @@ services:
     build: .
     container_name: erochat
     ports:
-      - "20121:80"
+      - "20121:20121"
+    environment:
+      PORT: 20121
+      SESSION_SECRET: change-this-secret
+      COOKIE_SECURE: "false"
+    volumes:
+      - ./data:/app/data
     restart: unless-stopped
