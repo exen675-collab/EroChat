@@ -63,7 +63,7 @@ export function addUserMessageToUI(content, id = null, animate = true) {
             </div>
             <div class="flex-1">
                 <div class="bg-gradient-to-r from-purple-900/80 to-blue-900/80 border border-purple-700/50 rounded-2xl rounded-tr-none px-5 py-4">
-                    <p class="text-gray-100 leading-relaxed">${formatMessage(escapeHtml(content))}</p>
+                    <p class="text-gray-100 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(content), 'user')}</p>
                 </div>
             </div>
         </div>
@@ -125,7 +125,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
             </div>
             <div class="flex-1 flex gap-4 ${hasImage ? 'flex-col lg:flex-row' : 'flex-col'}">
                 <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'w-full lg:w-2/3' : 'w-full'}">
-                    <p class="text-gray-300 leading-relaxed">${formatMessage(escapeHtml(displayContent))}</p>
+                    <p class="text-gray-300 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(displayContent), 'ai')}</p>
                 </div>
                 ${imageSection}
             </div>
