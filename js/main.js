@@ -13,6 +13,7 @@ import { selectCharacter, deleteCharacter, editCharacter } from './characters.js
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchCreditsSummary } from './api-grok.js';
+import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 
 async function loadCurrentUser() {
     try {
@@ -35,7 +36,8 @@ function updateCurrentUserUI() {
         elements.currentCredits.textContent = '--';
         return;
     }
-    elements.currentUsername.textContent = `@${state.currentUser.username}`;
+    const adminSuffix = state.currentUser.isAdmin ? ' (admin)' : '';
+    elements.currentUsername.textContent = `@${state.currentUser.username}${adminSuffix}`;
     if (Number.isFinite(state.currentUser.credits)) {
         elements.currentCredits.textContent = String(state.currentUser.credits);
     } else {
@@ -206,10 +208,18 @@ async function init() {
         return;
     }
     updateCurrentUserUI();
+    syncAdminPanelVisibility();
     try {
         await fetchCreditsSummary(true);
     } catch (error) {
         console.warn('Failed to fetch credits summary:', error);
+    }
+    if (state.currentUser.isAdmin) {
+        try {
+            await fetchAdminUsers(true);
+        } catch (error) {
+            console.warn('Failed to fetch admin users:', error);
+        }
     }
 
     // Load data from localStorage

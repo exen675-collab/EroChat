@@ -39,6 +39,8 @@ const CREDIT_COST_GROK_CHAT = getIntEnv('CREDIT_COST_GROK_CHAT', 1);
 const CREDIT_COST_GROK_IMAGE = getIntEnv('CREDIT_COST_GROK_IMAGE', 2);
 const CREDIT_COST_GROK_VIDEO = getIntEnv('CREDIT_COST_GROK_VIDEO', 3);
 const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
+const DEFAULT_ADMIN_USERNAME = 'admin';
+const DEFAULT_ADMIN_PASSWORD = 'admin';
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
@@ -70,6 +72,18 @@ function get(query, params = []) {
         return;
       }
       resolve(row);
+    });
+  });
+}
+
+function all(query, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows || []);
     });
   });
 }
@@ -169,10 +183,59 @@ function requireApiAuth(req, res, next) {
   next();
 }
 
+async function requireAdmin(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    res.status(401).json({ error: 'Unauthorized.' });
+    return;
+  }
+
+  if (req.session.isAdmin === true) {
+    next();
+    return;
+  }
+
+  try {
+    const row = await get('SELECT is_admin FROM users WHERE id = ?', [req.session.userId]);
+    const isAdmin = Number.parseInt(row?.is_admin, 10) === 1;
+    req.session.isAdmin = isAdmin;
+
+    if (!isAdmin) {
+      res.status(403).json({ error: 'Admin access required.' });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error('Failed to verify admin access:', error);
+    res.status(500).json({ error: 'Failed to verify admin access.' });
+  }
+}
+
 function ensureGrokConfigured(res) {
   if (GROK_API_KEY) return true;
   res.status(503).json({ error: 'Premium service is not configured on the server.' });
   return false;
+}
+
+async function ensureDefaultAdminAccount() {
+  const existingAdmin = await get(
+    'SELECT id FROM users WHERE username = ? COLLATE NOCASE',
+    [DEFAULT_ADMIN_USERNAME]
+  );
+  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+
+  if (!existingAdmin) {
+    await run(
+      'INSERT INTO users (username, password_hash, credits, is_admin) VALUES (?, ?, ?, 1)',
+      [DEFAULT_ADMIN_USERNAME, passwordHash, DEFAULT_USER_CREDITS]
+    );
+    return;
+  }
+
+  await run(
+    'UPDATE users SET password_hash = ?, is_admin = 1 WHERE id = ?',
+    [passwordHash, existingAdmin.id]
+  );
 }
 
 async function initDb() {
@@ -182,6 +245,7 @@ async function initDb() {
       username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL,
       credits INTEGER NOT NULL DEFAULT ${DEFAULT_USER_CREDITS},
+      is_admin INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -194,6 +258,17 @@ async function initDb() {
       throw error;
     }
   }
+
+  // Backward compatibility for databases created before admin roles were added.
+  try {
+    await run('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+  } catch (error) {
+    if (!String(error?.message || '').includes('duplicate column')) {
+      throw error;
+    }
+  }
+
+  await ensureDefaultAdminAccount();
 }
 
 app.set('trust proxy', 1);
@@ -263,8 +338,9 @@ app.post('/api/auth/signup', async (req, res) => {
 
     req.session.userId = result.lastID;
     req.session.username = username;
+    req.session.isAdmin = false;
 
-    res.status(201).json({ ok: true, username, credits: DEFAULT_USER_CREDITS });
+    res.status(201).json({ ok: true, username, credits: DEFAULT_USER_CREDITS, isAdmin: false });
   } catch (error) {
     if (error && error.code === 'SQLITE_CONSTRAINT') {
       res.status(409).json({ error: 'Username is already taken.' });
@@ -291,7 +367,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     const user = await get(
-      'SELECT id, username, password_hash, credits FROM users WHERE username = ? COLLATE NOCASE',
+      'SELECT id, username, password_hash, credits, is_admin FROM users WHERE username = ? COLLATE NOCASE',
       [username]
     );
 
@@ -309,8 +385,14 @@ app.post('/api/auth/login', async (req, res) => {
     clearRateLimit(req);
     req.session.userId = user.id;
     req.session.username = user.username;
+    req.session.isAdmin = Number.parseInt(user.is_admin, 10) === 1;
 
-    res.json({ ok: true, username: user.username, credits: user.credits });
+    res.json({
+      ok: true,
+      username: user.username,
+      credits: user.credits,
+      isAdmin: req.session.isAdmin
+    });
   } catch (error) {
     console.error('Login failed:', error);
     res.status(500).json({ error: 'Failed to log in.' });
@@ -342,13 +424,27 @@ app.get('/api/auth/me', async (req, res) => {
   }
 
   try {
-    const credits = await getUserCredits(req.session.userId);
+    const user = await get(
+      'SELECT id, username, credits, is_admin FROM users WHERE id = ?',
+      [req.session.userId]
+    );
+    if (!user) {
+      req.session.destroy(() => {});
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+
+    const isAdmin = Number.parseInt(user.is_admin, 10) === 1;
+    req.session.username = user.username;
+    req.session.isAdmin = isAdmin;
+
     res.json({
       authenticated: true,
       user: {
-        id: req.session.userId,
-        username: req.session.username,
-        credits
+        id: user.id,
+        username: user.username,
+        credits: Number.isFinite(user.credits) ? user.credits : 0,
+        isAdmin
       }
     });
   } catch (error) {
@@ -367,6 +463,71 @@ app.get('/api/credits/me', requireApiAuth, async (req, res) => {
   } catch (error) {
     console.error('Failed to load credits:', error);
     res.status(500).json({ error: 'Failed to load credits.' });
+  }
+});
+
+app.get('/api/admin/users', requireApiAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = await all(
+      'SELECT id, username, credits, is_admin, created_at FROM users ORDER BY username COLLATE NOCASE ASC'
+    );
+    const users = rows.map((row) => ({
+      id: row.id,
+      username: row.username,
+      credits: Number.isFinite(row.credits) ? row.credits : 0,
+      isAdmin: Number.parseInt(row.is_admin, 10) === 1,
+      createdAt: row.created_at
+    }));
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Failed to list admin users:', error);
+    res.status(500).json({ error: 'Failed to load users.' });
+  }
+});
+
+app.patch('/api/admin/users/:userId/credits', requireApiAuth, requireAdmin, async (req, res) => {
+  const userId = Number.parseInt(req.params?.userId, 10);
+  const credits = Number(req.body?.credits);
+
+  if (!Number.isFinite(userId) || userId <= 0) {
+    res.status(400).json({ error: 'Invalid user ID.' });
+    return;
+  }
+
+  if (!Number.isInteger(credits) || credits < 0 || credits > 1000000000) {
+    res.status(400).json({ error: 'Credits must be an integer between 0 and 1000000000.' });
+    return;
+  }
+
+  try {
+    const result = await run('UPDATE users SET credits = ? WHERE id = ?', [credits, userId]);
+    if (!result.changes) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const updated = await get(
+      'SELECT id, username, credits, is_admin FROM users WHERE id = ?',
+      [userId]
+    );
+    if (!updated) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      user: {
+        id: updated.id,
+        username: updated.username,
+        credits: Number.isFinite(updated.credits) ? updated.credits : 0,
+        isAdmin: Number.parseInt(updated.is_admin, 10) === 1
+      }
+    });
+  } catch (error) {
+    console.error('Failed to update user credits:', error);
+    res.status(500).json({ error: 'Failed to update credits.' });
   }
 });
 

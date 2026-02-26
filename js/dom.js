@@ -25,6 +25,9 @@ export const elements = {
     currentCharacterName: document.getElementById('currentCharacterName'),
     currentUsername: document.getElementById('currentUsername'),
     currentCredits: document.getElementById('currentCredits'),
+    adminPanel: document.getElementById('adminPanel'),
+    adminUsersStatus: document.getElementById('adminUsersStatus'),
+    adminUsersList: document.getElementById('adminUsersList'),
     welcomeAvatar: document.getElementById('welcomeAvatar'),
     welcomeMessage: document.getElementById('welcomeMessage'),
 
@@ -68,6 +71,7 @@ export const elements = {
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
+    refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     clearChatBtn: document.getElementById('clearChatBtn')
 };

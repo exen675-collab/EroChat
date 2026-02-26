@@ -46,6 +46,21 @@
                     </div>
                 </div>
 
+                <!-- Admin Panel -->
+                <div id="adminPanel" class="mb-6 p-4 rounded-xl glass hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-semibold text-amber-300">Admin</h2>
+                        <button id="refreshUsersBtn"
+                            class="px-3 py-1 text-sm btn-secondary rounded-lg">
+                            Refresh Users
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-gray-500 mb-3">Manage credits for all users.</p>
+                    <p id="adminUsersStatus" class="text-xs text-gray-500 mb-3">Admin panel ready.</p>
+                    <div id="adminUsersList" class="space-y-2 max-h-72 overflow-y-auto"></div>
+                </div>
+
                 <!-- Text Provider Settings -->
                 <div class="mb-6 p-4 rounded-xl glass">
                     <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">

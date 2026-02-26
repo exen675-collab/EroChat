@@ -6,6 +6,7 @@ import { normalizeBaseUrl } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
+import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
@@ -158,6 +159,10 @@ export function setupEventListeners() {
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);
     elements.fetchOpenRouterModelsBtn.addEventListener('click', fetchOpenRouterModels);
+    elements.refreshUsersBtn.addEventListener('click', () => {
+        fetchAdminUsers();
+    });
+    elements.adminUsersList.addEventListener('click', handleAdminUsersListClick);
 
     // Setup model search functionality
     setupModelSearch();
