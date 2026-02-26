@@ -81,6 +81,20 @@ export function setupEventListeners() {
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
 
+    // Chat media lightbox (assistant generated images/videos)
+    elements.chatContainer.addEventListener('click', (e) => {
+        const image = e.target.closest('.chat-image-preview');
+        if (image) {
+            openLightboxImage(image.getAttribute('src'));
+            return;
+        }
+
+        const video = e.target.closest('.chat-video-preview');
+        if (video) {
+            openLightboxVideo(video.getAttribute('src'));
+        }
+    });
+
     // Gallery
     elements.openGalleryBtn.addEventListener('click', openGallery);
     elements.backToChatBtn.addEventListener('click', closeGallery);
