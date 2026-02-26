@@ -3,7 +3,7 @@ import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
 import { generateId, escapeHtml, formatMessage } from './utils.js';
 import { scrollToBottom } from './ui.js';
-import { generateImage } from './api-swarmui.js';
+import { generateImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 
 // Render all messages

@@ -237,8 +237,14 @@ export async function generateSystemPromptOnDemand() {
         return;
     }
 
-    if (!elements.openrouterKey.value) {
-        alert('Please enter your OpenRouter API key in settings.');
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+    if (textProvider === 'grok') {
+        if (!elements.grokKey.value || !elements.grokModel.value) {
+            alert('Please enter your Grok API key and select a Grok model in settings.');
+            return;
+        }
+    } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
+        alert('Please enter your OpenRouter API key and select a model in settings.');
         return;
     }
 
@@ -305,8 +311,14 @@ export async function saveCharacter() {
             return;
         }
 
-        if (!elements.openrouterKey.value) {
-            alert('Please enter your OpenRouter API key in settings to auto-generate a system prompt.');
+        const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+        if (textProvider === 'grok') {
+            if (!elements.grokKey.value || !elements.grokModel.value) {
+                alert('Please enter your Grok API key and select a Grok model in settings to auto-generate a system prompt.');
+                return;
+            }
+        } else if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
+            alert('Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.');
             return;
         }
 
@@ -401,8 +413,18 @@ export async function generateThumbnail() {
         return;
     }
 
-    // Import SwarmUI API
-    const { generateImage } = await import('./api-swarmui.js');
+    const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
+    if (imageProvider === 'local' && !elements.swarmModel.value) {
+        alert('Please select a SwarmUI model first.');
+        return;
+    }
+    if (imageProvider === 'grok' && !elements.grokKey.value) {
+        alert('Please enter your Grok API key first.');
+        return;
+    }
+
+    // Import selected image provider API
+    const { generateImage } = await import('./api-image.js');
 
     // Build the prompt
     const prompt = `masterpiece, best quality, ultra-detailed, 8k, realistic, portrait, ${description}`;
@@ -440,7 +462,7 @@ export async function generateThumbnail() {
         }
     } catch (error) {
         console.error('Thumbnail generation error:', error);
-        alert('Failed to generate thumbnail. Make sure SwarmUI is running and configured.');
+        alert('Failed to generate thumbnail. Check your image provider settings.');
     } finally {
         // Reset button
         elements.generateThumbnailBtn.disabled = false;

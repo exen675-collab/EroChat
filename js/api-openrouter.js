@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
+import { sendGrokChatRequest } from './api-grok.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
@@ -107,8 +108,7 @@ export async function fetchOpenRouterModels(silent = false) {
     }
 }
 
-// Send chat completion request to OpenRouter
-export async function sendChatRequest(apiMessages) {
+export async function sendOpenRouterChatRequest(apiMessages) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -134,9 +134,18 @@ export async function sendChatRequest(apiMessages) {
     return data.choices[0].message.content;
 }
 
+// Send chat completion request to selected provider
+export async function sendChatRequest(apiMessages) {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+    if (textProvider === 'grok') {
+        return sendGrokChatRequest(apiMessages);
+    }
+    return sendOpenRouterChatRequest(apiMessages);
+}
+
 
 // Generate a high-quality system prompt for a character using Claude 4.5 Sonnet via OpenRouter
-export async function generateCharacterSystemPrompt({ name, description, background, userInfo }) {
+async function generateCharacterSystemPromptOpenRouter({ name, description, background, userInfo }) {
     const generatorModel = 'anthropic/claude-sonnet-4.5';
     var ROLEPLAY_TEMPLATE = `
     # SYSTEM PROMPT – Roleplay Agent
@@ -215,4 +224,72 @@ export async function generateCharacterSystemPrompt({ name, description, backgro
 
     const data = await response.json();
     return data.choices?.[0]?.message?.content?.trim() || '';
+}
+
+async function generateCharacterSystemPromptGrok({ name, description, background, userInfo }) {
+    const ROLEPLAY_TEMPLATE = `
+    # SYSTEM PROMPT - Roleplay Agent
+    ## Genre and Type
+    Erotic slowburn roleplay. Tension builds gradually through flirtation, teasing, accidental touches, and provocative subtext.
+
+    ## Perspective and Response Style
+    - Write only as {{agent_name}} (dialogue + actions + body language).
+    - Never write {{player_name}} thoughts/actions/dialogue.
+    - Format: *actions in italics*, "dialogue normal".
+    - Response length: 2-5 paragraphs.
+
+    ## Character details
+    Fill all placeholders from user-provided details.
+
+    ## Image Prompt Block
+    After every response append:
+    ---IMAGE_PROMPT START---
+    masterpiece, best_quality, ...
+    ---IMAGE_PROMPT END---
+    `;
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${elements.grokKey.value}`
+        },
+        body: JSON.stringify({
+            model: elements.grokModel.value,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
+                },
+                {
+                    role: 'user',
+                    content: `TEMPLATE:${ROLEPLAY_TEMPLATE}---CHARACTER DATA:- Agent name: ${name}- Description: ${description}- Background: ${background}- Player data: ${JSON.stringify(userInfo)}Fill the template with the data above.`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 2200
+        })
+    });
+
+    if (!response.ok) {
+        let errorMessage = 'Failed to generate system prompt';
+        try {
+            const error = await response.json();
+            errorMessage = error.error?.message || errorMessage;
+        } catch {
+            // ignore json parsing failures
+        }
+        throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+}
+
+export async function generateCharacterSystemPrompt(payload) {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+    if (textProvider === 'grok') {
+        return generateCharacterSystemPromptGrok(payload);
+    }
+    return generateCharacterSystemPromptOpenRouter(payload);
 }

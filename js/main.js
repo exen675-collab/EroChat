@@ -3,7 +3,7 @@ import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 import { getCurrentCharacter } from './characters.js';
 import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery } from './messages.js';
-import { generateImage } from './api-swarmui.js';
+import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom } from './ui.js';
 import { escapeHtml } from './utils.js';
@@ -12,6 +12,7 @@ import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
+import { fetchGrokModels } from './api-grok.js';
 
 // Main send message function
 export async function sendMessage() {
@@ -19,14 +20,41 @@ export async function sendMessage() {
     if (!content || state.isGenerating) return;
 
     // Validate settings
-    if (!elements.openrouterKey.value) {
+    const textProvider = elements.textProvider.value || state.settings.textProvider || 'openrouter';
+    const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
+
+    if (textProvider === 'grok' && !elements.grokKey.value) {
+        alert('Please enter your Grok API key in settings.');
+        toggleSidebar();
+        return;
+    }
+
+    if (textProvider === 'grok' && !elements.grokModel.value) {
+        alert('Please select a Grok model in settings.');
+        toggleSidebar();
+        return;
+    }
+
+    if (textProvider !== 'grok' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
         toggleSidebar();
         return;
     }
 
-    if (state.settings.enableImageGeneration !== false && !elements.swarmModel.value) {
+    if (textProvider !== 'grok' && !elements.openrouterModel.value) {
+        alert('Please select an OpenRouter model in settings.');
+        toggleSidebar();
+        return;
+    }
+
+    if (state.settings.enableImageGeneration !== false && imageProvider === 'local' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
+        toggleSidebar();
+        return;
+    }
+
+    if (state.settings.enableImageGeneration !== false && imageProvider === 'grok' && !elements.grokKey.value) {
+        alert('Please enter your Grok API key for image generation or switch image provider.');
         toggleSidebar();
         return;
     }
@@ -135,7 +163,6 @@ export async function sendMessage() {
 async function autoFetchModels() {
     console.log('Checking for auto-fetch...');
 
-    // Auto-fetch SwarmUI models if URL is present
     if (elements.swarmUrl.value) {
         console.log('Auto-fetching SwarmUI models...');
         try {
@@ -145,13 +172,21 @@ async function autoFetchModels() {
         }
     }
 
-    // Auto-fetch OpenRouter models if key is present
     if (elements.openrouterKey.value) {
         console.log('Auto-fetching OpenRouter models...');
         try {
             await fetchOpenRouterModels(true);
         } catch (e) {
             console.warn('Auto-fetch OpenRouter models failed:', e);
+        }
+    }
+
+    if (elements.grokKey.value) {
+        console.log('Auto-fetching Grok models...');
+        try {
+            await fetchGrokModels(true);
+        } catch (e) {
+            console.warn('Auto-fetch Grok models failed:', e);
         }
     }
 }

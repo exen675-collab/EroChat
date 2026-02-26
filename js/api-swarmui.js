@@ -169,7 +169,7 @@ export async function getSwarmSession() {
 }
 
 // Generate image using SwarmUI
-export async function generateImage(prompt, width = null, height = null) {
+export async function generateLocalImage(prompt, width = null, height = null) {
     const url = normalizeBaseUrl(elements.swarmUrl.value);
 
     try {
@@ -253,3 +253,6 @@ export async function generateImage(prompt, width = null, height = null) {
         elements.imageIndicator.classList.add('hidden');
     }
 }
+
+// Backward-compatible export
+export const generateImage = generateLocalImage;

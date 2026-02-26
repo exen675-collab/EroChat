@@ -139,10 +139,14 @@ export function loadFromLocalStorage() {
 
 // Update settings UI from state
 export function updateSettingsUI() {
+    elements.textProvider.value = state.settings.textProvider || 'openrouter';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
+    elements.grokKey.value = state.settings.grokKey || '';
+    elements.grokModel.value = state.settings.grokModel || '';
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
+    elements.imageProvider.value = state.settings.imageProvider || 'local';
     elements.enableImageGeneration.checked = state.settings.enableImageGeneration !== false;
     elements.imgWidth.value = state.settings.imgWidth;
     elements.imgHeight.value = state.settings.imgHeight;

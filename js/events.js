@@ -6,6 +6,7 @@ import { normalizeBaseUrl } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
+import { fetchGrokModels, setupGrokModelSearch } from './api-grok.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
@@ -112,9 +113,11 @@ export function setupEventListeners() {
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);
     elements.fetchOpenRouterModelsBtn.addEventListener('click', fetchOpenRouterModels);
+    elements.fetchGrokModelsBtn.addEventListener('click', fetchGrokModels);
 
     // Setup model search functionality
     setupModelSearch();
+    setupGrokModelSearch();
 
     // Persist model selections immediately when changed
     elements.openrouterModel.addEventListener('change', () => {
@@ -122,8 +125,23 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.textProvider.addEventListener('change', () => {
+        state.settings.textProvider = elements.textProvider.value;
+        saveToLocalStorage();
+    });
+
+    elements.grokModel.addEventListener('change', () => {
+        state.settings.grokModel = elements.grokModel.value;
+        saveToLocalStorage();
+    });
+
     elements.swarmModel.addEventListener('change', () => {
         state.settings.swarmModel = elements.swarmModel.value;
+        saveToLocalStorage();
+    });
+
+    elements.imageProvider.addEventListener('change', () => {
+        state.settings.imageProvider = elements.imageProvider.value;
         saveToLocalStorage();
     });
 
@@ -153,10 +171,14 @@ export function setupEventListeners() {
     // Save settings
     elements.saveSettingsBtn.addEventListener('click', () => {
         state.settings = {
+            textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
+            grokKey: elements.grokKey.value,
+            grokModel: elements.grokModel.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
+            imageProvider: elements.imageProvider.value,
             enableImageGeneration: elements.enableImageGeneration.checked,
             imgWidth: parseInt(elements.imgWidth.value),
             imgHeight: parseInt(elements.imgHeight.value),

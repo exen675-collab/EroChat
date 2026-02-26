@@ -25,11 +25,16 @@ export const elements = {
     welcomeMessage: document.getElementById('welcomeMessage'),
 
     // Settings inputs
+    textProvider: document.getElementById('textProvider'),
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
+    grokKey: document.getElementById('grokKey'),
+    grokModel: document.getElementById('grokModel'),
+    grokModelSearch: document.getElementById('grokModelSearch'),
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),
+    imageProvider: document.getElementById('imageProvider'),
     enableImageGeneration: document.getElementById('enableImageGeneration'),
     imgWidth: document.getElementById('imgWidth'),
     imgHeight: document.getElementById('imgHeight'),
@@ -62,6 +67,7 @@ export const elements = {
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
+    fetchGrokModelsBtn: document.getElementById('fetchGrokModelsBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     clearChatBtn: document.getElementById('clearChatBtn')
 };
