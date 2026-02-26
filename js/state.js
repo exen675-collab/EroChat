@@ -3,6 +3,7 @@ import { defaultSettings } from './config.js';
 // Application state
 export const state = {
     currentUser: null,
+    creditCosts: null,
     messages: [],
     galleryImages: [],
     galleryFilterCharacterId: 'all',

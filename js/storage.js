@@ -106,6 +106,12 @@ export function loadFromLocalStorage() {
         try {
             const parsed = JSON.parse(data);
             if (parsed.settings) {
+                if (parsed.settings.textProvider === 'grok') {
+                    parsed.settings.textProvider = 'premium';
+                }
+                if (parsed.settings.imageProvider === 'grok') {
+                    parsed.settings.imageProvider = 'premium';
+                }
                 Object.assign(state.settings, parsed.settings);
                 updateSettingsUI();
             }
@@ -173,11 +179,9 @@ export function loadFromLocalStorage() {
 
 // Update settings UI from state
 export function updateSettingsUI() {
-    elements.textProvider.value = state.settings.textProvider || 'openrouter';
+    elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
-    elements.grokKey.value = state.settings.grokKey || '';
-    elements.grokModel.value = state.settings.grokModel || '';
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
     elements.imageProvider.value = state.settings.imageProvider || 'local';

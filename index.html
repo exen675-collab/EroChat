@@ -61,8 +61,8 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Provider</label>
                             <select id="textProvider" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="openrouter">OpenRouter</option>
-                                <option value="grok">Grok API</option>
+                                <option value="premium">Our Service (Premium)</option>
+                                <option value="openrouter">OpenRouter (Own API Key)</option>
                             </select>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                     </div>
                 </div>
 
-                <!-- Grok API Settings -->
+                <!-- Premium Service Settings -->
                 <div class="mb-6 p-4 rounded-xl glass">
                     <h2 class="text-lg font-semibold text-cyan-400 mb-4 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,39 +119,12 @@
                                 d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                             </path>
                         </svg>
-                        Grok API
+                        Our Service (Premium)
                     </h2>
 
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">API Key</label>
-                            <input type="password" id="grokKey" placeholder="xai-..."
-                                class="w-full px-4 py-2 rounded-lg text-sm">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Search Models</label>
-                            <input type="text" id="grokModelSearch" placeholder="Type to search models..."
-                                class="w-full px-4 py-2 rounded-lg text-sm mb-2" disabled>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
-                            <select id="grokModel" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="">Enter API key and fetch models...</option>
-                            </select>
-                        </div>
-
-                        <button id="fetchGrokModelsBtn"
-                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            Load Grok Models
-                        </button>
-                    </div>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        Premium uses a fixed model managed by the server. No model selection is required.
+                    </p>
                 </div>
 
                 <!-- SwarmUI Settings -->
@@ -207,7 +180,7 @@
                             <label class="block text-sm font-medium text-gray-400 mb-2">Image Provider</label>
                             <select id="imageProvider" class="w-full px-4 py-2 rounded-lg text-sm">
                                 <option value="local">Local (SwarmUI)</option>
-                                <option value="grok">Grok Imagine</option>
+                                <option value="premium">Our Service (Premium)</option>
                             </select>
                         </div>
 
@@ -321,6 +294,10 @@ masterpiece, best quality, ultra-detailed, 8k, realistic, [very detailed, NSFW E
                     <div class="px-3 py-1 rounded-full bg-black/30 border border-purple-900/40 text-sm">
                         <span class="text-gray-400">User:</span>
                         <span id="currentUsername" class="text-cyan-300 font-medium">Loading...</span>
+                    </div>
+                    <div class="px-3 py-1 rounded-full bg-black/30 border border-cyan-900/40 text-sm">
+                        <span class="text-gray-400">Credits:</span>
+                        <span id="currentCredits" class="text-cyan-300 font-medium">--</span>
                     </div>
                     <button id="openGalleryBtn" class="px-3 py-1 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2">
                         <span>🖼️</span>

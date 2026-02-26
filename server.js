@@ -15,6 +15,30 @@ const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
+const GROK_API_KEY_FILE = process.env.GROK_API_KEY_FILE || path.join(ROOT_DIR, 'grok.key');
+
+function readSecretFromFile(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+const GROK_API_KEY = (process.env.GROK_API_KEY || readSecretFromFile(GROK_API_KEY_FILE) || '').trim();
+
+function getIntEnv(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const DEFAULT_USER_CREDITS = getIntEnv('DEFAULT_USER_CREDITS', 100);
+const CREDIT_COST_GROK_CHAT = getIntEnv('CREDIT_COST_GROK_CHAT', 1);
+const CREDIT_COST_GROK_IMAGE = getIntEnv('CREDIT_COST_GROK_IMAGE', 2);
+const CREDIT_COST_GROK_VIDEO = getIntEnv('CREDIT_COST_GROK_VIDEO', 3);
+const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
@@ -48,6 +72,42 @@ function get(query, params = []) {
       resolve(row);
     });
   });
+}
+
+function jsonOrNull(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function getCreditCosts() {
+  return {
+    chat: CREDIT_COST_GROK_CHAT,
+    image: CREDIT_COST_GROK_IMAGE,
+    video: CREDIT_COST_GROK_VIDEO
+  };
+}
+
+async function getUserCredits(userId) {
+  const row = await get('SELECT credits FROM users WHERE id = ?', [userId]);
+  return Number.isFinite(row?.credits) ? row.credits : 0;
+}
+
+async function reserveCredits(userId, cost) {
+  if (cost <= 0) return true;
+  const result = await run(
+    'UPDATE users SET credits = credits - ? WHERE id = ? AND credits >= ?',
+    [cost, userId, cost]
+  );
+  return result.changes > 0;
+}
+
+async function refundCredits(userId, cost) {
+  if (cost <= 0) return;
+  await run('UPDATE users SET credits = credits + ? WHERE id = ?', [cost, userId]);
 }
 
 function sanitizeUsername(username) {
@@ -101,20 +161,44 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireApiAuth(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    res.status(401).json({ error: 'Unauthorized.' });
+    return;
+  }
+  next();
+}
+
+function ensureGrokConfigured(res) {
+  if (GROK_API_KEY) return true;
+  res.status(503).json({ error: 'Premium service is not configured on the server.' });
+  return false;
+}
+
 async function initDb() {
   await run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL,
+      credits INTEGER NOT NULL DEFAULT ${DEFAULT_USER_CREDITS},
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Backward compatibility for databases created before credits were added.
+  try {
+    await run(`ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT ${DEFAULT_USER_CREDITS}`);
+  } catch (error) {
+    if (!String(error?.message || '').includes('duplicate column')) {
+      throw error;
+    }
+  }
 }
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
 app.use((req, res, next) => {
   if (
     req.path === '/' ||
@@ -173,14 +257,14 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, 12);
     const result = await run(
-      'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-      [username, passwordHash]
+      'INSERT INTO users (username, password_hash, credits) VALUES (?, ?, ?)',
+      [username, passwordHash, DEFAULT_USER_CREDITS]
     );
 
     req.session.userId = result.lastID;
     req.session.username = username;
 
-    res.status(201).json({ ok: true, username });
+    res.status(201).json({ ok: true, username, credits: DEFAULT_USER_CREDITS });
   } catch (error) {
     if (error && error.code === 'SQLITE_CONSTRAINT') {
       res.status(409).json({ error: 'Username is already taken.' });
@@ -207,7 +291,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     const user = await get(
-      'SELECT id, username, password_hash FROM users WHERE username = ? COLLATE NOCASE',
+      'SELECT id, username, password_hash, credits FROM users WHERE username = ? COLLATE NOCASE',
       [username]
     );
 
@@ -226,7 +310,7 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.username = user.username;
 
-    res.json({ ok: true, username: user.username });
+    res.json({ ok: true, username: user.username, credits: user.credits });
   } catch (error) {
     console.error('Login failed:', error);
     res.status(500).json({ error: 'Failed to log in.' });
@@ -251,19 +335,198 @@ app.post('/api/auth/logout', (req, res) => {
   });
 });
 
-app.get('/api/auth/me', (req, res) => {
+app.get('/api/auth/me', async (req, res) => {
   if (!req.session || !req.session.userId) {
     res.status(401).json({ authenticated: false });
     return;
   }
 
-  res.json({
-    authenticated: true,
-    user: {
-      id: req.session.userId,
-      username: req.session.username
+  try {
+    const credits = await getUserCredits(req.session.userId);
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.session.userId,
+        username: req.session.username,
+        credits
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load current user:', error);
+    res.status(500).json({ error: 'Failed to load current user.' });
+  }
+});
+
+app.get('/api/credits/me', requireApiAuth, async (req, res) => {
+  try {
+    const credits = await getUserCredits(req.session.userId);
+    res.json({
+      credits,
+      costs: getCreditCosts()
+    });
+  } catch (error) {
+    console.error('Failed to load credits:', error);
+    res.status(500).json({ error: 'Failed to load credits.' });
+  }
+});
+
+async function handleChargedGrokRequest(req, res, { path, payload, cost }) {
+  if (!ensureGrokConfigured(res)) return;
+
+  const userId = req.session.userId;
+
+  try {
+    const hasCredits = await reserveCredits(userId, cost);
+    if (!hasCredits) {
+      const credits = await getUserCredits(userId);
+      res.status(402).json({
+        error: `Not enough credits. Required: ${cost}.`,
+        credits,
+        required: cost,
+        costs: getCreditCosts()
+      });
+      return;
     }
+
+    let response;
+    try {
+      response = await fetch(`https://api.x.ai${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${GROK_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      await refundCredits(userId, cost);
+      throw error;
+    }
+
+    const rawBody = await response.text();
+    const parsedBody = jsonOrNull(rawBody);
+
+    if (!response.ok) {
+      await refundCredits(userId, cost);
+      const upstreamMessage = parsedBody?.error?.message || rawBody || `Grok request failed (${response.status}).`;
+      res.status(response.status).json({ error: upstreamMessage });
+      return;
+    }
+
+    const remainingCredits = await getUserCredits(userId);
+    const body = parsedBody && typeof parsedBody === 'object' ? parsedBody : {};
+    body._credits = {
+      remaining: remainingCredits,
+      costCharged: cost
+    };
+    res.status(response.status).json(body);
+  } catch (error) {
+    console.error('Grok proxy request failed:', error);
+    res.status(500).json({ error: 'Failed to process Grok request.' });
+  }
+}
+
+app.post('/api/premium/chat', requireApiAuth, async (req, res) => {
+  const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;
+
+  if (!messages || messages.length === 0) {
+    res.status(400).json({ error: 'Messages are required.' });
+    return;
+  }
+
+  await handleChargedGrokRequest(req, res, {
+    path: '/v1/chat/completions',
+    payload: {
+      model: PREMIUM_GROK_CHAT_MODEL,
+      messages,
+      temperature: Number.isFinite(req.body?.temperature) ? req.body.temperature : 0.9,
+      max_tokens: Number.isFinite(req.body?.max_tokens) ? req.body.max_tokens : 2000
+    },
+    cost: CREDIT_COST_GROK_CHAT
   });
+});
+
+app.post('/api/premium/image', requireApiAuth, async (req, res) => {
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
+  if (!prompt) {
+    res.status(400).json({ error: 'Prompt is required.' });
+    return;
+  }
+
+  const payload = {
+    model: typeof req.body?.model === 'string' ? req.body.model : 'grok-imagine-image',
+    prompt,
+    n: Number.isFinite(req.body?.n) ? req.body.n : 1,
+    response_format: typeof req.body?.response_format === 'string' ? req.body.response_format : 'b64_json'
+  };
+
+  if (typeof req.body?.aspect_ratio === 'string') {
+    payload.aspect_ratio = req.body.aspect_ratio;
+  }
+  if (typeof req.body?.resolution === 'string') {
+    payload.resolution = req.body.resolution;
+  }
+
+  await handleChargedGrokRequest(req, res, {
+    path: '/v1/images/generations',
+    payload,
+    cost: CREDIT_COST_GROK_IMAGE
+  });
+});
+
+app.post('/api/premium/video', requireApiAuth, async (req, res) => {
+  const imageUrl = req.body?.image?.url;
+  if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
+    res.status(400).json({ error: 'Image URL is required.' });
+    return;
+  }
+
+  const payload = {
+    model: typeof req.body?.model === 'string' ? req.body.model : 'grok-imagine-video',
+    prompt: typeof req.body?.prompt === 'string' ? req.body.prompt : 'Animate this image into a short cinematic video.',
+    duration: Number.isFinite(req.body?.duration) ? req.body.duration : 4,
+    resolution: typeof req.body?.resolution === 'string' ? req.body.resolution : '480p',
+    image: { url: imageUrl.trim() }
+  };
+
+  await handleChargedGrokRequest(req, res, {
+    path: '/v1/videos/generations',
+    payload,
+    cost: CREDIT_COST_GROK_VIDEO
+  });
+});
+
+app.get('/api/premium/video/:requestId', requireApiAuth, async (req, res) => {
+  if (!ensureGrokConfigured(res)) return;
+
+  const requestId = (req.params?.requestId || '').trim();
+  if (!requestId) {
+    res.status(400).json({ error: 'Request ID is required.' });
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://api.x.ai/v1/videos/${requestId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${GROK_API_KEY}`
+      }
+    });
+
+    const rawBody = await response.text();
+    const parsedBody = jsonOrNull(rawBody);
+
+    if (!response.ok) {
+      const upstreamMessage = parsedBody?.error?.message || rawBody || `Failed to fetch video status (${response.status}).`;
+      res.status(response.status).json({ error: upstreamMessage });
+      return;
+    }
+
+    res.status(200).json(parsedBody && typeof parsedBody === 'object' ? parsedBody : {});
+  } catch (error) {
+    console.error('Failed to fetch Grok video status:', error);
+    res.status(500).json({ error: 'Failed to fetch video status.' });
+  }
 });
 
 app.get(['/app', '/app/'], requireAuth, (req, res) => {

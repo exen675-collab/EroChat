@@ -5,7 +5,7 @@ import { generateGrokImage, generateGrokVideoFromImage } from './api-grok.js';
 
 export async function generateImage(prompt, width = null, height = null) {
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
-    if (imageProvider === 'grok') {
+    if (imageProvider === 'premium') {
         try {
             elements.imageIndicator.classList.remove('hidden');
             return await generateGrokImage(prompt, width, height);
@@ -18,9 +18,5 @@ export async function generateImage(prompt, width = null, height = null) {
 }
 
 export async function generateVideoFromImage(imageUrl) {
-    if (!elements.grokKey.value) {
-        throw new Error('Please enter your Grok API key in settings.');
-    }
-
     return generateGrokVideoFromImage(imageUrl);
 }
