@@ -19,6 +19,7 @@ export const elements = {
     galleryThumbnailCharacter: document.getElementById('galleryThumbnailCharacter'),
     galleryLightbox: document.getElementById('galleryLightbox'),
     lightboxImage: document.getElementById('lightboxImage'),
+    lightboxVideo: document.getElementById('lightboxVideo'),
     closeLightboxBtn: document.getElementById('closeLightboxBtn'),
     currentCharacterName: document.getElementById('currentCharacterName'),
     welcomeAvatar: document.getElementById('welcomeAvatar'),

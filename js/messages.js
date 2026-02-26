@@ -3,7 +3,7 @@ import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
 import { generateId, escapeHtml, formatMessage } from './utils.js';
 import { scrollToBottom } from './ui.js';
-import { generateImage } from './api-image.js';
+import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 
 // Render all messages
@@ -42,7 +42,7 @@ export function renderMessages() {
         if (msg.role === 'user') {
             addUserMessageToUI(msg.content, msg.id, false);
         } else {
-            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, false);
+            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, false, msg.videoUrl || null);
         }
     });
     
@@ -75,7 +75,7 @@ export function addUserMessageToUI(content, id = null, animate = true) {
 }
 
 // Add AI message to UI
-export function addAIMessageToUI(content, imageUrl = null, id = null, animate = true) {
+export function addAIMessageToUI(content, imageUrl = null, id = null, animate = true, videoUrl = null) {
     const character = getCurrentCharacter();
     const messageId = id || generateId();
     const messageDiv = document.createElement('div');
@@ -86,7 +86,15 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     const displayContent = content.replace(/---IMAGE_PROMPT START---[\s\S]*?---IMAGE_PROMPT END---/, '').trim();
     
     let imageSection = '';
-    if (imageUrl) {
+    if (videoUrl) {
+        imageSection = `
+            <div class="w-full lg:w-1/3 flex-shrink-0">
+                <div class="image-container h-full">
+                    <video src="${videoUrl}" controls playsinline class="w-full h-full object-cover rounded-xl shadow-2xl" style="max-height: 400px;"></video>
+                </div>
+            </div>
+        `;
+    } else if (imageUrl) {
         imageSection = `
             <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="image-container h-full">
@@ -130,6 +138,14 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
                 </svg>
                 Regenerate Image
             </button>
+            ${videoUrl ? '' : `
+            <button onclick="window.generateVideoForMessage('${messageId}')" class="generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Generate Video
+            </button>
+            `}
         </div>
         ` : ''}
     `;
@@ -149,6 +165,37 @@ export function updateAIMessageImage(messageId, imageUrl) {
                 <img src="${imageUrl}" alt="Generated" class="w-full h-full object-cover rounded-xl shadow-2xl fade-in" style="max-height: 400px;">
             `;
         }
+
+        const actions = messageDiv.querySelector('.flex.gap-2.mt-2.ml-12.pl-1');
+        if (actions && !actions.querySelector('.generate-video-btn')) {
+            const videoButton = document.createElement('button');
+            videoButton.className = 'generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors';
+            videoButton.onclick = () => window.generateVideoForMessage(messageId);
+            videoButton.innerHTML = `
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Generate Video
+            `;
+            actions.appendChild(videoButton);
+        }
+    }
+}
+
+export function updateAIMessageVideo(messageId, videoUrl) {
+    const messageDiv = document.getElementById(messageId);
+    if (!messageDiv) return;
+
+    const imageContainer = messageDiv.querySelector('.image-container');
+    if (imageContainer) {
+        imageContainer.innerHTML = `
+            <video src="${videoUrl}" controls playsinline class="w-full h-full object-cover rounded-xl shadow-2xl fade-in" style="max-height: 400px;"></video>
+        `;
+    }
+
+    const videoButton = messageDiv.querySelector('.generate-video-btn');
+    if (videoButton) {
+        videoButton.remove();
     }
 }
 
@@ -160,6 +207,25 @@ export function addImageToGallery(imageUrl, source = 'chat', messageId = null) {
     const galleryItem = {
         id: generateId(),
         imageUrl,
+        characterId: state.currentCharacterId || 'default',
+        characterName: character.name,
+        characterAvatar: character.avatar,
+        source,
+        messageId,
+        createdAt: new Date().toISOString()
+    };
+
+    state.galleryImages.unshift(galleryItem);
+    saveToLocalStorage();
+}
+
+export function addVideoToGallery(videoUrl, source = 'chat-video', messageId = null) {
+    if (!videoUrl) return;
+
+    const character = getCurrentCharacter();
+    const galleryItem = {
+        id: generateId(),
+        videoUrl,
         characterId: state.currentCharacterId || 'default',
         characterName: character.name,
         characterAvatar: character.avatar,
@@ -208,6 +274,7 @@ export async function regenerateImage(messageId) {
         
         // Update message in state
         message.imageUrl = imageUrl;
+        message.videoUrl = null;
         saveToLocalStorage();
         
     } catch (error) {
@@ -222,6 +289,65 @@ export async function regenerateImage(messageId) {
                     </div>
                 `;
             }
+        }
+    }
+}
+
+export async function generateVideoForMessage(messageId) {
+    const message = state.messages.find(m => m.id === messageId);
+    if (!message) return;
+    if (!message.imageUrl) {
+        alert('No generated image found for this message.');
+        return;
+    }
+    if (message.videoUrl) {
+        return;
+    }
+
+    const messageDiv = document.getElementById(messageId);
+    const imageContainer = messageDiv?.querySelector('.image-container');
+    const videoButton = messageDiv?.querySelector('.generate-video-btn');
+
+    if (videoButton) {
+        videoButton.disabled = true;
+        videoButton.classList.add('opacity-60', 'cursor-not-allowed');
+        videoButton.textContent = 'Generating video...';
+    }
+
+    if (imageContainer) {
+        imageContainer.innerHTML = `
+            <div class="bg-gray-900/50 rounded-xl p-8 flex items-center justify-center min-h-[200px]">
+                <div class="text-center">
+                    <div class="spinner mx-auto mb-3"></div>
+                    <p class="text-gray-400 text-sm">Generating video...</p>
+                </div>
+            </div>
+        `;
+    }
+
+    try {
+        const videoUrl = await generateVideoFromImage(message.imageUrl);
+        updateAIMessageVideo(messageId, videoUrl);
+        message.videoUrl = videoUrl;
+        addVideoToGallery(videoUrl, 'chat-video', messageId);
+        saveToLocalStorage();
+    } catch (error) {
+        console.error('Failed to generate video:', error);
+        if (imageContainer) {
+            imageContainer.innerHTML = `
+                <img src="${message.imageUrl}" alt="Generated" class="w-full h-full object-cover rounded-xl shadow-2xl" style="max-height: 400px;">
+            `;
+        }
+        if (videoButton) {
+            videoButton.disabled = false;
+            videoButton.classList.remove('opacity-60', 'cursor-not-allowed');
+            videoButton.innerHTML = `
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Generate Video
+            `;
+            alert(`Failed to generate video: ${error.message}`);
         }
     }
 }

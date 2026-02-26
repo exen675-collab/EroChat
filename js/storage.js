@@ -17,19 +17,21 @@ function migrateGalleryFromCharacterMessages() {
         const characterMessages = Array.isArray(character.messages) ? character.messages : [];
 
         characterMessages.forEach(message => {
-            if (message.role !== 'assistant' || !message.imageUrl) return;
+            if (message.role !== 'assistant' || (!message.imageUrl && !message.videoUrl)) return;
 
-            const dedupeKey = `${character.id}::${message.id || ''}::${message.imageUrl}`;
+            const mediaUrl = message.videoUrl || message.imageUrl;
+            const dedupeKey = `${character.id}::${message.id || ''}::${mediaUrl}`;
             if (seen.has(dedupeKey)) return;
             seen.add(dedupeKey);
 
             migrated.push({
                 id: generateId(),
-                imageUrl: message.imageUrl,
+                imageUrl: message.imageUrl || null,
+                videoUrl: message.videoUrl || null,
                 characterId: character.id || 'default',
                 characterName: character.name || 'Unknown Character',
                 characterAvatar: character.avatar || '🤖',
-                source: 'chat',
+                source: message.videoUrl ? 'chat-video' : 'chat',
                 messageId: message.id || null,
                 createdAt: new Date().toISOString()
             });

@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { generateLocalImage } from './api-swarmui.js';
-import { generateGrokImage } from './api-grok.js';
+import { generateGrokImage, generateGrokVideoFromImage } from './api-grok.js';
 
 export async function generateImage(prompt, width = null, height = null) {
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
@@ -15,4 +15,12 @@ export async function generateImage(prompt, width = null, height = null) {
     }
 
     return generateLocalImage(prompt, width, height);
+}
+
+export async function generateVideoFromImage(imageUrl) {
+    if (!elements.grokKey.value) {
+        throw new Error('Please enter your Grok API key in settings.');
+    }
+
+    return generateGrokVideoFromImage(imageUrl);
 }

@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 import { getCurrentCharacter } from './characters.js';
-import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery } from './messages.js';
+import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage } from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom } from './ui.js';
@@ -96,7 +96,7 @@ export async function sendMessage() {
 
         // Add AI message to UI (without image initially)
         const aiMessageId = addAIMessageToUI(aiResponse, null);
-        state.messages.push({ id: aiMessageId, role: 'assistant', content: aiResponse, imageUrl: null });
+        state.messages.push({ id: aiMessageId, role: 'assistant', content: aiResponse, imageUrl: null, videoUrl: null });
         saveToLocalStorage();
 
         // Generate image if prompt exists
@@ -201,6 +201,7 @@ function init() {
 
     // Expose functions globally for inline event handlers
     window.regenerateImage = regenerateImage;
+    window.generateVideoForMessage = generateVideoForMessage;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;

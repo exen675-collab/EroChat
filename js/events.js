@@ -18,9 +18,22 @@ export function setupEventListeners() {
     const renderGallery = ui.renderGallery;
     const closeGallery = ui.closeGallery;
     const openGallery = ui.openGallery;
-    const openLightbox = (imageUrl) => {
+    const openLightboxImage = (imageUrl) => {
         if (!imageUrl) return;
+        elements.lightboxVideo.pause();
+        elements.lightboxVideo.classList.add('hidden');
+        elements.lightboxVideo.src = '';
+        elements.lightboxImage.classList.remove('hidden');
         elements.lightboxImage.src = imageUrl;
+        elements.galleryLightbox.classList.remove('hidden');
+        elements.galleryLightbox.classList.add('flex');
+    };
+    const openLightboxVideo = (videoUrl) => {
+        if (!videoUrl) return;
+        elements.lightboxImage.classList.add('hidden');
+        elements.lightboxImage.src = '';
+        elements.lightboxVideo.classList.remove('hidden');
+        elements.lightboxVideo.src = videoUrl;
         elements.galleryLightbox.classList.remove('hidden');
         elements.galleryLightbox.classList.add('flex');
     };
@@ -28,6 +41,10 @@ export function setupEventListeners() {
         elements.galleryLightbox.classList.remove('flex');
         elements.galleryLightbox.classList.add('hidden');
         elements.lightboxImage.src = '';
+        elements.lightboxImage.classList.remove('hidden');
+        elements.lightboxVideo.pause();
+        elements.lightboxVideo.src = '';
+        elements.lightboxVideo.classList.add('hidden');
     };
     const applyCharacterThumbnail = (characterId, imageUrl) => {
         if (!characterId || !imageUrl) return false;
@@ -95,7 +112,13 @@ export function setupEventListeners() {
 
         const image = e.target.closest('.gallery-image');
         if (image) {
-            openLightbox(image.getAttribute('data-full-image') || image.getAttribute('src'));
+            openLightboxImage(image.getAttribute('data-full-image') || image.getAttribute('src'));
+            return;
+        }
+
+        const video = e.target.closest('.gallery-video');
+        if (video) {
+            openLightboxVideo(video.getAttribute('data-full-video') || video.getAttribute('src'));
         }
     });
     elements.closeLightboxBtn.addEventListener('click', closeLightbox);

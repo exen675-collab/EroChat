@@ -26,7 +26,7 @@ export function scrollToBottom() {
     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 }
 
-// Open gallery view (defaults to showing all images)
+// Open gallery view (defaults to showing all media)
 export function openGallery() {
     state.galleryFilterCharacterId = 'all';
     renderGalleryCharacterFilter();
@@ -106,8 +106,8 @@ export function renderGallery() {
     if (filteredImages.length === 0) {
         elements.galleryGrid.innerHTML = `
             <div class="col-span-full text-center py-12 text-gray-400">
-                <p class="text-lg mb-1">No images found</p>
-                <p class="text-sm text-gray-500">Generate images in chat to populate your gallery.</p>
+                <p class="text-lg mb-1">No media found</p>
+                <p class="text-sm text-gray-500">Generate images or videos in chat to populate your gallery.</p>
             </div>
         `;
         return;
@@ -115,22 +115,31 @@ export function renderGallery() {
 
     elements.galleryGrid.innerHTML = '';
     filteredImages.forEach(item => {
+        const mediaMarkup = item.videoUrl
+            ? `<video src="${item.videoUrl}" class="gallery-video w-full h-full object-cover cursor-zoom-in" preload="metadata" muted playsinline data-full-video="${item.videoUrl}"></video>`
+            : `<img src="${item.imageUrl}" alt="Generated image" class="gallery-image w-full h-full object-cover cursor-zoom-in" data-full-image="${item.imageUrl}">`;
+        const thumbnailButtonMarkup = item.imageUrl
+            ? `
+                <div class="mt-3">
+                    <button class="set-thumbnail-btn w-full py-2 btn-secondary rounded-lg text-xs font-medium" data-image-url="${item.imageUrl}">
+                        Use as character thumbnail
+                    </button>
+                </div>
+            `
+            : '';
+
         const card = document.createElement('div');
         card.className = 'gallery-card glass rounded-xl border border-purple-900/30';
         card.innerHTML = `
             <div class="gallery-image-wrap bg-black/30 overflow-hidden">
-                <img src="${item.imageUrl}" alt="Generated image" class="gallery-image w-full h-full object-cover cursor-zoom-in" data-full-image="${item.imageUrl}">
+                ${mediaMarkup}
             </div>
             <div class="p-3 text-sm">
                 <div class="flex items-center gap-2 text-gray-300">
                     <span>${escapeHtml(item.characterAvatar || '🤖')}</span>
                     <span class="truncate">${escapeHtml(item.characterName || 'Unknown Character')}</span>
                 </div>
-                <div class="mt-3">
-                    <button class="set-thumbnail-btn w-full py-2 btn-secondary rounded-lg text-xs font-medium" data-image-url="${item.imageUrl}">
-                        Use as character thumbnail
-                    </button>
-                </div>
+                ${thumbnailButtonMarkup}
             </div>
         `;
         elements.galleryGrid.appendChild(card);
