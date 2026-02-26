@@ -5,6 +5,38 @@ import { renderCharactersList, updateCurrentCharacterUI } from './characters.js'
 import { renderMessages } from './messages.js';
 import { generateId } from './utils.js';
 
+const LEGACY_STORAGE_KEY = 'erochat_data';
+const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
+const LEGACY_MIGRATED_MARKER_KEY = 'erochat_data_legacy_migrated';
+
+function getStorageKeyForCurrentUser() {
+    if (state.currentUser && state.currentUser.id != null) {
+        return `${USER_STORAGE_KEY_PREFIX}${state.currentUser.id}`;
+    }
+    return LEGACY_STORAGE_KEY;
+}
+
+function readStoredData() {
+    const userStorageKey = getStorageKeyForCurrentUser();
+    let data = localStorage.getItem(userStorageKey);
+    if (data) {
+        return data;
+    }
+
+    // One-time migration from pre-user storage.
+    if (state.currentUser && !localStorage.getItem(LEGACY_MIGRATED_MARKER_KEY)) {
+        const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacyData) {
+            localStorage.setItem(userStorageKey, legacyData);
+            localStorage.removeItem(LEGACY_STORAGE_KEY);
+            localStorage.setItem(LEGACY_MIGRATED_MARKER_KEY, '1');
+            data = legacyData;
+        }
+    }
+
+    return data;
+}
+
 function migrateGalleryFromCharacterMessages() {
     const migrated = [];
     const seen = new Set();
@@ -62,12 +94,12 @@ export function saveToLocalStorage() {
         galleryFilterCharacterId: state.galleryFilterCharacterId
         // No longer saving top-level messages
     };
-    localStorage.setItem('erochat_data', JSON.stringify(data));
+    localStorage.setItem(getStorageKeyForCurrentUser(), JSON.stringify(data));
 }
 
 // Load state from localStorage
 export function loadFromLocalStorage() {
-    const data = localStorage.getItem('erochat_data');
+    const data = readStoredData();
     let migratedMessages = null;
 
     if (data) {

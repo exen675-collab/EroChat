@@ -14,6 +14,29 @@ import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchGrokModels } from './api-grok.js';
 
+async function loadCurrentUser() {
+    try {
+        const response = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!response.ok) {
+            return null;
+        }
+        const data = await response.json();
+        return data?.user || null;
+    } catch (error) {
+        console.error('Failed to load current user:', error);
+        return null;
+    }
+}
+
+function updateCurrentUserUI() {
+    if (!elements.currentUsername) return;
+    if (!state.currentUser?.username) {
+        elements.currentUsername.textContent = 'Unknown user';
+        return;
+    }
+    elements.currentUsername.textContent = `@${state.currentUser.username}`;
+}
+
 // Main send message function
 export async function sendMessage() {
     const content = elements.messageInput.value.trim();
@@ -192,9 +215,17 @@ async function autoFetchModels() {
 }
 
 // Initialize application
-function init() {
+async function init() {
     // Setup event listeners
     setupEventListeners();
+
+    // Resolve authenticated user for per-user local storage namespace
+    state.currentUser = await loadCurrentUser();
+    if (!state.currentUser) {
+        window.location.href = '/';
+        return;
+    }
+    updateCurrentUserUI();
 
     // Load data from localStorage
     loadFromLocalStorage();
