@@ -1,0 +1,17 @@
+{
+  "name": "erochat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EroChat with simple username/password auth",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-sqlite3": "^0.9.15",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "sqlite3": "^5.1.7"
+  }
+}
