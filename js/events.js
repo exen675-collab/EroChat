@@ -103,7 +103,7 @@ export function setupEventListeners() {
         } catch (error) {
             console.error('Logout request failed:', error);
         } finally {
-            window.location.href = '/signin';
+            window.location.href = '/';
         }
     });
     elements.backToChatBtn.addEventListener('click', closeGallery);

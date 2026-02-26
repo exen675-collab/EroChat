@@ -95,7 +95,7 @@ function clearRateLimit(req) {
 
 function requireAuth(req, res, next) {
   if (!req.session || !req.session.userId) {
-    res.redirect('/signin');
+    res.redirect('/');
     return;
   }
   next();
@@ -146,14 +146,14 @@ app.use(
 );
 
 app.get('/', (req, res) => {
-  res.redirect('/signin');
-});
-
-app.get(['/login', '/signin'], (req, res) => {
   // Clear legacy cookie names from older builds to avoid session conflicts.
   res.clearCookie('erochat.sid');
   res.clearCookie('connect.sid');
   res.sendFile(path.join(ROOT_DIR, 'login.html'));
+});
+
+app.get(['/login', '/signin'], (req, res) => {
+  res.redirect('/');
 });
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -266,11 +266,7 @@ app.get('/api/auth/me', (req, res) => {
   });
 });
 
-app.get('/app', requireAuth, (req, res) => {
-  res.redirect('/app/');
-});
-
-app.get('/app/', requireAuth, (req, res) => {
+app.get(['/app', '/app/'], requireAuth, (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
