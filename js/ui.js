@@ -116,7 +116,7 @@ export function renderGallery() {
     elements.galleryGrid.innerHTML = '';
     filteredImages.forEach(item => {
         const mediaMarkup = item.videoUrl
-            ? `<video src="${item.videoUrl}" class="gallery-video w-full h-full object-cover cursor-zoom-in" preload="metadata" muted playsinline data-full-video="${item.videoUrl}"></video>`
+            ? `<video src="${item.videoUrl}" class="gallery-video w-full h-full object-cover cursor-zoom-in" preload="metadata" autoplay loop muted playsinline data-full-video="${item.videoUrl}"></video>`
             : `<img src="${item.imageUrl}" alt="Generated image" class="gallery-image w-full h-full object-cover cursor-zoom-in" data-full-image="${item.imageUrl}">`;
         const thumbnailButtonMarkup = item.imageUrl
             ? `

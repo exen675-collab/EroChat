@@ -90,7 +90,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
         imageSection = `
             <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="image-container h-full">
-                    <video src="${videoUrl}" controls playsinline class="w-full h-full object-cover rounded-xl shadow-2xl" style="max-height: 400px;"></video>
+                    <video src="${videoUrl}" autoplay loop muted playsinline class="w-full h-full object-cover rounded-xl shadow-2xl" style="max-height: 400px;"></video>
                 </div>
             </div>
         `;
@@ -189,7 +189,7 @@ export function updateAIMessageVideo(messageId, videoUrl) {
     const imageContainer = messageDiv.querySelector('.image-container');
     if (imageContainer) {
         imageContainer.innerHTML = `
-            <video src="${videoUrl}" controls playsinline class="w-full h-full object-cover rounded-xl shadow-2xl fade-in" style="max-height: 400px;"></video>
+            <video src="${videoUrl}" autoplay loop muted playsinline class="w-full h-full object-cover rounded-xl shadow-2xl fade-in" style="max-height: 400px;"></video>
         `;
     }
 
