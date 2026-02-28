@@ -7,6 +7,7 @@ import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom } from './ui.js';
 import { escapeHtml } from './utils.js';
+import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
@@ -115,16 +116,16 @@ export async function sendMessage() {
         // Generate image if prompt exists
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
             try {
-                const imageUrl = await generateImage(imagePrompt);
+                const generatedImageUrl = await generateImage(imagePrompt);
+                const imageUrl = await persistImageForStorage(generatedImageUrl);
                 updateAIMessageImage(aiMessageId, imageUrl);
-                addImageToGallery(imageUrl, 'chat', aiMessageId);
 
                 // Update message in state
                 const msgIndex = state.messages.findIndex(m => m.id === aiMessageId);
                 if (msgIndex !== -1) {
                     state.messages[msgIndex].imageUrl = imageUrl;
-                    saveToLocalStorage();
                 }
+                addImageToGallery(imageUrl, 'chat', aiMessageId);
             } catch (imgError) {
                 console.error('Image generation failed:', imgError);
                 // Update UI to show error

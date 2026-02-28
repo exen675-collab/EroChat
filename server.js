@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 const SQLiteStoreFactory = require('connect-sqlite3');
@@ -11,6 +12,7 @@ const SQLiteStore = SQLiteStoreFactory(session);
 
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, 'data');
+const MEDIA_DIR = path.join(DATA_DIR, 'media');
 const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
@@ -48,6 +50,9 @@ const loginAttempts = new Map();
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(MEDIA_DIR)) {
+  fs.mkdirSync(MEDIA_DIR, { recursive: true });
 }
 
 const db = new sqlite3.Database(DB_PATH);
@@ -103,6 +108,47 @@ function getCreditCosts() {
     image: CREDIT_COST_GROK_IMAGE,
     video: CREDIT_COST_GROK_VIDEO
   };
+}
+
+function parseBase64DataUrl(dataUrl) {
+  if (typeof dataUrl !== 'string') return null;
+  const match = dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!match) return null;
+
+  const mimeType = String(match[1] || '').toLowerCase().trim();
+  const base64 = String(match[2] || '').replace(/\s+/g, '');
+  if (!mimeType || !base64) return null;
+
+  try {
+    const buffer = Buffer.from(base64, 'base64');
+    if (!buffer || buffer.length === 0) return null;
+    return { mimeType, buffer };
+  } catch {
+    return null;
+  }
+}
+
+function imageExtensionForMimeType(mimeType) {
+  switch (mimeType) {
+    case 'image/png':
+      return 'png';
+    case 'image/jpeg':
+    case 'image/jpg':
+      return 'jpg';
+    case 'image/webp':
+      return 'webp';
+    case 'image/gif':
+      return 'gif';
+    default:
+      return null;
+  }
+}
+
+function generateMediaFileId() {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(16).toString('hex');
 }
 
 async function getUserCredits(userId) {
@@ -466,6 +512,37 @@ app.get('/api/credits/me', requireApiAuth, async (req, res) => {
   }
 });
 
+app.post('/api/media/store', requireApiAuth, async (req, res) => {
+  const parsed = parseBase64DataUrl(req.body?.dataUrl);
+  if (!parsed) {
+    res.status(400).json({ error: 'A valid Base64 data URL is required.' });
+    return;
+  }
+
+  const ext = imageExtensionForMimeType(parsed.mimeType);
+  if (!ext) {
+    res.status(400).json({ error: 'Only png, jpg, webp, or gif data URLs are supported.' });
+    return;
+  }
+
+  const maxBytes = 10 * 1024 * 1024;
+  if (parsed.buffer.length > maxBytes) {
+    res.status(413).json({ error: 'Image is too large to store.' });
+    return;
+  }
+
+  const fileName = `${Date.now()}-${generateMediaFileId()}.${ext}`;
+  const filePath = path.join(MEDIA_DIR, fileName);
+
+  try {
+    await fs.promises.writeFile(filePath, parsed.buffer);
+    res.status(201).json({ url: `/app/media/${encodeURIComponent(fileName)}` });
+  } catch (error) {
+    console.error('Failed to store generated image:', error);
+    res.status(500).json({ error: 'Failed to store generated image.' });
+  }
+});
+
 app.get('/api/admin/users', requireApiAuth, requireAdmin, async (req, res) => {
   try {
     const rows = await all(
@@ -696,6 +773,7 @@ app.get(['/app', '/app/'], requireAuth, (req, res) => {
 
 app.use('/app/css', requireAuth, express.static(path.join(ROOT_DIR, 'css')));
 app.use('/app/js', requireAuth, express.static(path.join(ROOT_DIR, 'js')));
+app.use('/app/media', requireAuth, express.static(MEDIA_DIR));
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

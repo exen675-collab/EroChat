@@ -8,6 +8,7 @@ import { generateId } from './utils.js';
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
 const LEGACY_MIGRATED_MARKER_KEY = 'erochat_data_legacy_migrated';
+const MAX_STORAGE_TRIM_ATTEMPTS = 200;
 
 function getStorageKeyForCurrentUser() {
     if (state.currentUser && state.currentUser.id != null) {
@@ -27,9 +28,13 @@ function readStoredData() {
     if (state.currentUser && !localStorage.getItem(LEGACY_MIGRATED_MARKER_KEY)) {
         const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
         if (legacyData) {
-            localStorage.setItem(userStorageKey, legacyData);
-            localStorage.removeItem(LEGACY_STORAGE_KEY);
-            localStorage.setItem(LEGACY_MIGRATED_MARKER_KEY, '1');
+            try {
+                localStorage.setItem(userStorageKey, legacyData);
+                localStorage.removeItem(LEGACY_STORAGE_KEY);
+                localStorage.setItem(LEGACY_MIGRATED_MARKER_KEY, '1');
+            } catch (error) {
+                console.warn('Skipping legacy storage migration due to storage limits:', error);
+            }
             data = legacyData;
         }
     }
@@ -73,9 +78,17 @@ function migrateGalleryFromCharacterMessages() {
     return migrated;
 }
 
-// Save state to localStorage
-export function saveToLocalStorage() {
-    // Sync current messages to the current character in the list
+function isDataUrl(value) {
+    return typeof value === 'string' && value.startsWith('data:');
+}
+
+function isQuotaExceededError(error) {
+    if (!error) return false;
+    if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+    return error.code === 22 || error.code === 1014;
+}
+
+function syncCurrentMessagesToCharacter() {
     const currentCharIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
     if (currentCharIndex !== -1) {
         state.characters[currentCharIndex].messages = [...state.messages];
@@ -85,8 +98,10 @@ export function saveToLocalStorage() {
             defaultInList.messages = [...state.messages];
         }
     }
+}
 
-    const data = {
+function buildPersistedData() {
+    return {
         settings: state.settings,
         characters: state.characters,
         currentCharacterId: state.currentCharacterId,
@@ -94,7 +109,110 @@ export function saveToLocalStorage() {
         galleryFilterCharacterId: state.galleryFilterCharacterId
         // No longer saving top-level messages
     };
-    localStorage.setItem(getStorageKeyForCurrentUser(), JSON.stringify(data));
+}
+
+function removeOldestGalleryItem(preferDataUrls = false) {
+    if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {
+        return false;
+    }
+
+    if (preferDataUrls) {
+        for (let i = state.galleryImages.length - 1; i >= 0; i -= 1) {
+            const item = state.galleryImages[i];
+            if (isDataUrl(item?.imageUrl) || isDataUrl(item?.videoUrl)) {
+                state.galleryImages.splice(i, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    state.galleryImages.pop();
+    return true;
+}
+
+function clearOldestMessageMedia(preferDataUrls = false) {
+    for (const character of state.characters) {
+        const messages = Array.isArray(character.messages) ? character.messages : [];
+        for (const message of messages) {
+            if (message.role !== 'assistant') continue;
+
+            const hasImage = typeof message.imageUrl === 'string' && message.imageUrl.length > 0;
+            const hasVideo = typeof message.videoUrl === 'string' && message.videoUrl.length > 0;
+            if (!hasImage && !hasVideo) continue;
+
+            const hasDataUrl = isDataUrl(message.imageUrl) || isDataUrl(message.videoUrl);
+            if (preferDataUrls && !hasDataUrl) continue;
+
+            message.imageUrl = null;
+            message.videoUrl = null;
+
+            if (message.id) {
+                const activeMessage = state.messages.find(m => m.id === message.id);
+                if (activeMessage) {
+                    activeMessage.imageUrl = null;
+                    activeMessage.videoUrl = null;
+                }
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function clearCharacterThumbnail(preferDataUrls = false) {
+    for (const character of state.characters) {
+        const thumbnail = character?.thumbnail;
+        if (!thumbnail) continue;
+        if (preferDataUrls && !isDataUrl(thumbnail)) continue;
+
+        delete character.thumbnail;
+        return true;
+    }
+    return false;
+}
+
+function pruneStateForStorage() {
+    return (
+        removeOldestGalleryItem(true) ||
+        clearOldestMessageMedia(true) ||
+        clearCharacterThumbnail(true) ||
+        removeOldestGalleryItem(false) ||
+        clearOldestMessageMedia(false) ||
+        clearCharacterThumbnail(false)
+    );
+}
+
+// Save state to localStorage
+export function saveToLocalStorage() {
+    syncCurrentMessagesToCharacter();
+
+    const storageKey = getStorageKeyForCurrentUser();
+    let attempts = 0;
+
+    while (attempts <= MAX_STORAGE_TRIM_ATTEMPTS) {
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(buildPersistedData()));
+            return true;
+        } catch (error) {
+            if (!isQuotaExceededError(error)) {
+                console.error('Failed to save to localStorage:', error);
+                return false;
+            }
+
+            const pruned = pruneStateForStorage();
+            if (!pruned) {
+                console.warn('localStorage quota exceeded and no more data can be pruned.');
+                return false;
+            }
+
+            attempts += 1;
+        }
+    }
+
+    console.warn('localStorage quota exceeded after max prune attempts.');
+    return false;
 }
 
 // Load state from localStorage

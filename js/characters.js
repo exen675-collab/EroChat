@@ -4,6 +4,7 @@ import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
 import { escapeHtml, formatMessage } from './utils.js';
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
+import { persistImageForStorage } from './media.js';
 
 // Track if we're editing an existing character
 let editingCharacterId = null;
@@ -426,21 +427,22 @@ export async function generateThumbnail() {
 
     try {
         // Generate the image with portrait dimensions
-        const imageBase64 = await generateImage(prompt, 512, 768);
+        const generatedThumbnail = await generateImage(prompt, 512, 768);
+        const thumbnailUrl = await persistImageForStorage(generatedThumbnail);
 
-        if (imageBase64) {
-            currentThumbnail = imageBase64;
+        if (thumbnailUrl) {
+            currentThumbnail = thumbnailUrl;
 
             // Update preview
             elements.thumbnailPreview.innerHTML = `
-                <img src="${imageBase64}" alt="${name}" class="w-full h-full object-cover">
+                <img src="${thumbnailUrl}" alt="${name}" class="w-full h-full object-cover">
             `;
 
             // Save thumbnail to character if editing
             if (editingCharacterId) {
                 const index = state.characters.findIndex(c => c.id === editingCharacterId);
                 if (index !== -1) {
-                    state.characters[index].thumbnail = imageBase64;
+                    state.characters[index].thumbnail = thumbnailUrl;
                     saveToLocalStorage();
                     renderCharactersList();
                 }

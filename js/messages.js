@@ -5,6 +5,7 @@ import { generateId, escapeHtml, formatMessage } from './utils.js';
 import { scrollToBottom } from './ui.js';
 import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
+import { persistImageForStorage } from './media.js';
 
 // Render all messages
 export function renderMessages() {
@@ -268,14 +269,14 @@ export async function regenerateImage(messageId) {
     }
     
     try {
-        const imageUrl = await generateImage(imagePrompt);
+        const generatedImageUrl = await generateImage(imagePrompt);
+        const imageUrl = await persistImageForStorage(generatedImageUrl);
         updateAIMessageImage(messageId, imageUrl);
-        addImageToGallery(imageUrl, 'regenerate', messageId);
         
         // Update message in state
         message.imageUrl = imageUrl;
         message.videoUrl = null;
-        saveToLocalStorage();
+        addImageToGallery(imageUrl, 'regenerate', messageId);
         
     } catch (error) {
         console.error('Failed to regenerate image:', error);
@@ -330,7 +331,6 @@ export async function generateVideoForMessage(messageId) {
         updateAIMessageVideo(messageId, videoUrl);
         message.videoUrl = videoUrl;
         addVideoToGallery(videoUrl, 'chat-video', messageId);
-        saveToLocalStorage();
     } catch (error) {
         console.error('Failed to generate video:', error);
         if (imageContainer) {
