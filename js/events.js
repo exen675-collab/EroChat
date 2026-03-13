@@ -11,13 +11,14 @@ import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
 
+function closeSidebarOnMobile() {
+    if (window.innerWidth < 1024) {
+        ui.toggleSidebar(false);
+    }
+}
+
 // Setup all event listeners
 export function setupEventListeners() {
-    const toggleSidebar = ui.toggleSidebar;
-    const autoResizeTextarea = ui.autoResizeTextarea;
-    const renderGallery = ui.renderGallery;
-    const closeGallery = ui.closeGallery;
-    const openGallery = ui.openGallery;
     const openLightboxImage = (imageUrl) => {
         if (!imageUrl) return;
         elements.lightboxVideo.pause();
@@ -28,6 +29,7 @@ export function setupEventListeners() {
         elements.galleryLightbox.classList.remove('hidden');
         elements.galleryLightbox.classList.add('flex');
     };
+
     const openLightboxVideo = (videoUrl) => {
         if (!videoUrl) return;
         elements.lightboxImage.classList.add('hidden');
@@ -37,6 +39,7 @@ export function setupEventListeners() {
         elements.galleryLightbox.classList.remove('hidden');
         elements.galleryLightbox.classList.add('flex');
     };
+
     const closeLightbox = () => {
         elements.galleryLightbox.classList.remove('flex');
         elements.galleryLightbox.classList.add('hidden');
@@ -46,10 +49,11 @@ export function setupEventListeners() {
         elements.lightboxVideo.src = '';
         elements.lightboxVideo.classList.add('hidden');
     };
+
     const applyCharacterThumbnail = (characterId, imageUrl) => {
         if (!characterId || !imageUrl) return false;
 
-        const index = state.characters.findIndex(c => c.id === characterId);
+        const index = state.characters.findIndex((c) => c.id === characterId);
         if (index !== -1) {
             state.characters[index].thumbnail = imageUrl;
         } else if (characterId === 'default') {
@@ -64,11 +68,25 @@ export function setupEventListeners() {
     };
 
     // Sidebar toggle
-    elements.toggleSettings.addEventListener('click', toggleSidebar);
-    elements.overlay.addEventListener('click', toggleSidebar);
+    elements.toggleSettings.addEventListener('click', () => ui.toggleSidebar());
+    elements.overlay.addEventListener('click', () => ui.toggleSidebar(false));
+
+    // View navigation
+    elements.navChatBtn.addEventListener('click', () => {
+        ui.setCurrentView('chat');
+        closeSidebarOnMobile();
+    });
+    elements.navGeneratorBtn.addEventListener('click', () => {
+        ui.setCurrentView('generator');
+        closeSidebarOnMobile();
+    });
+    elements.navGalleryBtn.addEventListener('click', () => {
+        ui.setCurrentView('gallery');
+        closeSidebarOnMobile();
+    });
 
     // Textarea auto-resize
-    elements.messageInput.addEventListener('input', autoResizeTextarea);
+    elements.messageInput.addEventListener('input', ui.autoResizeTextarea);
 
     // Send message on Enter (not Shift+Enter)
     elements.messageInput.addEventListener('keydown', (e) => {
@@ -81,7 +99,7 @@ export function setupEventListeners() {
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
 
-    // Chat media lightbox (assistant generated images/videos)
+    // Chat media lightbox
     elements.chatContainer.addEventListener('click', (e) => {
         const image = e.target.closest('.chat-image-preview');
         if (image) {
@@ -95,8 +113,6 @@ export function setupEventListeners() {
         }
     });
 
-    // Gallery
-    elements.openGalleryBtn.addEventListener('click', openGallery);
     elements.logoutBtn.addEventListener('click', async () => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
@@ -106,12 +122,19 @@ export function setupEventListeners() {
             window.location.href = '/';
         }
     });
-    elements.backToChatBtn.addEventListener('click', closeGallery);
-    elements.galleryCharacterFilter.addEventListener('change', (e) => {
-        state.galleryFilterCharacterId = e.target.value || 'all';
-        renderGallery();
+
+    elements.gallerySourceFilter.addEventListener('change', (e) => {
+        state.gallerySourceFilter = e.target.value || 'all';
+        ui.renderGallery();
         saveToLocalStorage();
     });
+
+    elements.galleryCharacterFilter.addEventListener('change', (e) => {
+        state.galleryFilterCharacterId = e.target.value || 'all';
+        ui.renderGallery();
+        saveToLocalStorage();
+    });
+
     elements.galleryGrid.addEventListener('click', (e) => {
         const btn = e.target.closest('.set-thumbnail-btn');
         if (btn) {
@@ -144,12 +167,14 @@ export function setupEventListeners() {
             openLightboxVideo(video.getAttribute('data-full-video') || video.getAttribute('src'));
         }
     });
+
     elements.closeLightboxBtn.addEventListener('click', closeLightbox);
     elements.galleryLightbox.addEventListener('click', (e) => {
         if (e.target === elements.galleryLightbox) {
             closeLightbox();
         }
     });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !elements.galleryLightbox.classList.contains('hidden')) {
             closeLightbox();
@@ -203,7 +228,6 @@ export function setupEventListeners() {
         }
     });
 
-
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 1024) {
             elements.settingsPanel.classList.remove('-translate-x-full');
@@ -221,17 +245,16 @@ export function setupEventListeners() {
             swarmModel: elements.swarmModel.value,
             imageProvider: elements.imageProvider.value,
             enableImageGeneration: elements.enableImageGeneration.checked,
-            imgWidth: parseInt(elements.imgWidth.value),
-            imgHeight: parseInt(elements.imgHeight.value),
-            steps: parseInt(elements.steps.value),
+            imgWidth: parseInt(elements.imgWidth.value, 10),
+            imgHeight: parseInt(elements.imgHeight.value, 10),
+            steps: parseInt(elements.steps.value, 10),
             cfgScale: parseFloat(elements.cfgScale.value),
             sampler: elements.sampler.value,
             systemPrompt: elements.systemPrompt.value
         };
 
-        // Update current character's system prompt if edited
         if (state.currentCharacterId !== 'default') {
-            const charIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
+            const charIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
             if (charIndex !== -1) {
                 state.characters[charIndex].systemPrompt = elements.systemPrompt.value;
             }

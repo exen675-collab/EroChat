@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
 import { generateId, escapeHtml, formatMessage } from './utils.js';
-import { scrollToBottom } from './ui.js';
+import { scrollToBottom, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
 import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
@@ -218,6 +218,9 @@ export function addImageToGallery(imageUrl, source = 'chat', messageId = null) {
 
     state.galleryImages.unshift(galleryItem);
     saveToLocalStorage();
+    renderGalleryCharacterFilter();
+    renderGalleryThumbnailCharacterSelect();
+    renderGallery();
 }
 
 export function addVideoToGallery(videoUrl, source = 'chat-video', messageId = null) {
@@ -237,6 +240,9 @@ export function addVideoToGallery(videoUrl, source = 'chat-video', messageId = n
 
     state.galleryImages.unshift(galleryItem);
     saveToLocalStorage();
+    renderGalleryCharacterFilter();
+    renderGalleryThumbnailCharacterSelect();
+    renderGallery();
 }
 
 // Regenerate image for a message

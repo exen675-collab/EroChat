@@ -40,6 +40,29 @@ export const defaultSettings = {
     imgHeight: 1216,
     steps: 25,
     cfgScale: 7,
-    sampler: 'Euler a',
+    sampler: 'euler_ancestral',
     systemPrompt: defaultCharacter.systemPrompt
+};
+
+export const defaultGeneratorPrefs = {
+    mode: 'image_generate',
+    provider: 'grok',
+    helperProvider: 'off',
+    prompt: '',
+    negativePrompt: '',
+    batchCount: 1,
+    aspectRatio: 'auto',
+    imageResolution: '1k',
+    editResolution: '1k',
+    videoDuration: 4,
+    videoAspectRatio: '16:9',
+    videoResolution: '480p',
+    swarmWidth: 832,
+    swarmHeight: 1216,
+    swarmSteps: 25,
+    swarmCfgScale: 7,
+    swarmSampler: 'euler_ancestral',
+    swarmSeedMode: 'random',
+    swarmBaseSeed: 1,
+    promptPresets: []
 };

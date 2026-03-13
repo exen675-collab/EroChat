@@ -3,7 +3,7 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
-import { generateId } from './utils.js';
+import { generateId, normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -106,7 +106,10 @@ function buildPersistedData() {
         characters: state.characters,
         currentCharacterId: state.currentCharacterId,
         galleryImages: state.galleryImages,
-        galleryFilterCharacterId: state.galleryFilterCharacterId
+        galleryFilterCharacterId: state.galleryFilterCharacterId,
+        gallerySourceFilter: state.gallerySourceFilter || 'all',
+        currentView: state.currentView || 'chat',
+        generatorPrefs: state.generatorPrefs
         // No longer saving top-level messages
     };
 }
@@ -231,6 +234,7 @@ export function loadFromLocalStorage() {
                     parsed.settings.imageProvider = 'premium';
                 }
                 Object.assign(state.settings, parsed.settings);
+                state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
                 updateSettingsUI();
             }
             if (parsed.characters) {
@@ -244,6 +248,16 @@ export function loadFromLocalStorage() {
             }
             if (parsed.galleryFilterCharacterId) {
                 state.galleryFilterCharacterId = parsed.galleryFilterCharacterId;
+            }
+            if (parsed.gallerySourceFilter) {
+                state.gallerySourceFilter = parsed.gallerySourceFilter;
+            }
+            if (parsed.currentView) {
+                state.currentView = parsed.currentView;
+            }
+            if (parsed.generatorPrefs && typeof parsed.generatorPrefs === 'object') {
+                Object.assign(state.generatorPrefs, parsed.generatorPrefs);
+                state.generatorPrefs.swarmSampler = normalizeSwarmSampler(state.generatorPrefs.swarmSampler);
             }
             // Temporarily store old top-level messages for migration
             if (parsed.messages && parsed.messages.length > 0) {
@@ -290,6 +304,15 @@ export function loadFromLocalStorage() {
         state.galleryFilterCharacterId = 'all';
     }
 
+    if (!state.gallerySourceFilter) {
+        state.gallerySourceFilter = 'all';
+    }
+
+    if (!state.currentView) {
+        state.currentView = 'chat';
+    }
+
+    updateSettingsUI();
     renderCharactersList();
     updateCurrentCharacterUI();
     renderMessages();
@@ -310,6 +333,6 @@ export function updateSettingsUI() {
     elements.stepsValue.textContent = state.settings.steps;
     elements.cfgScale.value = state.settings.cfgScale;
     elements.cfgValue.textContent = state.settings.cfgScale;
-    elements.sampler.value = state.settings.sampler;
+    syncSwarmSamplerSelect(elements.sampler, state.settings.sampler);
     elements.systemPrompt.value = state.settings.systemPrompt;
 }

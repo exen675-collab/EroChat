@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
+const multer = require('multer');
 const SQLiteStoreFactory = require('connect-sqlite3');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
@@ -18,6 +20,38 @@ const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
 const GROK_API_KEY_FILE = process.env.GROK_API_KEY_FILE || path.join(ROOT_DIR, 'grok.key');
+
+const MAX_JSON_BODY_BYTES = '25mb';
+const MAX_INLINE_MEDIA_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOADED_MEDIA_BYTES = 80 * 1024 * 1024;
+const MAX_REMOTE_MEDIA_BYTES = 80 * 1024 * 1024;
+const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
+const DEFAULT_ADMIN_USERNAME = 'admin';
+const DEFAULT_ADMIN_PASSWORD = 'admin';
+
+const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
+const GENERATOR_ALLOWED_MODES = new Set(['image_generate', 'image_edit', 'video_generate']);
+const GENERATOR_ALLOWED_PROVIDERS = new Set(['grok', 'swarm']);
+const GENERATOR_ALLOWED_STATUSES = new Set(['queued', 'running', 'polling', 'succeeded', 'failed', 'interrupted']);
+const loginAttempts = new Map();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_UPLOADED_MEDIA_BYTES,
+    files: 1
+  }
+});
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(MEDIA_DIR)) {
+  fs.mkdirSync(MEDIA_DIR, { recursive: true });
+}
+
+const db = new sqlite3.Database(DB_PATH);
 
 function readSecretFromFile(filePath) {
   try {
@@ -40,22 +74,6 @@ const DEFAULT_USER_CREDITS = getIntEnv('DEFAULT_USER_CREDITS', 100);
 const CREDIT_COST_GROK_CHAT = getIntEnv('CREDIT_COST_GROK_CHAT', 1);
 const CREDIT_COST_GROK_IMAGE = getIntEnv('CREDIT_COST_GROK_IMAGE', 2);
 const CREDIT_COST_GROK_VIDEO = getIntEnv('CREDIT_COST_GROK_VIDEO', 3);
-const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
-const DEFAULT_ADMIN_USERNAME = 'admin';
-const DEFAULT_ADMIN_PASSWORD = 'admin';
-
-const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
-const loginAttempts = new Map();
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-if (!fs.existsSync(MEDIA_DIR)) {
-  fs.mkdirSync(MEDIA_DIR, { recursive: true });
-}
-
-const db = new sqlite3.Database(DB_PATH);
 
 function run(query, params = []) {
   return new Promise((resolve, reject) => {
@@ -102,6 +120,32 @@ function jsonOrNull(text) {
   }
 }
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    return [];
+  }
+  const parsed = jsonOrNull(value);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function parseJsonObject(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    return {};
+  }
+  const parsed = jsonOrNull(value);
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+}
+
+function stringifyJson(value, fallback) {
+  return JSON.stringify(value ?? fallback);
+}
+
 function getCreditCosts() {
   return {
     chat: CREDIT_COST_GROK_CHAT,
@@ -110,12 +154,16 @@ function getCreditCosts() {
   };
 }
 
+function normalizeMimeType(mimeType) {
+  return String(mimeType || '').split(';')[0].trim().toLowerCase();
+}
+
 function parseBase64DataUrl(dataUrl) {
   if (typeof dataUrl !== 'string') return null;
   const match = dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
   if (!match) return null;
 
-  const mimeType = String(match[1] || '').toLowerCase().trim();
+  const mimeType = normalizeMimeType(match[1]);
   const base64 = String(match[2] || '').replace(/\s+/g, '');
   if (!mimeType || !base64) return null;
 
@@ -128,8 +176,8 @@ function parseBase64DataUrl(dataUrl) {
   }
 }
 
-function imageExtensionForMimeType(mimeType) {
-  switch (mimeType) {
+function mediaExtensionForMimeType(mimeType) {
+  switch (normalizeMimeType(mimeType)) {
     case 'image/png':
       return 'png';
     case 'image/jpeg':
@@ -139,9 +187,22 @@ function imageExtensionForMimeType(mimeType) {
       return 'webp';
     case 'image/gif':
       return 'gif';
+    case 'video/mp4':
+      return 'mp4';
+    case 'video/webm':
+      return 'webm';
+    case 'video/quicktime':
+      return 'mov';
     default:
       return null;
   }
+}
+
+function mediaTypeForMimeType(mimeType) {
+  const normalized = normalizeMimeType(mimeType);
+  if (normalized.startsWith('image/')) return 'image';
+  if (normalized.startsWith('video/')) return 'video';
+  return null;
 }
 
 function generateMediaFileId() {
@@ -151,23 +212,36 @@ function generateMediaFileId() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-async function getUserCredits(userId) {
-  const row = await get('SELECT credits FROM users WHERE id = ?', [userId]);
-  return Number.isFinite(row?.credits) ? row.credits : 0;
+function buildMediaUrl(fileName) {
+  return `/app/media/${encodeURIComponent(fileName)}`;
 }
 
-async function reserveCredits(userId, cost) {
-  if (cost <= 0) return true;
-  const result = await run(
-    'UPDATE users SET credits = credits - ? WHERE id = ? AND credits >= ?',
-    [cost, userId, cost]
-  );
-  return result.changes > 0;
-}
+async function storeMediaBuffer(buffer, mimeType, maxBytes = MAX_UPLOADED_MEDIA_BYTES) {
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+    throw new Error('Media content was empty.');
+  }
 
-async function refundCredits(userId, cost) {
-  if (cost <= 0) return;
-  await run('UPDATE users SET credits = credits + ? WHERE id = ?', [cost, userId]);
+  if (buffer.length > maxBytes) {
+    throw new Error('Media file is too large to store.');
+  }
+
+  const normalizedMimeType = normalizeMimeType(mimeType);
+  const mediaType = mediaTypeForMimeType(normalizedMimeType);
+  const ext = mediaExtensionForMimeType(normalizedMimeType);
+  if (!mediaType || !ext) {
+    throw new Error('Only png, jpg, webp, gif, mp4, webm, or mov files are supported.');
+  }
+
+  const fileName = `${Date.now()}-${generateMediaFileId()}.${ext}`;
+  const filePath = path.join(MEDIA_DIR, fileName);
+  await fs.promises.writeFile(filePath, buffer);
+
+  return {
+    url: buildMediaUrl(fileName),
+    mimeType: normalizedMimeType,
+    mediaType,
+    sizeBytes: buffer.length
+  };
 }
 
 function sanitizeUsername(username) {
@@ -211,6 +285,220 @@ function isRateLimited(req) {
 
 function clearRateLimit(req) {
   loginAttempts.delete(getClientIp(req));
+}
+
+async function getUserCredits(userId) {
+  const row = await get('SELECT credits FROM users WHERE id = ?', [userId]);
+  return Number.isFinite(row?.credits) ? row.credits : 0;
+}
+
+async function reserveCredits(userId, cost) {
+  if (cost <= 0) return true;
+  const result = await run(
+    'UPDATE users SET credits = credits - ? WHERE id = ? AND credits >= ?',
+    [cost, userId, cost]
+  );
+  return result.changes > 0;
+}
+
+async function refundCredits(userId, cost) {
+  if (cost <= 0) return;
+  await run('UPDATE users SET credits = credits + ? WHERE id = ?', [cost, userId]);
+}
+
+function normalizePositiveInt(value, fallback, min = 1, max = 100) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normalizeIntegerArray(value) {
+  return Array.from(
+    new Set(
+      parseJsonArray(value)
+        .map(item => Number.parseInt(item, 10))
+        .filter(item => Number.isFinite(item) && item > 0)
+    )
+  );
+}
+
+function normalizeGeneratorMode(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return GENERATOR_ALLOWED_MODES.has(normalized) ? normalized : null;
+}
+
+function normalizeGeneratorProvider(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return GENERATOR_ALLOWED_PROVIDERS.has(normalized) ? normalized : null;
+}
+
+function normalizeGeneratorStatus(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return GENERATOR_ALLOWED_STATUSES.has(normalized) ? normalized : null;
+}
+
+function isTerminalGeneratorStatus(status) {
+  return status === 'succeeded' || status === 'failed' || status === 'interrupted';
+}
+
+function mapGeneratorJobRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    batchId: row.batch_id,
+    userId: row.user_id,
+    mode: row.mode,
+    provider: row.provider,
+    status: row.status,
+    prompt: row.prompt || '',
+    negativePrompt: row.negative_prompt || null,
+    sourceAssetIds: normalizeIntegerArray(row.source_asset_ids),
+    providerModel: row.provider_model || '',
+    providerRequestId: row.provider_request_id || null,
+    requestJson: parseJsonObject(row.request_json),
+    resultAssetIds: normalizeIntegerArray(row.result_asset_ids),
+    errorMessage: row.error_message || null,
+    creditsCharged: Number.isFinite(row.credits_charged) ? row.credits_charged : 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at || null
+  };
+}
+
+function mapGeneratorAssetRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    userId: row.user_id,
+    mediaType: row.media_type,
+    url: row.url,
+    thumbnailUrl: row.thumbnail_url || null,
+    width: Number.isFinite(row.width) ? row.width : null,
+    height: Number.isFinite(row.height) ? row.height : null,
+    durationSeconds: Number.isFinite(row.duration_seconds) ? row.duration_seconds : null,
+    source: row.source || 'generator',
+    createdAt: row.created_at,
+    metadata: parseJsonObject(row.metadata_json),
+    prompt: row.job_prompt || null,
+    mode: row.job_mode || null,
+    provider: row.job_provider || null,
+    jobStatus: row.job_status || null,
+    batchId: row.batch_id || null
+  };
+}
+
+async function getGeneratorAssetsByIds(userId, assetIds) {
+  const ids = Array.from(
+    new Set(
+      assetIds
+        .map(value => Number.parseInt(value, 10))
+        .filter(value => Number.isFinite(value) && value > 0)
+    )
+  );
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const placeholders = ids.map(() => '?').join(', ');
+  const rows = await all(
+    `
+      SELECT
+        a.*,
+        j.prompt AS job_prompt,
+        j.mode AS job_mode,
+        j.provider AS job_provider,
+        j.status AS job_status,
+        j.batch_id
+      FROM generator_assets a
+      LEFT JOIN generator_jobs j ON j.id = a.job_id
+      WHERE a.user_id = ? AND a.id IN (${placeholders})
+      ORDER BY a.id DESC
+    `,
+    [userId, ...ids]
+  );
+
+  return rows.map(mapGeneratorAssetRow);
+}
+
+function isBlockedRemoteHost(hostname) {
+  const host = String(hostname || '').trim().toLowerCase();
+  if (!host) return true;
+  if (host === 'localhost' || host === '0.0.0.0' || host === '::1' || host.endsWith('.local')) {
+    return true;
+  }
+
+  const normalized = host.replace(/^\[|\]$/g, '');
+  if (net.isIP(normalized) === 4) {
+    return /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|169\.254\.)/.test(normalized);
+  }
+  if (net.isIP(normalized) === 6) {
+    return normalized === '::1' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:');
+  }
+
+  return false;
+}
+
+function validateRemoteMediaUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('A valid remote URL is required.');
+  }
+
+  if (!/^https?:$/i.test(parsed.protocol)) {
+    throw new Error('Only http or https media URLs are supported.');
+  }
+
+  if (isBlockedRemoteHost(parsed.hostname)) {
+    throw new Error('Importing media from local or private addresses is not allowed.');
+  }
+
+  return parsed;
+}
+
+async function importRemoteMedia(remoteUrl) {
+  const parsed = validateRemoteMediaUrl(remoteUrl);
+  const response = await fetch(parsed.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch remote media (${response.status}).`);
+  }
+
+  const contentLength = normalizePositiveInt(response.headers.get('content-length'), 0, 0, Number.MAX_SAFE_INTEGER);
+  if (contentLength > MAX_REMOTE_MEDIA_BYTES) {
+    throw new Error('Remote media file is too large to import.');
+  }
+
+  const mimeType = normalizeMimeType(response.headers.get('content-type'));
+  if (!mediaTypeForMimeType(mimeType)) {
+    throw new Error('Remote media type is not supported.');
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  return storeMediaBuffer(buffer, mimeType, MAX_REMOTE_MEDIA_BYTES);
+}
+
+function normalizeGrokImageInput(value) {
+  if (!value) return null;
+
+  if (typeof value === 'string' && value.trim()) {
+    return {
+      url: value.trim(),
+      type: 'image_url'
+    };
+  }
+
+  if (typeof value === 'object' && !Array.isArray(value) && typeof value.url === 'string' && value.url.trim()) {
+    return {
+      url: value.url.trim(),
+      type: typeof value.type === 'string' && value.type.trim() ? value.type.trim() : 'image_url'
+    };
+  }
+
+  return null;
 }
 
 function requireAuth(req, res, next) {
@@ -296,7 +584,6 @@ async function initDb() {
     )
   `);
 
-  // Backward compatibility for databases created before credits were added.
   try {
     await run(`ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT ${DEFAULT_USER_CREDITS}`);
   } catch (error) {
@@ -305,7 +592,6 @@ async function initDb() {
     }
   }
 
-  // Backward compatibility for databases created before admin roles were added.
   try {
     await run('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
   } catch (error) {
@@ -314,12 +600,60 @@ async function initDb() {
     }
   }
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS generator_jobs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      batch_id TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      prompt TEXT NOT NULL,
+      negative_prompt TEXT,
+      source_asset_ids TEXT NOT NULL DEFAULT '[]',
+      provider_model TEXT,
+      provider_request_id TEXT,
+      request_json TEXT NOT NULL DEFAULT '{}',
+      result_asset_ids TEXT NOT NULL DEFAULT '[]',
+      error_message TEXT,
+      credits_charged INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS generator_assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      media_type TEXT NOT NULL,
+      url TEXT NOT NULL,
+      thumbnail_url TEXT,
+      width INTEGER,
+      height INTEGER,
+      duration_seconds INTEGER,
+      source TEXT NOT NULL DEFAULT 'generator',
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (job_id) REFERENCES generator_jobs(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  await run('CREATE INDEX IF NOT EXISTS idx_generator_jobs_user_created ON generator_jobs(user_id, created_at DESC)');
+  await run('CREATE INDEX IF NOT EXISTS idx_generator_jobs_user_status_updated ON generator_jobs(user_id, status, updated_at DESC)');
+  await run('CREATE INDEX IF NOT EXISTS idx_generator_assets_user_created ON generator_assets(user_id, created_at DESC)');
+  await run('CREATE INDEX IF NOT EXISTS idx_generator_assets_job ON generator_assets(job_id)');
+
   await ensureDefaultAdminAccount();
 }
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-app.use(express.json({ limit: '15mb' }));
+app.use(express.json({ limit: MAX_JSON_BODY_BYTES }));
 app.use((req, res, next) => {
   if (
     req.path === '/' ||
@@ -351,7 +685,6 @@ app.use(
 );
 
 app.get('/', (req, res) => {
-  // Clear legacy cookie names from older builds to avoid session conflicts.
   res.clearCookie('erochat.sid');
   res.clearCookie('connect.sid');
   res.sendFile(path.join(ROOT_DIR, 'login.html'));
@@ -519,27 +852,43 @@ app.post('/api/media/store', requireApiAuth, async (req, res) => {
     return;
   }
 
-  const ext = imageExtensionForMimeType(parsed.mimeType);
-  if (!ext) {
-    res.status(400).json({ error: 'Only png, jpg, webp, or gif data URLs are supported.' });
+  try {
+    const stored = await storeMediaBuffer(parsed.buffer, parsed.mimeType, MAX_INLINE_MEDIA_BYTES);
+    res.status(201).json(stored);
+  } catch (error) {
+    console.error('Failed to store media from data URL:', error);
+    res.status(400).json({ error: error.message || 'Failed to store media.' });
+  }
+});
+
+app.post('/api/media/upload', requireApiAuth, upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'A media file is required.' });
     return;
   }
-
-  const maxBytes = 10 * 1024 * 1024;
-  if (parsed.buffer.length > maxBytes) {
-    res.status(413).json({ error: 'Image is too large to store.' });
-    return;
-  }
-
-  const fileName = `${Date.now()}-${generateMediaFileId()}.${ext}`;
-  const filePath = path.join(MEDIA_DIR, fileName);
 
   try {
-    await fs.promises.writeFile(filePath, parsed.buffer);
-    res.status(201).json({ url: `/app/media/${encodeURIComponent(fileName)}` });
+    const stored = await storeMediaBuffer(req.file.buffer, req.file.mimetype, MAX_UPLOADED_MEDIA_BYTES);
+    res.status(201).json(stored);
   } catch (error) {
-    console.error('Failed to store generated image:', error);
-    res.status(500).json({ error: 'Failed to store generated image.' });
+    console.error('Failed to store uploaded media:', error);
+    res.status(400).json({ error: error.message || 'Failed to store uploaded media.' });
+  }
+});
+
+app.post('/api/media/import-remote', requireApiAuth, async (req, res) => {
+  const remoteUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+  if (!remoteUrl) {
+    res.status(400).json({ error: 'A remote URL is required.' });
+    return;
+  }
+
+  try {
+    const stored = await importRemoteMedia(remoteUrl);
+    res.status(201).json(stored);
+  } catch (error) {
+    console.error('Failed to import remote media:', error);
+    res.status(400).json({ error: error.message || 'Failed to import remote media.' });
   }
 });
 
@@ -608,7 +957,7 @@ app.patch('/api/admin/users/:userId/credits', requireApiAuth, requireAdmin, asyn
   }
 });
 
-async function handleChargedGrokRequest(req, res, { path, payload, cost }) {
+async function handleChargedGrokRequest(req, res, { path: upstreamPath, payload, cost }) {
   if (!ensureGrokConfigured(res)) return;
 
   const userId = req.session.userId;
@@ -628,7 +977,7 @@ async function handleChargedGrokRequest(req, res, { path, payload, cost }) {
 
     let response;
     try {
-      response = await fetch(`https://api.x.ai${path}`, {
+      response = await fetch(`https://api.x.ai${upstreamPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -712,20 +1061,70 @@ app.post('/api/premium/image', requireApiAuth, async (req, res) => {
   });
 });
 
-app.post('/api/premium/video', requireApiAuth, async (req, res) => {
-  const imageUrl = req.body?.image?.url;
-  if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
-    res.status(400).json({ error: 'Image URL is required.' });
+app.post('/api/premium/image/edit', requireApiAuth, async (req, res) => {
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
+  if (!prompt) {
+    res.status(400).json({ error: 'Prompt is required.' });
+    return;
+  }
+
+  const image = normalizeGrokImageInput(req.body?.image);
+  const images = Array.isArray(req.body?.images)
+    ? req.body.images.map(normalizeGrokImageInput).filter(Boolean).slice(0, 3)
+    : [];
+
+  if (!image && images.length === 0) {
+    res.status(400).json({ error: 'At least one source image is required.' });
     return;
   }
 
   const payload = {
-    model: typeof req.body?.model === 'string' ? req.body.model : 'grok-imagine-video',
-    prompt: typeof req.body?.prompt === 'string' ? req.body.prompt : 'Animate this image into a short cinematic video.',
-    duration: Number.isFinite(req.body?.duration) ? req.body.duration : 4,
-    resolution: typeof req.body?.resolution === 'string' ? req.body.resolution : '480p',
-    image: { url: imageUrl.trim() }
+    model: typeof req.body?.model === 'string' ? req.body.model : 'grok-imagine-image',
+    prompt,
+    response_format: typeof req.body?.response_format === 'string' ? req.body.response_format : 'b64_json'
   };
+
+  if (image) {
+    payload.image = image;
+  }
+  if (images.length > 0) {
+    payload.images = images;
+  }
+  if (typeof req.body?.aspect_ratio === 'string') {
+    payload.aspect_ratio = req.body.aspect_ratio;
+  }
+  if (typeof req.body?.resolution === 'string') {
+    payload.resolution = req.body.resolution;
+  }
+
+  await handleChargedGrokRequest(req, res, {
+    path: '/v1/images/edits',
+    payload,
+    cost: CREDIT_COST_GROK_IMAGE
+  });
+});
+
+app.post('/api/premium/video', requireApiAuth, async (req, res) => {
+  const imageInput = normalizeGrokImageInput(req.body?.image);
+  if (!imageInput) {
+    res.status(400).json({ error: 'Image URL is required.' });
+    return;
+  }
+
+  const duration = normalizePositiveInt(req.body?.duration, 4, 1, 15);
+  const payload = {
+    model: typeof req.body?.model === 'string' ? req.body.model : 'grok-imagine-video',
+    prompt: typeof req.body?.prompt === 'string' && req.body.prompt.trim()
+      ? req.body.prompt.trim()
+      : 'Animate this image into a short cinematic video.',
+    duration,
+    resolution: typeof req.body?.resolution === 'string' ? req.body.resolution : '480p',
+    image: imageInput
+  };
+
+  if (typeof req.body?.aspect_ratio === 'string') {
+    payload.aspect_ratio = req.body.aspect_ratio;
+  }
 
   await handleChargedGrokRequest(req, res, {
     path: '/v1/videos/generations',
@@ -767,6 +1166,332 @@ app.get('/api/premium/video/:requestId', requireApiAuth, async (req, res) => {
   }
 });
 
+app.get('/api/generator/jobs', requireApiAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const limit = normalizePositiveInt(req.query?.limit, 40, 1, 100);
+  const cursor = normalizePositiveInt(req.query?.cursor, 0, 0, Number.MAX_SAFE_INTEGER);
+  const statusFilter = req.query?.status == null || req.query.status === ''
+    ? null
+    : normalizeGeneratorStatus(req.query.status);
+
+  if (req.query?.status && !statusFilter) {
+    res.status(400).json({ error: 'Invalid generator status filter.' });
+    return;
+  }
+
+  const params = [userId];
+  let query = 'SELECT * FROM generator_jobs WHERE user_id = ?';
+
+  if (statusFilter) {
+    query += ' AND status = ?';
+    params.push(statusFilter);
+  }
+
+  if (cursor > 0) {
+    query += ' AND id < ?';
+    params.push(cursor);
+  }
+
+  query += ' ORDER BY id DESC LIMIT ?';
+  params.push(limit);
+
+  try {
+    const rows = await all(query, params);
+    res.json({
+      jobs: rows.map(mapGeneratorJobRow),
+      nextCursor: rows.length === limit ? rows[rows.length - 1].id : null
+    });
+  } catch (error) {
+    console.error('Failed to load generator jobs:', error);
+    res.status(500).json({ error: 'Failed to load generator jobs.' });
+  }
+});
+
+app.post('/api/generator/jobs', requireApiAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const inputJobs = Array.isArray(req.body?.jobs) ? req.body.jobs : null;
+  if (!inputJobs || inputJobs.length === 0) {
+    res.status(400).json({ error: 'At least one generator job is required.' });
+    return;
+  }
+
+  if (inputJobs.length > 20) {
+    res.status(400).json({ error: 'Too many generator jobs were submitted at once.' });
+    return;
+  }
+
+  const insertedIds = [];
+
+  try {
+    for (const inputJob of inputJobs) {
+      const mode = normalizeGeneratorMode(inputJob?.mode);
+      const provider = normalizeGeneratorProvider(inputJob?.provider);
+      const prompt = typeof inputJob?.prompt === 'string' ? inputJob.prompt.trim() : '';
+
+      if (!mode || !provider || !prompt) {
+        res.status(400).json({ error: 'Each generator job requires mode, provider, and prompt.' });
+        return;
+      }
+
+      const batchId = typeof inputJob?.batchId === 'string' && inputJob.batchId.trim()
+        ? inputJob.batchId.trim()
+        : generateMediaFileId();
+      const negativePrompt = typeof inputJob?.negativePrompt === 'string' && inputJob.negativePrompt.trim()
+        ? inputJob.negativePrompt.trim()
+        : null;
+      const sourceAssetIds = Array.isArray(inputJob?.sourceAssetIds)
+        ? Array.from(
+          new Set(
+            inputJob.sourceAssetIds
+              .map(value => Number.parseInt(value, 10))
+              .filter(value => Number.isFinite(value) && value > 0)
+          )
+        )
+        : [];
+      const providerModel = typeof inputJob?.providerModel === 'string' ? inputJob.providerModel.trim() : '';
+      const requestJson = inputJob?.requestJson && typeof inputJob.requestJson === 'object' && !Array.isArray(inputJob.requestJson)
+        ? inputJob.requestJson
+        : {};
+
+      const result = await run(
+        `
+          INSERT INTO generator_jobs (
+            user_id,
+            batch_id,
+            mode,
+            provider,
+            status,
+            prompt,
+            negative_prompt,
+            source_asset_ids,
+            provider_model,
+            request_json
+          ) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+        `,
+        [
+          userId,
+          batchId,
+          mode,
+          provider,
+          prompt,
+          negativePrompt,
+          stringifyJson(sourceAssetIds, []),
+          providerModel,
+          stringifyJson(requestJson, {})
+        ]
+      );
+
+      insertedIds.push(result.lastID);
+    }
+
+    const placeholders = insertedIds.map(() => '?').join(', ');
+    const rows = await all(
+      `SELECT * FROM generator_jobs WHERE user_id = ? AND id IN (${placeholders}) ORDER BY id DESC`,
+      [userId, ...insertedIds]
+    );
+
+    res.status(201).json({ jobs: rows.map(mapGeneratorJobRow) });
+  } catch (error) {
+    console.error('Failed to create generator jobs:', error);
+    res.status(500).json({ error: 'Failed to create generator jobs.' });
+  }
+});
+
+app.patch('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const jobId = Number.parseInt(req.params?.jobId, 10);
+  if (!Number.isFinite(jobId) || jobId <= 0) {
+    res.status(400).json({ error: 'Invalid generator job ID.' });
+    return;
+  }
+
+  try {
+    const existing = await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [jobId, userId]);
+    if (!existing) {
+      res.status(404).json({ error: 'Generator job not found.' });
+      return;
+    }
+
+    const status = req.body?.status == null
+      ? existing.status
+      : normalizeGeneratorStatus(req.body.status);
+    if (!status) {
+      res.status(400).json({ error: 'Invalid generator job status.' });
+      return;
+    }
+
+    const providerRequestId = req.body?.providerRequestId === null
+      ? null
+      : typeof req.body?.providerRequestId === 'string' && req.body.providerRequestId.trim()
+        ? req.body.providerRequestId.trim()
+        : existing.provider_request_id;
+
+    const errorMessage = req.body?.errorMessage === null
+      ? null
+      : typeof req.body?.errorMessage === 'string' && req.body.errorMessage.trim()
+        ? req.body.errorMessage.trim()
+        : existing.error_message;
+
+    const requestJson = req.body?.requestJson && typeof req.body.requestJson === 'object' && !Array.isArray(req.body.requestJson)
+      ? req.body.requestJson
+      : parseJsonObject(existing.request_json);
+
+    const creditsCharged = Number.isFinite(req.body?.creditsCharged)
+      ? Math.max(0, Math.trunc(req.body.creditsCharged))
+      : (Number.isFinite(existing.credits_charged) ? existing.credits_charged : 0);
+
+    const assetInputs = Array.isArray(req.body?.assets) ? req.body.assets : [];
+    const insertedAssetIds = [];
+
+    for (const assetInput of assetInputs) {
+      const mediaType = assetInput?.mediaType === 'video' ? 'video' : assetInput?.mediaType === 'image' ? 'image' : null;
+      const url = typeof assetInput?.url === 'string' ? assetInput.url.trim() : '';
+      const thumbnailUrl = typeof assetInput?.thumbnailUrl === 'string' && assetInput.thumbnailUrl.trim()
+        ? assetInput.thumbnailUrl.trim()
+        : null;
+
+      if (!mediaType || !url || !url.startsWith('/app/media/')) {
+        res.status(400).json({ error: 'Generator assets must use stored /app/media/ URLs.' });
+        return;
+      }
+
+      const width = Number.isFinite(assetInput?.width) ? Math.max(0, Math.trunc(assetInput.width)) : null;
+      const height = Number.isFinite(assetInput?.height) ? Math.max(0, Math.trunc(assetInput.height)) : null;
+      const durationSeconds = Number.isFinite(assetInput?.durationSeconds) ? Math.max(0, Math.trunc(assetInput.durationSeconds)) : null;
+      const metadata = assetInput?.metadata && typeof assetInput.metadata === 'object' && !Array.isArray(assetInput.metadata)
+        ? assetInput.metadata
+        : {};
+
+      const result = await run(
+        `
+          INSERT INTO generator_assets (
+            job_id,
+            user_id,
+            media_type,
+            url,
+            thumbnail_url,
+            width,
+            height,
+            duration_seconds,
+            source,
+            metadata_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'generator', ?)
+        `,
+        [
+          jobId,
+          userId,
+          mediaType,
+          url,
+          thumbnailUrl,
+          width,
+          height,
+          durationSeconds,
+          stringifyJson(metadata, {})
+        ]
+      );
+
+      insertedAssetIds.push(result.lastID);
+    }
+
+    const existingResultAssetIds = normalizeIntegerArray(existing.result_asset_ids);
+    const resultAssetIds = Array.isArray(req.body?.resultAssetIds)
+      ? Array.from(
+        new Set(
+          req.body.resultAssetIds
+            .map(value => Number.parseInt(value, 10))
+            .filter(value => Number.isFinite(value) && value > 0)
+        )
+      )
+      : Array.from(new Set([...existingResultAssetIds, ...insertedAssetIds]));
+
+    let completedAt = existing.completed_at || null;
+    if (req.body?.completedAt === null) {
+      completedAt = null;
+    } else if (typeof req.body?.completedAt === 'string' && req.body.completedAt.trim()) {
+      completedAt = req.body.completedAt.trim();
+    } else if (isTerminalGeneratorStatus(status) && !completedAt) {
+      completedAt = new Date().toISOString();
+    }
+
+    await run(
+      `
+        UPDATE generator_jobs
+        SET
+          status = ?,
+          provider_request_id = ?,
+          request_json = ?,
+          result_asset_ids = ?,
+          error_message = ?,
+          credits_charged = ?,
+          updated_at = CURRENT_TIMESTAMP,
+          completed_at = ?
+        WHERE id = ? AND user_id = ?
+      `,
+      [
+        status,
+        providerRequestId,
+        stringifyJson(requestJson, {}),
+        stringifyJson(resultAssetIds, []),
+        errorMessage,
+        creditsCharged,
+        completedAt,
+        jobId,
+        userId
+      ]
+    );
+
+    const updatedJob = await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [jobId, userId]);
+    const createdAssets = await getGeneratorAssetsByIds(userId, insertedAssetIds);
+
+    res.json({
+      job: mapGeneratorJobRow(updatedJob),
+      assets: createdAssets
+    });
+  } catch (error) {
+    console.error('Failed to update generator job:', error);
+    res.status(500).json({ error: 'Failed to update generator job.' });
+  }
+});
+
+app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const limit = normalizePositiveInt(req.query?.limit, 60, 1, 120);
+  const cursor = normalizePositiveInt(req.query?.cursor, 0, 0, Number.MAX_SAFE_INTEGER);
+
+  const params = [userId];
+  let query = `
+    SELECT
+      a.*,
+      j.prompt AS job_prompt,
+      j.mode AS job_mode,
+      j.provider AS job_provider,
+      j.status AS job_status,
+      j.batch_id
+    FROM generator_assets a
+    LEFT JOIN generator_jobs j ON j.id = a.job_id
+    WHERE a.user_id = ?
+  `;
+
+  if (cursor > 0) {
+    query += ' AND a.id < ?';
+    params.push(cursor);
+  }
+
+  query += ' ORDER BY a.id DESC LIMIT ?';
+  params.push(limit);
+
+  try {
+    const rows = await all(query, params);
+    res.json({
+      assets: rows.map(mapGeneratorAssetRow),
+      nextCursor: rows.length === limit ? rows[rows.length - 1].id : null
+    });
+  } catch (error) {
+    console.error('Failed to load generator assets:', error);
+    res.status(500).json({ error: 'Failed to load generator assets.' });
+  }
+});
+
 app.get(['/app', '/app/'], requireAuth, (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
@@ -774,6 +1499,15 @@ app.get(['/app', '/app/'], requireAuth, (req, res) => {
 app.use('/app/css', requireAuth, express.static(path.join(ROOT_DIR, 'css')));
 app.use('/app/js', requireAuth, express.static(path.join(ROOT_DIR, 'js')));
 app.use('/app/media', requireAuth, express.static(MEDIA_DIR));
+
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    res.status(status).json({ error: error.message || 'Failed to upload media.' });
+    return;
+  }
+  next(error);
+});
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

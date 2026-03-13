@@ -20,32 +20,6 @@
                     Control Center
                 </h1>
 
-                <!-- Characters Section -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold text-pink-400 flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
-                                </path>
-                            </svg>
-                            Characters
-                        </h2>
-                        <button id="addCharacterBtn"
-                            class="px-3 py-1 text-sm btn-secondary rounded-lg flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            New
-                        </button>
-                    </div>
-
-                    <div id="charactersList" class="space-y-2 max-h-48 overflow-y-auto">
-                        <!-- Characters will be rendered here -->
-                    </div>
-                </div>
-
                 <!-- Admin Panel -->
                 <div id="adminPanel" class="mb-6 p-4 rounded-xl glass hidden">
                     <div class="flex items-center justify-between mb-3">
@@ -179,6 +153,33 @@
                     </div>
                 </div>
 
+                <div id="chatSettingsPane">
+                <!-- Characters Section -->
+                <div class="mb-6 p-4 rounded-xl glass">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-pink-400 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                </path>
+                            </svg>
+                            Characters
+                        </h2>
+                        <button id="addCharacterBtn"
+                            class="px-3 py-1 text-sm btn-secondary rounded-lg flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            New
+                        </button>
+                    </div>
+
+                    <div id="charactersList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <!-- Characters will be rendered here -->
+                    </div>
+                </div>
+
                 <!-- Generation Settings -->
                 <div class="mb-6 p-4 rounded-xl glass">
                     <h2 class="text-lg font-semibold text-pink-400 mb-4 flex items-center gap-2">
@@ -236,13 +237,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Sampler</label>
-                            <select id="sampler" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="Euler a">Euler a</option>
-                                <option value="DPM++ 2M Karras">DPM++ 2M Karras</option>
-                                <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
-                                <option value="DDIM">DDIM</option>
-                                <option value="UniPC">UniPC</option>
-                            </select>
+                            <select id="sampler" class="w-full px-4 py-2 rounded-lg text-sm"></select>
                         </div>
                     </div>
                 </div>
@@ -295,14 +290,42 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         Clear Conversation
                     </button>
                 </div>
+
+                </div>
+
+                <div id="generatorSettingsPane" class="hidden space-y-6">
+                    <div class="mb-6 p-4 rounded-xl glass">
+                        <p class="text-xs uppercase tracking-[0.2em] text-cyan-300 mb-3">Generator Workspace</p>
+                        <h2 class="text-lg font-semibold text-gray-100 mb-2">Standalone media creation</h2>
+                        <p class="text-sm text-gray-400 leading-relaxed">
+                            Build image batches, run Grok edits, and animate generated stills without entering the chat flow.
+                        </p>
+                    </div>
+
+                    <div class="mb-6 p-4 rounded-xl glass">
+                        <p class="text-xs uppercase tracking-[0.2em] text-pink-300 mb-3">Provider Notes</p>
+                        <div class="space-y-3 text-sm text-gray-400">
+                            <p><strong class="text-gray-200">Grok:</strong> image creation, edit workflows, prompt help, and video generation.</p>
+                            <p><strong class="text-gray-200">SwarmUI:</strong> local image generation with negative prompts, seeds, CFG, samplers, and controlled batches.</p>
+                            <p><strong class="text-gray-200">History:</strong> generator jobs and assets are stored server-side and also appear in the gallery.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6 p-4 rounded-xl glass">
+                        <p class="text-xs uppercase tracking-[0.2em] text-purple-300 mb-3">Prompt Helper</p>
+                        <p class="text-sm text-gray-400 leading-relaxed">
+                            Configure OpenRouter above if you want prompt refinement without consuming premium chat credits.
+                        </p>
+                    </div>
+                </div>
             </div>
         </aside>
 
         <!-- Main Chat Area -->
         <main class="flex-1 flex flex-col min-w-0">
             <!-- Header -->
-            <header class="glass border-b border-purple-900/30 px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
+            <header class="glass border-b border-purple-900/30 px-6 py-4 app-header">
+                <div class="app-header-left">
                     <button id="toggleSettings" class="p-2 rounded-lg btn-secondary lg:hidden">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -314,13 +337,22 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                             class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
                             EroChat Studio
                         </h1>
-                        <div id="currentCharacterDisplay" class="text-sm text-gray-400 flex items-center gap-2">
-                            <span>Active character:</span>
-                            <span id="currentCharacterName" class="text-pink-400 font-medium">Default Character</span>
+                        <div class="flex items-center gap-3 flex-wrap text-sm text-gray-400">
+                            <div id="currentCharacterDisplay" class="flex items-center gap-2">
+                                <span>Active character:</span>
+                                <span id="currentCharacterName" class="text-pink-400 font-medium">Default Character</span>
+                            </div>
+                            <span id="currentViewDescription" class="text-gray-500">Chat workspace</span>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <nav class="view-nav" aria-label="Workspace navigation">
+                    <button id="navChatBtn" type="button" class="view-nav-btn is-active">Chat</button>
+                    <button id="navGeneratorBtn" type="button" class="view-nav-btn">Generator</button>
+                    <button id="navGalleryBtn" type="button" class="view-nav-btn">Gallery</button>
+                </nav>
+
+                <div class="app-header-right">
                     <div class="px-3 py-1 rounded-full bg-black/30 border border-purple-900/40 text-sm">
                         <span class="text-gray-400">User:</span>
                         <span id="currentUsername" class="text-cyan-300 font-medium">Loading...</span>
@@ -423,16 +455,279 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                 </div>
             </div>
 
+            <div id="generatorView" class="hidden flex-1 min-h-0 overflow-y-auto">
+                <div class="generator-shell">
+                    <section class="generator-main">
+                        <div class="glass generator-panel">
+                            <div class="generator-hero">
+                                <div>
+                                    <p class="generator-eyebrow">Image &amp; Video Generator</p>
+                                    <h2 class="generator-title">Create, edit, vary, and animate media outside chat.</h2>
+                                </div>
+                                <p class="generator-copy">
+                                    Use Grok for premium image and video workflows, or SwarmUI for local still generation with detailed controls.
+                                </p>
+                            </div>
+
+                            <div class="generator-form-grid">
+                                <label class="generator-field">
+                                    <span>Mode</span>
+                                    <select id="generatorMode">
+                                        <option value="image_generate">Create Image</option>
+                                        <option value="image_edit">Edit / Variation</option>
+                                        <option value="video_generate">Video From Image</option>
+                                    </select>
+                                </label>
+
+                                <label class="generator-field">
+                                    <span>Provider</span>
+                                    <select id="generatorProvider">
+                                        <option value="grok">Grok</option>
+                                        <option value="swarm">SwarmUI</option>
+                                    </select>
+                                </label>
+
+                                <label class="generator-field">
+                                    <span>Batch Size</span>
+                                    <input id="generatorBatchCount" type="number" min="1" max="4" step="1" value="1">
+                                </label>
+
+                                <label class="generator-field">
+                                    <span>Prompt Helper</span>
+                                    <select id="generatorHelperProvider">
+                                        <option value="off">Off</option>
+                                        <option value="premium">Premium Grok</option>
+                                        <option value="openrouter">OpenRouter</option>
+                                    </select>
+                                </label>
+
+                                <label class="generator-field generator-field-full">
+                                    <span>Prompt</span>
+                                    <textarea id="generatorPrompt" rows="6"
+                                        placeholder="Describe the image or video you want to generate."></textarea>
+                                </label>
+
+                                <label id="generatorNegativePromptWrap" class="generator-field generator-field-full hidden">
+                                    <span>Negative Prompt</span>
+                                    <textarea id="generatorNegativePrompt" rows="3"
+                                        placeholder="Artifacts, blurry details, extra limbs, bad anatomy..."></textarea>
+                                </label>
+
+                                <div class="generator-helper-row generator-field-full">
+                                    <div class="generator-helper-actions">
+                                        <button type="button" class="generator-chip" data-generator-helper-action="refine">Refine Prompt</button>
+                                        <button type="button" class="generator-chip" data-generator-helper-action="expand">Expand Details</button>
+                                        <button type="button" class="generator-chip" data-generator-helper-action="variations">Make Variations</button>
+                                        <button type="button" class="generator-chip" data-generator-helper-action="preset">Apply Preset</button>
+                                    </div>
+                                    <p id="generatorHelperStatus" class="text-sm text-gray-400"></p>
+                                </div>
+
+                                <div class="generator-field generator-field-full">
+                                    <div class="generator-section-head">
+                                        <span>Prompt Templates</span>
+                                        <span class="text-xs text-gray-500">Style, lighting, camera, composition, mood</span>
+                                    </div>
+                                    <div id="generatorTemplateChips" class="space-y-4"></div>
+                                </div>
+
+                                <div class="generator-field generator-field-full">
+                                    <div class="generator-section-head">
+                                        <span>Reusable Presets</span>
+                                        <span class="text-xs text-gray-500">Stored in your browser profile</span>
+                                    </div>
+                                    <div class="generator-preset-row">
+                                        <select id="generatorPresets">
+                                            <option value="">Select a preset...</option>
+                                        </select>
+                                        <input id="generatorPresetName" type="text" placeholder="Preset name">
+                                        <button id="promptPresetSaveBtn" type="button" class="generator-chip">Save Preset</button>
+                                        <button id="promptPresetApplyBtn" type="button" class="generator-chip">Load Preset</button>
+                                    </div>
+                                </div>
+
+                                <div id="generatorGrokFields" class="generator-provider-grid generator-field-full">
+                                    <label class="generator-field">
+                                        <span>Aspect Ratio</span>
+                                        <select id="generatorAspectRatio">
+                                            <option value="auto">Auto</option>
+                                            <option value="1:1">1:1</option>
+                                            <option value="16:9">16:9</option>
+                                            <option value="9:16">9:16</option>
+                                            <option value="4:3">4:3</option>
+                                            <option value="3:4">3:4</option>
+                                        </select>
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Resolution</span>
+                                        <select id="generatorImageResolution">
+                                            <option value="1k">1k</option>
+                                            <option value="2k">2k</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div id="generatorSwarmFields" class="generator-provider-grid generator-field-full hidden">
+                                    <label class="generator-field">
+                                        <span>Width</span>
+                                        <input id="generatorSwarmWidth" type="number" min="256" max="2048" step="64" value="832">
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Height</span>
+                                        <input id="generatorSwarmHeight" type="number" min="256" max="2048" step="64" value="1216">
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Steps</span>
+                                        <input id="generatorSwarmSteps" type="number" min="1" max="150" step="1" value="25">
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>CFG Scale</span>
+                                        <input id="generatorSwarmCfgScale" type="number" min="1" max="30" step="0.5" value="7">
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Sampler</span>
+                                        <select id="generatorSwarmSampler"></select>
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Seed Mode</span>
+                                        <select id="generatorSwarmSeedMode">
+                                            <option value="random">Random</option>
+                                            <option value="fixed">Fixed</option>
+                                            <option value="increment">Increment</option>
+                                        </select>
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Base Seed</span>
+                                        <input id="generatorSwarmBaseSeed" type="number" min="1" step="1" value="1">
+                                    </label>
+                                </div>
+
+                                <div id="generatorEditFields" class="generator-provider-grid generator-field-full hidden">
+                                    <label class="generator-field">
+                                        <span>Aspect Ratio Override</span>
+                                        <select id="generatorEditAspectRatio">
+                                            <option value="auto">Auto</option>
+                                            <option value="1:1">1:1</option>
+                                            <option value="16:9">16:9</option>
+                                            <option value="9:16">9:16</option>
+                                            <option value="4:3">4:3</option>
+                                            <option value="3:4">3:4</option>
+                                        </select>
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Edit Resolution</span>
+                                        <select id="generatorEditResolution">
+                                            <option value="1k">1k</option>
+                                            <option value="2k">2k</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div id="generatorVideoFields" class="generator-provider-grid generator-field-full hidden">
+                                    <label class="generator-field">
+                                        <span>Duration (seconds)</span>
+                                        <input id="generatorVideoDuration" type="number" min="1" max="15" step="1" value="4">
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Aspect Ratio</span>
+                                        <select id="generatorVideoAspectRatio">
+                                            <option value="16:9">16:9</option>
+                                            <option value="1:1">1:1</option>
+                                            <option value="9:16">9:16</option>
+                                            <option value="4:3">4:3</option>
+                                            <option value="3:4">3:4</option>
+                                        </select>
+                                    </label>
+                                    <label class="generator-field">
+                                        <span>Resolution</span>
+                                        <select id="generatorVideoResolution">
+                                            <option value="480p">480p</option>
+                                            <option value="720p">720p</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div id="generatorSourcePanel" class="generator-field generator-field-full hidden">
+                                    <div class="generator-section-head">
+                                        <span>Source Images</span>
+                                        <span class="text-xs text-gray-500">Upload, reuse a recent generator result, or pick from the gallery</span>
+                                    </div>
+                                    <div class="generator-source-grid">
+                                        <label class="generator-field">
+                                            <span>Upload</span>
+                                            <input id="generatorSourceUpload" type="file" accept="image/*" multiple>
+                                        </label>
+                                        <div class="generator-field">
+                                            <span>Recent Generator Image</span>
+                                            <div class="generator-inline-action">
+                                                <select id="generatorRecentSource">
+                                                    <option value="">Select a recent generator image...</option>
+                                                </select>
+                                                <button id="addRecentSourceBtn" type="button" class="generator-chip">Add</button>
+                                            </div>
+                                        </div>
+                                        <div class="generator-field">
+                                            <span>Gallery Image</span>
+                                            <div class="generator-inline-action">
+                                                <select id="gallerySourcePicker">
+                                                    <option value="">Select a gallery image...</option>
+                                                </select>
+                                                <button id="addGallerySourceBtn" type="button" class="generator-chip">Add</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="selectedGeneratorSources" class="generator-source-list">
+                                        <p class="text-sm text-gray-500">No source images selected yet.</p>
+                                    </div>
+                                </div>
+
+                                <div class="generator-actions generator-field-full">
+                                    <button id="generatorSubmitBtn" type="button" class="btn-primary generator-submit-btn">
+                                        Start Generation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="generator-sidebar">
+                        <div class="glass generator-panel">
+                            <div class="generator-section-head">
+                                <span>Batch Queue</span>
+                                <span class="text-xs text-gray-500">Queued, running, polling, completed, failed</span>
+                            </div>
+                            <div id="generatorQueueSummary" class="generator-stats"></div>
+                            <div id="generatorQueueList" class="generator-job-list"></div>
+                        </div>
+
+                        <div class="glass generator-panel">
+                            <div class="generator-section-head">
+                                <span>Recent Results</span>
+                                <span class="text-xs text-gray-500">Generator history mirrored into gallery</span>
+                            </div>
+                            <div id="generatorResults" class="generator-results-grid"></div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
             <!-- Gallery View (subpage style) -->
             <div id="galleryView" class="hidden flex-1 min-h-0 flex flex-col">
-                <div class="p-4 border-b border-purple-900/30 flex items-center justify-between gap-4">
-                    <h2 class="text-xl font-bold text-pink-400">Image Gallery</h2>
+                <div class="p-4 border-b border-purple-900/30 flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-xl font-bold text-pink-400">Gallery</h2>
+                        <p class="text-sm text-gray-500">Chat media plus mirrored generator results.</p>
+                    </div>
                     <div class="flex items-center gap-3 flex-wrap justify-end">
+                        <select id="gallerySourceFilter" class="px-3 py-2 rounded-lg text-sm min-w-[180px]">
+                            <option value="all">All sources</option>
+                            <option value="chat">Chat</option>
+                            <option value="generator">Generator</option>
+                        </select>
                         <select id="galleryCharacterFilter" class="px-3 py-2 rounded-lg text-sm min-w-[220px]">
                             <option value="all">All characters</option>
                         </select>
                         <select id="galleryThumbnailCharacter" class="px-3 py-2 rounded-lg text-sm min-w-[220px]"></select>
-                        <button id="backToChatBtn" class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium">Back to Chat</button>
                     </div>
                 </div>
                 <div id="galleryGrid" class="p-4 overflow-y-auto flex-1 gallery-grid">

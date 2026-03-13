@@ -1,50 +1,114 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { updateConnectionStatus, normalizeBaseUrl } from './utils.js';
+import { updateConnectionStatus, normalizeBaseUrl, normalizeSwarmSampler } from './utils.js';
 
-// Helper function to parse models from SwarmUI response
+const SWARM_ALLOWED_ASPECT_RATIOS = [
+    '1:1',
+    '4:3',
+    '3:2',
+    '8:5',
+    '16:9',
+    '21:9',
+    '3:4',
+    '2:3',
+    '5:8',
+    '9:16',
+    '9:21'
+];
+
+function greatestCommonDivisor(a, b) {
+    let x = Math.abs(Math.trunc(a));
+    let y = Math.abs(Math.trunc(b));
+
+    while (y !== 0) {
+        const remainder = x % y;
+        x = y;
+        y = remainder;
+    }
+
+    return x || 1;
+}
+
+function resolveSwarmAspectRatio(width, height) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return '2:3';
+    }
+
+    const divisor = greatestCommonDivisor(width, height);
+    const normalizedWidth = Math.trunc(width / divisor);
+    const normalizedHeight = Math.trunc(height / divisor);
+    const normalizedRatio = `${normalizedWidth}:${normalizedHeight}`;
+
+    if (SWARM_ALLOWED_ASPECT_RATIOS.includes(normalizedRatio)) {
+        return normalizedRatio;
+    }
+
+    return 'Custom';
+}
+
+async function extractResponseError(response, fallbackMessage) {
+    try {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const data = await response.json();
+            return data?.error || data?.message || fallbackMessage;
+        }
+
+        const text = (await response.text()).trim();
+        return text || fallbackMessage;
+    } catch {
+        return fallbackMessage;
+    }
+}
+
 function parseModels(data) {
     let models = [];
 
-    console.log('SwarmUI models response:', data);
-
     if (data.models && Array.isArray(data.models)) {
-        // Models could be strings or objects with a name property
-        models = data.models.map(m => typeof m === 'string' ? m : (m.name || m.title || JSON.stringify(m)));
+        models = data.models.map(model => typeof model === 'string' ? model : (model.name || model.title || JSON.stringify(model)));
     } else if (data.files && Array.isArray(data.files)) {
-        // Files could be strings or objects
         models = data.files
-            .map(f => typeof f === 'string' ? f : (f.name || f.title || f.path || null))
-            .filter(f => f && typeof f === 'string' && (f.endsWith('.safetensors') || f.endsWith('.ckpt') || !f.includes('.')));
-    } else if (typeof data === 'object') {
-        // Try to find any array that contains model information
+            .map(file => typeof file === 'string' ? file : (file.name || file.title || file.path || null))
+            .filter(file => file && typeof file === 'string' && (file.endsWith('.safetensors') || file.endsWith('.ckpt') || !file.includes('.')));
+    } else if (typeof data === 'object' && data) {
         for (const key of Object.keys(data)) {
-            if (Array.isArray(data[key]) && data[key].length > 0) {
-                const arr = data[key]
-                    .map(item => {
-                        if (typeof item === 'string') return item;
-                        if (typeof item === 'object' && item !== null) {
-                            return item.name || item.title || item.path || null;
-                        }
-                        return null;
-                    })
-                    .filter(item => item && typeof item === 'string');
+            if (!Array.isArray(data[key])) continue;
+            const candidates = data[key]
+                .map(item => {
+                    if (typeof item === 'string') return item;
+                    if (typeof item === 'object' && item !== null) {
+                        return item.name || item.title || item.path || null;
+                    }
+                    return null;
+                })
+                .filter(Boolean);
 
-                if (arr.length > 0) {
-                    models = arr;
-                    break;
-                }
+            if (candidates.length > 0) {
+                models = candidates;
+                break;
             }
         }
     }
 
-    console.log('Available models:', models);
     return models;
 }
 
-// Fetch available models from SwarmUI
+function renderModels(models, preferredModel) {
+    elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
+
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        elements.swarmModel.appendChild(option);
+    });
+
+    if (preferredModel && models.includes(preferredModel)) {
+        elements.swarmModel.value = preferredModel;
+    }
+}
+
 export async function fetchSwarmModels(silent = false) {
-    if (typeof silent !== 'boolean') silent = false;
     const url = normalizeBaseUrl(elements.swarmUrl.value);
     const preferredModel = state.settings.swarmModel || elements.swarmModel.value;
 
@@ -55,7 +119,6 @@ export async function fetchSwarmModels(silent = false) {
             Fetching...
         `;
 
-        // Get session first
         if (!state.sessionId) {
             await getSwarmSession();
         }
@@ -65,73 +128,48 @@ export async function fetchSwarmModels(silent = false) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: state.sessionId,
-                path: "",
+                path: '',
                 depth: 2
             })
         });
 
         if (!response.ok) {
-            // Try to refresh session and retry
             await getSwarmSession();
-
-            const retryResponse = await fetch(`${url}/API/ListModels`, {
+            const retry = await fetch(`${url}/API/ListModels`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     session_id: state.sessionId,
-                    path: "",
+                    path: '',
                     depth: 2
                 })
             });
 
-            if (!retryResponse.ok) throw new Error('Failed to fetch models');
-
-            const retryData = await retryResponse.json();
-            const models = parseModels(retryData);
-
-            // Populate select
-            elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
-
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                elements.swarmModel.appendChild(option);
-            });
-
-            if (preferredModel && models.includes(preferredModel)) {
-                elements.swarmModel.value = preferredModel;
+            if (!retry.ok) {
+                throw new Error('Failed to fetch models');
             }
 
+            const data = await retry.json();
+            renderModels(parseModels(data), preferredModel);
             updateConnectionStatus(true);
-            if (!silent) alert(`Successfully fetched ${models.length} models!`);
+            if (!silent) {
+                alert(`Successfully fetched ${elements.swarmModel.options.length - 1} models!`);
+            }
             return;
         }
 
         const data = await response.json();
-        const models = parseModels(data);
-
-        // Populate select
-        elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
-
-        models.forEach(model => {
-            const option = document.createElement('option');
-            option.value = model;
-            option.textContent = model;
-            elements.swarmModel.appendChild(option);
-        });
-
-        if (preferredModel && models.includes(preferredModel)) {
-            elements.swarmModel.value = preferredModel;
-        }
-
+        renderModels(parseModels(data), preferredModel);
         updateConnectionStatus(true);
-        if (!silent) alert(`Successfully fetched ${models.length} models!`);
-
+        if (!silent) {
+            alert(`Successfully fetched ${elements.swarmModel.options.length - 1} models!`);
+        }
     } catch (error) {
-        console.error('Error fetching models:', error);
+        console.error('Error fetching SwarmUI models:', error);
         updateConnectionStatus(false);
-        if (!silent) alert('Failed to fetch models. Make sure SwarmUI is running at the specified URL.');
+        if (!silent) {
+            alert('Failed to fetch models. Make sure SwarmUI is running at the specified URL.');
+        }
     } finally {
         elements.fetchModelsBtn.disabled = false;
         elements.fetchModelsBtn.innerHTML = `
@@ -143,116 +181,118 @@ export async function fetchSwarmModels(silent = false) {
     }
 }
 
-// Get new session from SwarmUI
 export async function getSwarmSession() {
     const url = normalizeBaseUrl(elements.swarmUrl.value);
 
-    try {
-        const response = await fetch(`${url}/API/GetNewSession`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        });
+    const response = await fetch(`${url}/API/GetNewSession`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
 
-        if (!response.ok) throw new Error('Failed to get session');
-
-        const data = await response.json();
-        state.sessionId = data.session_id;
-        updateConnectionStatus(true);
-        return data.session_id;
-
-    } catch (error) {
-        console.error('Error getting session:', error);
+    if (!response.ok) {
         updateConnectionStatus(false);
-        throw error;
+        throw new Error('Failed to get session');
     }
+
+    const data = await response.json();
+    state.sessionId = data.session_id;
+    updateConnectionStatus(true);
+    return data.session_id;
 }
 
-// Generate image using SwarmUI
-export async function generateLocalImage(prompt, width = null, height = null) {
+function buildSwarmPayload(options = {}) {
+    const batchCount = Number.isFinite(options.batchCount) ? Math.max(1, Math.min(4, Math.trunc(options.batchCount))) : 1;
+    const width = Number.isFinite(options.width) ? Math.trunc(options.width) : parseInt(elements.imgWidth.value, 10);
+    const height = Number.isFinite(options.height) ? Math.trunc(options.height) : parseInt(elements.imgHeight.value, 10);
+    const steps = Number.isFinite(options.steps) ? Math.trunc(options.steps) : parseInt(elements.steps.value, 10);
+    const cfgScale = Number.isFinite(options.cfgScale) ? options.cfgScale : parseFloat(elements.cfgScale.value);
+    const sampler = normalizeSwarmSampler(options.sampler || elements.sampler.value);
+    const seedMode = options.seedMode || 'random';
+    const baseSeed = Number.isFinite(options.baseSeed) ? Math.trunc(options.baseSeed) : 1;
+
+    return {
+        session_id: state.sessionId,
+        images: batchCount,
+        batchsize: String(batchCount),
+        prompt: options.prompt,
+        negativeprompt: typeof options.negativePrompt === 'string'
+            ? options.negativePrompt
+            : ' (bad quality:1.15), (worst quality:1.3)',
+        model: options.model || elements.swarmModel.value,
+        width,
+        height,
+        steps,
+        cfgscale: cfgScale,
+        sampler_name: sampler,
+        scheduler: 'karras',
+        seed: seedMode === 'random' ? -1 : baseSeed,
+        aspectratio: resolveSwarmAspectRatio(width, height),
+        automaticvae: true,
+        clipstopatlayer: '-2',
+        colorcorrectionbehavior: 'None',
+        colordepth: '8bit'
+    };
+}
+
+export async function generateLocalImages(options = {}) {
     const url = normalizeBaseUrl(elements.swarmUrl.value);
+    const payload = buildSwarmPayload(options);
 
     try {
         elements.imageIndicator.classList.remove('hidden');
 
-        // Get session if needed
         if (!state.sessionId) {
             await getSwarmSession();
+            payload.session_id = state.sessionId;
         }
 
-        const response = await fetch(`${url}/API/GenerateText2Image`, {
+        let response = await fetch(`${url}/API/GenerateText2Image`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: state.sessionId,
-                images: 1,
-                prompt: prompt,
-                negativeprompt: " (bad quality:1.15), (worst quality:1.3)",
-                model: elements.swarmModel.value,
-                width: width ? parseInt(width) : parseInt(elements.imgWidth.value),
-                height: height ? parseInt(height) : parseInt(elements.imgHeight.value),
-                steps: parseInt(elements.steps.value),
-                cfgscale: parseFloat(elements.cfgScale.value),
-                sampler_name: elements.sampler.value,
-                seed: -1,
-                aspectratio: "2:3",
-                automaticvae: true,
-                batchsize: "1",
-                clipstopatlayer: "-2",
-                colorcorrectionbehavior: "None",
-                colordepth: "8bit",
-                sampler: "euler_ancestral",
-                scheduler: "karras",
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            // Try to refresh session
             await getSwarmSession();
-
-            // Retry
-            const retryResponse = await fetch(`${url}/API/GenerateText2Image`, {
+            payload.session_id = state.sessionId;
+            response = await fetch(`${url}/API/GenerateText2Image`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: state.sessionId,
-                    images: 1,
-                    prompt: prompt,
-                    model: elements.swarmModel.value,
-                    width: width ? parseInt(width) : parseInt(elements.imgWidth.value),
-                    height: height ? parseInt(height) : parseInt(elements.imgHeight.value),
-                    steps: parseInt(elements.steps.value),
-                    cfgscale: parseFloat(elements.cfgScale.value),
-                    sampler_name: elements.sampler.value,
-                    seed: -1
-                })
+                body: JSON.stringify(payload)
             });
+        }
 
-            if (!retryResponse.ok) throw new Error('Failed to generate image after retry');
-
-            const retryData = await retryResponse.json();
-            if (retryData.images && retryData.images.length > 0) {
-                const imagePath = retryData.images[0];
-                return `${url}/${imagePath}`;
-            }
+        if (!response.ok) {
+            throw new Error(await extractResponseError(response, 'Failed to generate image after retry'));
         }
 
         const data = await response.json();
-
-        if (data.images && data.images.length > 0) {
-            const imagePath = data.images[0];
-            return `${url}/${imagePath}`;
+        const images = Array.isArray(data.images) ? data.images : [];
+        if (images.length === 0) {
+            throw new Error('No images were generated');
         }
 
-        throw new Error('No image generated');
-
+        return images.map((imagePath, index) => ({
+            url: `${url}/${imagePath}`,
+            seed: payload.seed === -1 ? null : payload.seed + (options.seedMode === 'increment' ? index : 0)
+        }));
     } catch (error) {
-        console.error('Error generating image:', error);
+        console.error('Error generating Swarm image batch:', error);
         throw error;
     } finally {
         elements.imageIndicator.classList.add('hidden');
     }
 }
 
-// Backward-compatible export
+export async function generateLocalImage(prompt, width = null, height = null) {
+    const images = await generateLocalImages({
+        prompt,
+        width,
+        height,
+        batchCount: 1
+    });
+    return images[0]?.url || null;
+}
+
 export const generateImage = generateLocalImage;

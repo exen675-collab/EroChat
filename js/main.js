@@ -5,7 +5,7 @@ import { getCurrentCharacter } from './characters.js';
 import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage } from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
-import { toggleSidebar, scrollToBottom } from './ui.js';
+import { toggleSidebar, scrollToBottom, setCurrentView } from './ui.js';
 import { escapeHtml } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
@@ -15,6 +15,25 @@ import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchCreditsSummary } from './api-grok.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
+import { initGenerator, refreshGeneratorView } from './generator.js';
+
+function normalizeViewFromHash(hashValue) {
+    const normalized = String(hashValue || '').replace(/^#/, '').trim().toLowerCase();
+    return ['chat', 'generator', 'gallery'].includes(normalized) ? normalized : null;
+}
+
+function syncViewFromHash() {
+    const hashView = normalizeViewFromHash(window.location.hash);
+    const nextView = hashView || state.currentView || 'chat';
+    setCurrentView(nextView, {
+        syncHash: !hashView,
+        persist: true
+    });
+
+    if (nextView === 'generator') {
+        refreshGeneratorView();
+    }
+}
 
 async function loadCurrentUser() {
     try {
@@ -37,6 +56,7 @@ function updateCurrentUserUI() {
         elements.currentCredits.textContent = '--';
         return;
     }
+
     const adminSuffix = state.currentUser.isAdmin ? ' (admin)' : '';
     elements.currentUsername.textContent = `@${state.currentUser.username}${adminSuffix}`;
     if (Number.isFinite(state.currentUser.credits)) {
@@ -51,84 +71,69 @@ export async function sendMessage() {
     const content = elements.messageInput.value.trim();
     if (!content || state.isGenerating) return;
 
-    // Validate settings
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
     const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
-        toggleSidebar();
+        toggleSidebar(true);
         return;
     }
 
     if (textProvider !== 'premium' && !elements.openrouterModel.value) {
         alert('Please select an OpenRouter model in settings.');
-        toggleSidebar();
+        toggleSidebar(true);
         return;
     }
 
     if (state.settings.enableImageGeneration !== false && imageProvider === 'local' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
-        toggleSidebar();
+        toggleSidebar(true);
         return;
     }
 
-    // Clear input
     elements.messageInput.value = '';
     elements.messageInput.style.height = 'auto';
 
-    // Add user message
     const userMessageId = addUserMessageToUI(content);
     state.messages.push({ id: userMessageId, role: 'user', content });
     saveToLocalStorage();
 
-    // Show typing indicator
     elements.typingIndicator.classList.remove('hidden');
     state.isGenerating = true;
     elements.sendBtn.disabled = true;
     elements.sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
 
     try {
-        // Get current character's system prompt
         const character = getCurrentCharacter();
-
-        // Prepare messages for API
         const apiMessages = [
             { role: 'system', content: character.systemPrompt },
-            ...state.messages.slice(-20).map(m => ({ role: m.role, content: m.content }))
+            ...state.messages.slice(-20).map((m) => ({ role: m.role, content: m.content }))
         ];
 
-        // Call OpenRouter
         const aiResponse = await sendChatRequest(apiMessages);
-
-        // Hide typing indicator
         elements.typingIndicator.classList.add('hidden');
 
-        // Extract image prompt
         const promptMatch = aiResponse.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/);
         const imagePrompt = promptMatch ? promptMatch[1].trim() : null;
 
-        // Add AI message to UI (without image initially)
         const aiMessageId = addAIMessageToUI(aiResponse, null);
         state.messages.push({ id: aiMessageId, role: 'assistant', content: aiResponse, imageUrl: null, videoUrl: null });
         saveToLocalStorage();
 
-        // Generate image if prompt exists
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
             try {
                 const generatedImageUrl = await generateImage(imagePrompt);
                 const imageUrl = await persistImageForStorage(generatedImageUrl);
                 updateAIMessageImage(aiMessageId, imageUrl);
 
-                // Update message in state
-                const msgIndex = state.messages.findIndex(m => m.id === aiMessageId);
+                const msgIndex = state.messages.findIndex((m) => m.id === aiMessageId);
                 if (msgIndex !== -1) {
                     state.messages[msgIndex].imageUrl = imageUrl;
                 }
                 addImageToGallery(imageUrl, 'chat', aiMessageId);
             } catch (imgError) {
                 console.error('Image generation failed:', imgError);
-                // Update UI to show error
                 const messageDiv = document.getElementById(aiMessageId);
                 if (messageDiv) {
                     const imageContainer = messageDiv.querySelector('.image-container');
@@ -143,12 +148,10 @@ export async function sendMessage() {
                 }
             }
         }
-
     } catch (error) {
         console.error('Error:', error);
         elements.typingIndicator.classList.add('hidden');
 
-        // Show error message
         const errorDiv = document.createElement('div');
         errorDiv.className = 'message-ai max-w-3xl';
         errorDiv.innerHTML = `
@@ -165,7 +168,6 @@ export async function sendMessage() {
         `;
         elements.chatContainer.appendChild(errorDiv);
         scrollToBottom();
-
     } finally {
         state.isGenerating = false;
         elements.sendBtn.disabled = false;
@@ -173,12 +175,8 @@ export async function sendMessage() {
     }
 }
 
-// Auto-fetch models if keys are present
 async function autoFetchModels() {
-    console.log('Checking for auto-fetch...');
-
     if (elements.swarmUrl.value) {
-        console.log('Auto-fetching SwarmUI models...');
         try {
             await fetchSwarmModels(true);
         } catch (e) {
@@ -187,34 +185,33 @@ async function autoFetchModels() {
     }
 
     if (elements.openrouterKey.value) {
-        console.log('Auto-fetching OpenRouter models...');
         try {
             await fetchOpenRouterModels(true);
         } catch (e) {
             console.warn('Auto-fetch OpenRouter models failed:', e);
         }
     }
-
 }
 
 // Initialize application
 async function init() {
-    // Setup event listeners
     setupEventListeners();
 
-    // Resolve authenticated user for per-user local storage namespace
     state.currentUser = await loadCurrentUser();
     if (!state.currentUser) {
         window.location.href = '/';
         return;
     }
+
     updateCurrentUserUI();
     syncAdminPanelVisibility();
+
     try {
         await fetchCreditsSummary(true);
     } catch (error) {
         console.warn('Failed to fetch credits summary:', error);
     }
+
     if (state.currentUser.isAdmin) {
         try {
             await fetchAdminUsers(true);
@@ -223,26 +220,22 @@ async function init() {
         }
     }
 
-    // Load data from localStorage
     loadFromLocalStorage();
+    await initGenerator();
 
-    // Expose functions globally for inline event handlers
     window.regenerateImage = regenerateImage;
     window.generateVideoForMessage = generateVideoForMessage;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;
 
-    // Focus input on load
+    syncViewFromHash();
+    window.addEventListener('hashchange', syncViewFromHash);
+
     elements.messageInput.focus();
-
-    // Trigger auto-fetching
     autoFetchModels();
-
-    console.log('EroChat initialized successfully!');
 }
 
-// Start the app when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
