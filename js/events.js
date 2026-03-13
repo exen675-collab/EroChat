@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import * as ui from './ui.js';
 import { defaultCharacter } from './config.js';
-import { normalizeBaseUrl, normalizeImageProvider } from './utils.js';
+import { normalizeBaseUrl, normalizeContextMessageCount, normalizeImageProvider } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
@@ -247,6 +247,14 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.contextMessageCount.addEventListener('change', () => {
+        const nextValue = normalizeContextMessageCount(elements.contextMessageCount.value, state.settings.contextMessageCount);
+        elements.contextMessageCount.value = nextValue;
+        state.settings.contextMessageCount = nextValue;
+        saveToLocalStorage();
+        renderMessages();
+    });
+
     // Character modal events
     elements.addCharacterBtn.addEventListener('click', () => openCharacterModal());
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);
@@ -274,6 +282,7 @@ export function setupEventListeners() {
             comfyModel: elements.comfyModel.value,
             imageProvider: normalizeImageProvider(elements.imageProvider.value),
             enableImageGeneration: elements.enableImageGeneration.checked,
+            contextMessageCount: normalizeContextMessageCount(elements.contextMessageCount.value, state.settings.contextMessageCount),
             imgWidth: parseInt(elements.imgWidth.value, 10),
             imgHeight: parseInt(elements.imgHeight.value, 10),
             steps: parseInt(elements.steps.value, 10),

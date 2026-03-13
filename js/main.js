@@ -2,11 +2,11 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 import { getCurrentCharacter } from './characters.js';
-import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage } from './messages.js';
+import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage, refreshMessageContextIndicators, removeMessageFromContext } from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleAdvancedSettings, scrollToBottom, setCurrentView } from './ui.js';
-import { escapeHtml, normalizeImageProvider } from './utils.js';
+import { escapeHtml, generateId, getContextMessages, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { regenerateImage } from './messages.js';
@@ -102,8 +102,10 @@ export async function sendMessage() {
     elements.messageInput.value = '';
     elements.messageInput.style.height = 'auto';
 
-    const userMessageId = addUserMessageToUI(content);
+    const userMessageId = generateId();
     state.messages.push({ id: userMessageId, role: 'user', content });
+    addUserMessageToUI(content, userMessageId);
+    refreshMessageContextIndicators();
     saveToLocalStorage();
 
     elements.typingIndicator.classList.remove('hidden');
@@ -115,7 +117,7 @@ export async function sendMessage() {
         const character = getCurrentCharacter();
         const apiMessages = [
             { role: 'system', content: character.systemPrompt },
-            ...state.messages.slice(-20).map((m) => ({ role: m.role, content: m.content }))
+            ...getContextMessages(state.messages, state.settings.contextMessageCount).map((m) => ({ role: m.role, content: m.content }))
         ];
 
         const aiResponse = await sendChatRequest(apiMessages);
@@ -124,8 +126,10 @@ export async function sendMessage() {
         const promptMatch = aiResponse.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/);
         const imagePrompt = promptMatch ? promptMatch[1].trim() : null;
 
-        const aiMessageId = addAIMessageToUI(aiResponse, null);
+        const aiMessageId = generateId();
         state.messages.push({ id: aiMessageId, role: 'assistant', content: aiResponse, imageUrl: null, videoUrl: null });
+        addAIMessageToUI(aiResponse, null, aiMessageId);
+        refreshMessageContextIndicators();
         saveToLocalStorage();
 
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
@@ -242,6 +246,7 @@ async function init() {
 
     window.regenerateImage = regenerateImage;
     window.generateVideoForMessage = generateVideoForMessage;
+    window.removeMessageFromContext = removeMessageFromContext;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;

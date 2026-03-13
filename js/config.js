@@ -38,6 +38,7 @@ export const defaultSettings = {
     comfyModel: '',
     imageProvider: 'swarm',
     enableImageGeneration: true,
+    contextMessageCount: 20,
     imgWidth: 832,
     imgHeight: 1216,
     steps: 25,

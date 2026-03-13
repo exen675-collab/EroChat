@@ -146,3 +146,27 @@ export function normalizeImageProvider(value, fallback = 'swarm') {
 
     return fallback;
 }
+
+export function normalizeContextMessageCount(value, fallback = 20) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+
+    return Math.min(100, Math.max(1, parsed));
+}
+
+export function getContextMessages(messages, contextMessageCount = 20) {
+    const normalizedCount = normalizeContextMessageCount(contextMessageCount);
+    return Array.isArray(messages)
+        ? messages.slice(-normalizedCount)
+        : [];
+}
+
+export function getContextMessageIdSet(messages, contextMessageCount = 20) {
+    return new Set(
+        getContextMessages(messages, contextMessageCount)
+            .map((message) => message?.id)
+            .filter(Boolean)
+    );
+}

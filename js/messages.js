@@ -1,11 +1,114 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
-import { generateId, escapeHtml, formatMessage } from './utils.js';
+import { generateId, escapeHtml, formatMessage, getContextMessageIdSet } from './utils.js';
 import { scrollToBottom, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
 import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
+
+function getActiveContextMessageIds() {
+    return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
+}
+
+function getContextBadgeMarkup(messageId) {
+    const isInContext = getActiveContextMessageIds().has(messageId);
+    const badgeClass = isInContext
+        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+        : 'border-gray-700/60 bg-black/20 text-gray-500';
+    const badgeText = isInContext ? 'In context' : 'Outside context';
+
+    return `
+        <span class="message-context-badge inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${badgeClass}"
+            data-message-id="${messageId}" data-in-context="${isInContext ? 'true' : 'false'}">
+            <span class="w-1.5 h-1.5 rounded-full ${isInContext ? 'bg-emerald-400' : 'bg-gray-500'}"></span>
+            ${badgeText}
+        </span>
+    `;
+}
+
+function getRemoveMessageButtonMarkup(messageId) {
+    return `
+        <button onclick="window.removeMessageFromContext('${messageId}')"
+            class="remove-message-btn text-xs text-gray-500 hover:text-red-400 flex items-center gap-1 transition-colors">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Remove Message
+        </button>
+    `;
+}
+
+function getMessageActionsMarkup(messageId, options = {}) {
+    const {
+        align = 'left',
+        showRegenerate = false,
+        showGenerateVideo = false
+    } = options;
+
+    const alignmentClass = align === 'right' ? 'justify-end' : 'justify-between';
+    const actionButtons = [];
+
+    if (showRegenerate) {
+        actionButtons.push(`
+            <button onclick="window.regenerateImage('${messageId}')" class="regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Regenerate Image
+            </button>
+        `);
+    }
+
+    if (showGenerateVideo) {
+        actionButtons.push(`
+            <button onclick="window.generateVideoForMessage('${messageId}')" class="generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Generate Video
+            </button>
+        `);
+    }
+
+    actionButtons.push(getRemoveMessageButtonMarkup(messageId));
+
+    return `
+        <div class="message-actions flex flex-wrap items-center gap-2 mt-2 ${align === 'right' ? 'mr-12 pr-1' : 'ml-12 pl-1'} ${alignmentClass}">
+            ${align === 'right' ? `
+                <div class="flex flex-wrap items-center gap-2">
+                    ${actionButtons.join('')}
+                </div>
+                ${getContextBadgeMarkup(messageId)}
+            ` : `
+                ${getContextBadgeMarkup(messageId)}
+                <div class="flex flex-wrap items-center gap-2">
+                    ${actionButtons.join('')}
+                </div>
+            `}
+        </div>
+    `;
+}
+
+export function refreshMessageContextIndicators() {
+    const contextMessageIds = getActiveContextMessageIds();
+
+    elements.chatContainer.querySelectorAll('.message-context-badge').forEach((badge) => {
+        const messageId = badge.getAttribute('data-message-id');
+        const isInContext = contextMessageIds.has(messageId);
+        badge.setAttribute('data-in-context', isInContext ? 'true' : 'false');
+        badge.className = `message-context-badge inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${
+            isInContext
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                : 'border-gray-700/60 bg-black/20 text-gray-500'
+        }`;
+        badge.innerHTML = `
+            <span class="w-1.5 h-1.5 rounded-full ${isInContext ? 'bg-emerald-400' : 'bg-gray-500'}"></span>
+            ${isInContext ? 'In context' : 'Outside context'}
+        `;
+    });
+}
 
 // Render all messages
 export function renderMessages() {
@@ -29,7 +132,7 @@ export function renderMessages() {
                             Every response I give can be automatically visualized using your selected image provider.
                         </p>
                         <p class="text-gray-400 text-sm mt-3">
-                            Please configure your settings in the sidebar to get started.
+                            Open Workspace for quick controls, or Settings for advanced configuration.
                         </p>
                     </div>
                 </div>
@@ -68,6 +171,7 @@ export function addUserMessageToUI(content, id = null, animate = true) {
                 </div>
             </div>
         </div>
+        ${getMessageActionsMarkup(messageId, { align: 'right' })}
     `;
     
     elements.chatContainer.appendChild(messageDiv);
@@ -118,6 +222,8 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     }
     
     const hasImage = imageSection !== '';
+    const showRegenerate = Boolean(imageUrl || videoUrl);
+    const showGenerateVideo = Boolean(imageUrl) && !videoUrl;
     
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
@@ -131,24 +237,11 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
                 ${imageSection}
             </div>
         </div>
-        ${hasImage ? `
-        <div class="flex gap-2 mt-2 ml-12 pl-1">
-            <button onclick="window.regenerateImage('${messageId}')" class="text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Regenerate Image
-            </button>
-            ${videoUrl ? '' : `
-            <button onclick="window.generateVideoForMessage('${messageId}')" class="generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-                Generate Video
-            </button>
-            `}
-        </div>
-        ` : ''}
+        ${getMessageActionsMarkup(messageId, {
+            align: 'left',
+            showRegenerate,
+            showGenerateVideo
+        })}
     `;
     
     elements.chatContainer.appendChild(messageDiv);
@@ -167,18 +260,36 @@ export function updateAIMessageImage(messageId, imageUrl) {
             `;
         }
 
-        const actions = messageDiv.querySelector('.flex.gap-2.mt-2.ml-12.pl-1');
-        if (actions && !actions.querySelector('.generate-video-btn')) {
-            const videoButton = document.createElement('button');
-            videoButton.className = 'generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors';
-            videoButton.onclick = () => window.generateVideoForMessage(messageId);
-            videoButton.innerHTML = `
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-                Generate Video
-            `;
-            actions.appendChild(videoButton);
+        const actions = messageDiv.querySelector('.message-actions');
+        if (actions) {
+            const buttonGroup = actions.querySelector('div:last-child') || actions;
+            const removeButton = buttonGroup.querySelector('.remove-message-btn');
+
+            if (!buttonGroup.querySelector('.regenerate-image-btn')) {
+                const regenerateButton = document.createElement('button');
+                regenerateButton.className = 'regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors';
+                regenerateButton.onclick = () => window.regenerateImage(messageId);
+                regenerateButton.innerHTML = `
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Regenerate Image
+                `;
+                buttonGroup.insertBefore(regenerateButton, removeButton);
+            }
+
+            if (!buttonGroup.querySelector('.generate-video-btn')) {
+                const videoButton = document.createElement('button');
+                videoButton.className = 'generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors';
+                videoButton.onclick = () => window.generateVideoForMessage(messageId);
+                videoButton.innerHTML = `
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Generate Video
+                `;
+                buttonGroup.insertBefore(videoButton, removeButton);
+            }
         }
     }
 }
@@ -356,4 +467,16 @@ export async function generateVideoForMessage(messageId) {
             alert(`Failed to generate video: ${error.message}`);
         }
     }
+}
+
+export function removeMessageFromContext(messageId) {
+    const message = state.messages.find((item) => item.id === messageId);
+    if (!message) return;
+
+    const confirmed = window.confirm('Remove this message from chat history and future context?');
+    if (!confirmed) return;
+
+    state.messages = state.messages.filter((item) => item.id !== messageId);
+    saveToLocalStorage();
+    renderMessages();
 }

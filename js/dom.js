@@ -55,6 +55,7 @@ export const elements = {
     comfyModel: document.getElementById('comfyModel'),
     imageProvider: document.getElementById('imageProvider'),
     enableImageGeneration: document.getElementById('enableImageGeneration'),
+    contextMessageCount: document.getElementById('contextMessageCount'),
     imgWidth: document.getElementById('imgWidth'),
     imgHeight: document.getElementById('imgHeight'),
     steps: document.getElementById('steps'),
