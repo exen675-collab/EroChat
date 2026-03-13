@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { saveToLocalStorage } from './storage.js';
-import { toggleSidebar, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
+import { toggleAdvancedSettings, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
 import {
     fetchGeneratorAssets,
     fetchGeneratorJobs,
@@ -537,7 +537,7 @@ async function handlePromptHelper(action) {
     } catch (error) {
         setHelperStatus(error.message, true);
         if (/OpenRouter is not configured/i.test(error.message)) {
-            toggleSidebar(true);
+            toggleAdvancedSettings(true);
         }
     }
 }

@@ -2,7 +2,13 @@
 export const elements = {
     settingsPanel: document.getElementById('settingsPanel'),
     toggleSettings: document.getElementById('toggleSettings'),
+    closeSettingsBtn: document.getElementById('closeSettingsBtn'),
     overlay: document.getElementById('overlay'),
+    advancedSettingsModal: document.getElementById('advancedSettingsModal'),
+    advancedSettingsBackdrop: document.getElementById('advancedSettingsBackdrop'),
+    openAdvancedSettingsBtn: document.getElementById('openAdvancedSettingsBtn'),
+    openAdvancedSettingsPanelBtn: document.getElementById('openAdvancedSettingsPanelBtn'),
+    closeAdvancedSettingsBtn: document.getElementById('closeAdvancedSettingsBtn'),
     chatView: document.getElementById('chatView'),
     generatorView: document.getElementById('generatorView'),
     galleryView: document.getElementById('galleryView'),

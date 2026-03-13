@@ -12,14 +12,14 @@ import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
 
-function closeSidebarOnMobile() {
-    if (window.innerWidth < 1024) {
-        ui.toggleSidebar(false);
-    }
+function closeSettingsPanel() {
+    ui.toggleSidebar(false);
 }
 
 // Setup all event listeners
 export function setupEventListeners() {
+    ui.ensureAdvancedSettingsModalMounted();
+
     const openLightboxImage = (imageUrl) => {
         if (!imageUrl) return;
         elements.lightboxVideo.pause();
@@ -71,19 +71,31 @@ export function setupEventListeners() {
     // Sidebar toggle
     elements.toggleSettings.addEventListener('click', () => ui.toggleSidebar());
     elements.overlay.addEventListener('click', () => ui.toggleSidebar(false));
+    elements.closeSettingsBtn.addEventListener('click', () => ui.toggleSidebar(false));
+    elements.openAdvancedSettingsBtn.addEventListener('click', () => ui.toggleAdvancedSettings(true));
+    elements.openAdvancedSettingsPanelBtn.addEventListener('click', () => ui.toggleAdvancedSettings(true));
+    elements.advancedSettingsBackdrop.addEventListener('click', () => ui.toggleAdvancedSettings(false));
+    elements.closeAdvancedSettingsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ui.toggleAdvancedSettings(false);
+    });
+    elements.advancedSettingsModal.querySelector('summary').addEventListener('click', (e) => {
+        e.preventDefault();
+    });
 
     // View navigation
     elements.navChatBtn.addEventListener('click', () => {
         ui.setCurrentView('chat');
-        closeSidebarOnMobile();
+        closeSettingsPanel();
     });
     elements.navGeneratorBtn.addEventListener('click', () => {
         ui.setCurrentView('generator');
-        closeSidebarOnMobile();
+        closeSettingsPanel();
     });
     elements.navGalleryBtn.addEventListener('click', () => {
         ui.setCurrentView('gallery');
-        closeSidebarOnMobile();
+        closeSettingsPanel();
     });
 
     // Textarea auto-resize
@@ -177,6 +189,16 @@ export function setupEventListeners() {
     });
 
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !elements.advancedSettingsModal.classList.contains('hidden')) {
+            ui.toggleAdvancedSettings(false);
+            return;
+        }
+
+        if (e.key === 'Escape' && !elements.settingsPanel.classList.contains('-translate-x-full')) {
+            ui.toggleSidebar(false);
+            return;
+        }
+
         if (e.key === 'Escape' && !elements.galleryLightbox.classList.contains('hidden')) {
             closeLightbox();
         }
@@ -220,6 +242,11 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.enableImageGeneration.addEventListener('change', () => {
+        state.settings.enableImageGeneration = elements.enableImageGeneration.checked;
+        saveToLocalStorage();
+    });
+
     // Character modal events
     elements.addCharacterBtn.addEventListener('click', () => openCharacterModal());
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);
@@ -232,13 +259,6 @@ export function setupEventListeners() {
     elements.characterModal.addEventListener('click', (e) => {
         if (e.target === elements.characterModal) {
             closeCharacterModal();
-        }
-    });
-
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 1024) {
-            elements.settingsPanel.classList.remove('-translate-x-full');
-            elements.overlay.classList.add('hidden');
         }
     });
 
@@ -271,6 +291,7 @@ export function setupEventListeners() {
 
         saveToLocalStorage();
         alert('Settings saved!');
+        ui.toggleAdvancedSettings(false);
     });
 
     // Clear chat

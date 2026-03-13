@@ -11,14 +11,21 @@
 
 <body class="overflow-hidden">
     <div class="flex app-shell">
-        <!-- Settings Panel (Sidebar) -->
+        <!-- Workspace Popout -->
         <aside id="settingsPanel"
-            class="w-96 border-r border-purple-900/30 overflow-y-auto flex-shrink-0 transform -translate-x-full lg:translate-x-0">
+            class="fixed inset-y-0 left-0 z-50 w-full max-w-[28rem] overflow-y-auto transform -translate-x-full">
             <div class="p-6">
-                <h1
-                    class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-6">
-                    Control Center
-                </h1>
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <h1
+                        class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
+                        Workspace
+                    </h1>
+                    <button id="closeSettingsBtn" type="button" class="p-2 rounded-lg btn-secondary" aria-label="Close settings">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
 
                 <!-- Admin Panel -->
                 <div id="adminPanel" class="mb-6 p-4 rounded-xl glass hidden">
@@ -33,162 +40,6 @@
                     <p class="text-xs text-gray-500 mb-3">Manage credits for all users.</p>
                     <p id="adminUsersStatus" class="text-xs text-gray-500 mb-3">Admin panel ready.</p>
                     <div id="adminUsersList" class="space-y-2 max-h-72 overflow-y-auto"></div>
-                </div>
-
-                <!-- Text Provider Settings -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Text Provider
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Provider</label>
-                            <select id="textProvider" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="premium">Our Service (Premium)</option>
-                                <option value="openrouter">OpenRouter (Own API Key)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- OpenRouter Settings -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        OpenRouter
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">API Key</label>
-                            <input type="password" id="openrouterKey" placeholder="sk-or-v1-..."
-                                class="w-full px-4 py-2 rounded-lg text-sm">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Search Models</label>
-                            <input type="text" id="openrouterModelSearch" placeholder="Type to search models..."
-                                class="w-full px-4 py-2 rounded-lg text-sm mb-2" disabled>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
-                            <select id="openrouterModel" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="">Enter API key and fetch models...</option>
-                            </select>
-                        </div>
-
-                        <button id="fetchOpenRouterModelsBtn"
-                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            Load OpenRouter Models
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Premium Service Settings -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <h2 class="text-lg font-semibold text-cyan-400 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Our Service (Premium)
-                    </h2>
-
-                    <p class="text-sm text-gray-400 leading-relaxed">
-                        Premium uses a fixed model managed by the server. No model selection is required.
-                    </p>
-                </div>
-
-                <!-- SwarmUI Settings -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <h2 class="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        SwarmUI
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Base URL</label>
-                            <input type="text" id="swarmUrl" placeholder="http://localhost:7801"
-                                class="w-full px-4 py-2 rounded-lg text-sm" value="http://localhost:7801">
-                        </div>
-
-                        <button id="fetchModelsBtn"
-                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            Load Models
-                        </button>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
-                            <select id="swarmModel" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="">Select a model...</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ComfyUI Settings -->
-                <div class="mb-6 p-4 rounded-xl glass">
-                    <h2 class="text-lg font-semibold text-orange-400 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9.75 3v2.25m4.5-2.25v2.25M4.5 9.75h15M5.25 6.75h13.5A2.25 2.25 0 0121 9v9.75A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V9A2.25 2.25 0 015.25 6.75z">
-                            </path>
-                        </svg>
-                        ComfyUI
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Base URL</label>
-                            <input type="text" id="comfyUrl" placeholder="http://localhost:8188"
-                                class="w-full px-4 py-2 rounded-lg text-sm" value="http://localhost:8188">
-                            <p class="text-xs text-gray-500 mt-2">Requires ComfyUI CORS enabled for this app origin.</p>
-                        </div>
-
-                        <button id="fetchComfyModelsBtn"
-                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            Load Checkpoints
-                        </button>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Checkpoint</label>
-                            <select id="comfyModel" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="">Select a checkpoint...</option>
-                            </select>
-                        </div>
-                    </div>
                 </div>
 
                 <div id="chatSettingsPane">
@@ -247,39 +98,242 @@
                             <input type="checkbox" id="enableImageGeneration" class="h-4 w-4" checked>
                         </label>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-400 mb-2">Width</label>
-                                <input type="number" id="imgWidth" value="832" min="256" max="2048" step="64"
-                                    class="w-full px-3 py-2 rounded-lg text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-400 mb-2">Height</label>
-                                <input type="number" id="imgHeight" value="1216" min="256" max="2048" step="64"
-                                    class="w-full px-3 py-2 rounded-lg text-sm">
-                            </div>
-                        </div>
+                        <p class="text-xs text-gray-500">
+                            Advanced provider setup, model selection, image tuning, and the system prompt are in the Settings popout.
+                        </p>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-1">
-                                Steps: <span id="stepsValue" class="text-pink-400">25</span>
-                            </label>
-                            <input type="range" id="steps" min="20" max="40" value="25" class="w-full">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-1">
-                                CFG Scale: <span id="cfgValue" class="text-pink-400">7</span>
-                            </label>
-                            <input type="range" id="cfgScale" min="6" max="8" step="0.5" value="7" class="w-full">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Sampler</label>
-                            <select id="sampler" class="w-full px-4 py-2 rounded-lg text-sm"></select>
-                        </div>
+                        <button id="openAdvancedSettingsPanelBtn"
+                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.325 4.317a1.724 1.724 0 013.35 0 1.724 1.724 0 002.573 1.066 1.724 1.724 0 012.297 2.297 1.724 1.724 0 001.065 2.572 1.724 1.724 0 010 3.35 1.724 1.724 0 00-1.065 2.573 1.724 1.724 0 01-2.297 2.297 1.724 1.724 0 00-2.572 1.065 1.724 1.724 0 01-3.35 0 1.724 1.724 0 00-2.573-1.065 1.724 1.724 0 01-2.297-2.297 1.724 1.724 0 00-1.065-2.572 1.724 1.724 0 010-3.35 1.724 1.724 0 001.065-2.573 1.724 1.724 0 012.297-2.297 1.724 1.724 0 002.572-1.065z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Open Advanced Settings
+                        </button>
                     </div>
                 </div>
+
+                </div>
+
+                <details id="advancedSettingsModal" class="mb-6 hidden" open>
+                    <summary class="list-none p-4 rounded-t-2xl glass advanced-settings-summary">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.2em] text-purple-300 mb-2">Settings</p>
+                                <h2 class="text-lg font-semibold text-gray-100">Advanced chat and provider setup</h2>
+                                <p class="text-sm text-gray-400 mt-2">
+                                    Configure text models, local backends, image tuning, and the system prompt.
+                                </p>
+                            </div>
+                            <button id="closeAdvancedSettingsBtn" type="button"
+                                class="p-2 rounded-lg btn-secondary advanced-settings-close" aria-label="Close advanced settings">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </summary>
+
+                    <div class="advanced-settings-body mt-4 space-y-6">
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Text Provider
+                            </h2>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Provider</label>
+                                    <select id="textProvider" class="w-full px-4 py-2 rounded-lg text-sm">
+                                        <option value="premium">Our Service (Premium)</option>
+                                        <option value="openrouter">OpenRouter (Own API Key)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                OpenRouter
+                            </h2>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">API Key</label>
+                                    <input type="password" id="openrouterKey" placeholder="sk-or-v1-..."
+                                        class="w-full px-4 py-2 rounded-lg text-sm">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Search Models</label>
+                                    <input type="text" id="openrouterModelSearch" placeholder="Type to search models..."
+                                        class="w-full px-4 py-2 rounded-lg text-sm mb-2" disabled>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
+                                    <select id="openrouterModel" class="w-full px-4 py-2 rounded-lg text-sm">
+                                        <option value="">Enter API key and fetch models...</option>
+                                    </select>
+                                </div>
+
+                                <button id="fetchOpenRouterModelsBtn"
+                                    class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                    Load OpenRouter Models
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-cyan-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Our Service (Premium)
+                            </h2>
+
+                            <p class="text-sm text-gray-400 leading-relaxed">
+                                Premium uses a fixed model managed by the server. No model selection is required.
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                SwarmUI
+                            </h2>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Base URL</label>
+                                    <input type="text" id="swarmUrl" placeholder="http://localhost:7801"
+                                        class="w-full px-4 py-2 rounded-lg text-sm" value="http://localhost:7801">
+                                </div>
+
+                                <button id="fetchModelsBtn"
+                                    class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                    Load Models
+                                </button>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
+                                    <select id="swarmModel" class="w-full px-4 py-2 rounded-lg text-sm">
+                                        <option value="">Select a model...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-orange-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9.75 3v2.25m4.5-2.25v2.25M4.5 9.75h15M5.25 6.75h13.5A2.25 2.25 0 0121 9v9.75A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V9A2.25 2.25 0 015.25 6.75z">
+                                    </path>
+                                </svg>
+                                ComfyUI
+                            </h2>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Base URL</label>
+                                    <input type="text" id="comfyUrl" placeholder="http://localhost:8188"
+                                        class="w-full px-4 py-2 rounded-lg text-sm" value="http://localhost:8188">
+                                    <p class="text-xs text-gray-500 mt-2">Requires ComfyUI CORS enabled for this app origin.</p>
+                                </div>
+
+                                <button id="fetchComfyModelsBtn"
+                                    class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                    Load Checkpoints
+                                </button>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Checkpoint</label>
+                                    <select id="comfyModel" class="w-full px-4 py-2 rounded-lg text-sm">
+                                        <option value="">Select a checkpoint...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl glass">
+                            <h2 class="text-lg font-semibold text-pink-400 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                                    </path>
+                                </svg>
+                                Image Settings
+                            </h2>
+
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">Width</label>
+                                        <input type="number" id="imgWidth" value="832" min="256" max="2048" step="64"
+                                            class="w-full px-3 py-2 rounded-lg text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">Height</label>
+                                        <input type="number" id="imgHeight" value="1216" min="256" max="2048" step="64"
+                                            class="w-full px-3 py-2 rounded-lg text-sm">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">
+                                        Steps: <span id="stepsValue" class="text-pink-400">25</span>
+                                    </label>
+                                    <input type="range" id="steps" min="20" max="40" value="25" class="w-full">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">
+                                        CFG Scale: <span id="cfgValue" class="text-pink-400">7</span>
+                                    </label>
+                                    <input type="range" id="cfgScale" min="6" max="8" step="0.5" value="7" class="w-full">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Sampler</label>
+                                    <select id="sampler" class="w-full px-4 py-2 rounded-lg text-sm"></select>
+                                </div>
+                            </div>
+                        </div>
 
                 <!-- System Prompt -->
                 <div class="mb-6 p-4 rounded-xl glass">
@@ -329,8 +383,8 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         Clear Conversation
                     </button>
                 </div>
-
-                </div>
+                    </div>
+                </details>
 
                 <div id="generatorSettingsPane" class="hidden space-y-6">
                     <div class="mb-6 p-4 rounded-xl glass">
@@ -366,11 +420,20 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
             <!-- Header -->
             <header class="glass border-b border-purple-900/30 px-6 py-4 app-header">
                 <div class="app-header-left">
-                    <button id="toggleSettings" class="p-2 rounded-lg btn-secondary lg:hidden">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button id="toggleSettings" class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
+                        <span>Workspace</span>
+                    </button>
+                    <button id="openAdvancedSettingsBtn" class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317a1.724 1.724 0 013.35 0 1.724 1.724 0 002.573 1.066 1.724 1.724 0 012.297 2.297 1.724 1.724 0 001.065 2.572 1.724 1.724 0 010 3.35 1.724 1.724 0 00-1.065 2.573 1.724 1.724 0 01-2.297 2.297 1.724 1.724 0 00-2.572 1.065 1.724 1.724 0 01-3.35 0 1.724 1.724 0 00-2.573-1.065 1.724 1.724 0 01-2.297-2.297 1.724 1.724 0 00-1.065-2.572 1.724 1.724 0 010-3.35 1.724 1.724 0 001.065-2.573 1.724 1.724 0 012.297-2.297 1.724 1.724 0 002.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span>Settings</span>
                     </button>
                     <div>
                         <h1
@@ -434,7 +497,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         Every response I give can be automatically visualized using your selected image provider.
                                     </p>
                                     <p class="text-gray-400 text-sm mt-3">
-                                        Please configure your settings in the sidebar to get started.
+                                        Open Workspace for characters and quick controls, or Settings for advanced configuration.
                                     </p>
                                 </div>
                             </div>
@@ -777,7 +840,8 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
     </div>
 
     <!-- Overlay for mobile -->
-    <div id="overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+    <div id="overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden"></div>
+    <div id="advancedSettingsBackdrop" class="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 hidden"></div>
 
     <!-- Character Modal -->
     <div id="characterModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">

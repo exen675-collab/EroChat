@@ -5,7 +5,7 @@ import { getCurrentCharacter } from './characters.js';
 import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage } from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
-import { toggleSidebar, scrollToBottom, setCurrentView } from './ui.js';
+import { toggleAdvancedSettings, scrollToBottom, setCurrentView } from './ui.js';
 import { escapeHtml, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
@@ -77,25 +77,25 @@ export async function sendMessage() {
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
-        toggleSidebar(true);
+        toggleAdvancedSettings(true);
         return;
     }
 
     if (textProvider !== 'premium' && !elements.openrouterModel.value) {
         alert('Please select an OpenRouter model in settings.');
-        toggleSidebar(true);
+        toggleAdvancedSettings(true);
         return;
     }
 
     if (state.settings.enableImageGeneration !== false && imageProvider === 'swarm' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
-        toggleSidebar(true);
+        toggleAdvancedSettings(true);
         return;
     }
 
     if (state.settings.enableImageGeneration !== false && imageProvider === 'comfy' && !elements.comfyModel.value) {
         alert('Please select a ComfyUI checkpoint in settings or disable image generation.');
-        toggleSidebar(true);
+        toggleAdvancedSettings(true);
         return;
     }
 

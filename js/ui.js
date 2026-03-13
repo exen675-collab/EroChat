@@ -102,16 +102,58 @@ function setActiveNavButton(activeView) {
     });
 }
 
-// Toggle sidebar visibility (mobile)
-export function toggleSidebar(forceOpen = null) {
-    if (window.innerWidth >= 1024) return;
+function isWorkspaceOpen() {
+    return !elements.settingsPanel.classList.contains('-translate-x-full');
+}
 
+function isAdvancedSettingsOpen() {
+    return elements.advancedSettingsModal && !elements.advancedSettingsModal.classList.contains('hidden');
+}
+
+function syncBodyOverlayState() {
+    document.body.classList.toggle('settings-open', isWorkspaceOpen() || isAdvancedSettingsOpen());
+}
+
+export function ensureAdvancedSettingsModalMounted() {
+    if (!elements.advancedSettingsModal || !document.body.contains(elements.advancedSettingsModal)) {
+        return;
+    }
+
+    if (elements.advancedSettingsModal.parentElement !== document.body) {
+        document.body.appendChild(elements.advancedSettingsModal);
+    }
+}
+
+// Toggle settings popout visibility
+export function toggleSidebar(forceOpen = null) {
     const shouldOpen = forceOpen !== null
         ? forceOpen
         : elements.settingsPanel.classList.contains('-translate-x-full');
 
     elements.settingsPanel.classList.toggle('-translate-x-full', !shouldOpen);
     elements.overlay.classList.toggle('hidden', !shouldOpen);
+    syncBodyOverlayState();
+}
+
+export function toggleAdvancedSettings(forceOpen = null) {
+    if (!elements.advancedSettingsModal || !elements.advancedSettingsBackdrop) {
+        return;
+    }
+
+    ensureAdvancedSettingsModalMounted();
+
+    const shouldOpen = forceOpen !== null
+        ? forceOpen
+        : elements.advancedSettingsModal.classList.contains('hidden');
+
+    if (shouldOpen) {
+        toggleSidebar(false);
+        elements.advancedSettingsModal.open = true;
+    }
+
+    elements.advancedSettingsModal.classList.toggle('hidden', !shouldOpen);
+    elements.advancedSettingsBackdrop.classList.toggle('hidden', !shouldOpen);
+    syncBodyOverlayState();
 }
 
 // Auto-resize textarea as user types
