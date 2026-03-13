@@ -120,6 +120,12 @@ function getModeLabel(mode) {
     }
 }
 
+function getProviderLabel(provider) {
+    if (provider === 'swarm') return 'SwarmUI';
+    if (provider === 'comfy') return 'ComfyUI';
+    return 'Grok';
+}
+
 function applyPrefsToForm() {
     elements.generatorMode.value = state.generatorPrefs.mode || 'image_generate';
     elements.generatorProvider.value = state.generatorPrefs.provider || 'grok';
@@ -227,7 +233,7 @@ function renderQueueList() {
     elements.generatorQueueList.innerHTML = jobs.map(job => `
         <div class="generator-job-card">
             <div class="flex items-center justify-between gap-3">
-                <p class="font-medium text-gray-200">${escapeHtml(getModeLabel(job.mode))} · ${escapeHtml(job.provider)}</p>
+                <p class="font-medium text-gray-200">${escapeHtml(getModeLabel(job.mode))} · ${escapeHtml(getProviderLabel(job.provider))}</p>
                 <span class="generator-status generator-status-${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
             </div>
             <p class="text-sm text-gray-400 mt-2 line-clamp-3">${escapeHtml(job.prompt)}</p>
@@ -271,12 +277,13 @@ function renderResults() {
 function syncFieldVisibility() {
     const mode = elements.generatorMode.value;
     const provider = mode === 'image_generate' ? elements.generatorProvider.value : 'grok';
+    const isLocalImageProvider = provider === 'swarm' || provider === 'comfy';
 
     elements.generatorProvider.disabled = mode !== 'image_generate';
-    elements.generatorNegativePromptWrap.classList.toggle('hidden', !(mode === 'image_generate' && provider === 'swarm'));
+    elements.generatorNegativePromptWrap.classList.toggle('hidden', !(mode === 'image_generate' && isLocalImageProvider));
     elements.generatorSourcePanel.classList.toggle('hidden', !(mode === 'image_edit' || mode === 'video_generate'));
     elements.generatorGrokFields.classList.toggle('hidden', !(mode === 'image_generate' && provider === 'grok'));
-    elements.generatorSwarmFields.classList.toggle('hidden', !(mode === 'image_generate' && provider === 'swarm'));
+    elements.generatorSwarmFields.classList.toggle('hidden', !(mode === 'image_generate' && isLocalImageProvider));
     elements.generatorEditFields.classList.toggle('hidden', mode !== 'image_edit');
     elements.generatorVideoFields.classList.toggle('hidden', mode !== 'video_generate');
 }
@@ -339,14 +346,14 @@ function buildJobRequests() {
     }
 
     for (let index = 0; index < batchCount; index += 1) {
-        if (mode === 'image_generate' && provider === 'swarm') {
+        if (mode === 'image_generate' && (provider === 'swarm' || provider === 'comfy')) {
             jobs.push({
                 batchId,
                 mode,
                 provider,
                 prompt: state.generatorPrefs.prompt,
                 negativePrompt: state.generatorPrefs.negativePrompt,
-                providerModel: 'swarmui',
+                providerModel: provider === 'comfy' ? 'comfyui' : 'swarmui',
                 requestJson: {
                     batchCount: 1,
                     width: state.generatorPrefs.swarmWidth,

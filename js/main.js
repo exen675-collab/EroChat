@@ -6,11 +6,12 @@ import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToG
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleSidebar, scrollToBottom, setCurrentView } from './ui.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
+import { fetchComfyModels } from './api-comfyui.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchCreditsSummary } from './api-grok.js';
@@ -72,7 +73,7 @@ export async function sendMessage() {
     if (!content || state.isGenerating) return;
 
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
+    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
@@ -86,8 +87,14 @@ export async function sendMessage() {
         return;
     }
 
-    if (state.settings.enableImageGeneration !== false && imageProvider === 'local' && !elements.swarmModel.value) {
+    if (state.settings.enableImageGeneration !== false && imageProvider === 'swarm' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
+        toggleSidebar(true);
+        return;
+    }
+
+    if (state.settings.enableImageGeneration !== false && imageProvider === 'comfy' && !elements.comfyModel.value) {
+        alert('Please select a ComfyUI checkpoint in settings or disable image generation.');
         toggleSidebar(true);
         return;
     }
@@ -176,11 +183,21 @@ export async function sendMessage() {
 }
 
 async function autoFetchModels() {
-    if (elements.swarmUrl.value) {
+    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+
+    if (imageProvider === 'swarm' && elements.swarmUrl.value) {
         try {
             await fetchSwarmModels(true);
         } catch (e) {
             console.warn('Auto-fetch SwarmUI models failed:', e);
+        }
+    }
+
+    if (imageProvider === 'comfy' && elements.comfyUrl.value) {
+        try {
+            await fetchComfyModels(true);
+        } catch (e) {
+            console.warn('Auto-fetch ComfyUI checkpoints failed:', e);
         }
     }
 

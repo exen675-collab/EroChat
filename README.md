@@ -4,7 +4,7 @@ EroChat is a browser app for AI roleplay chat with automatic image generation.
 
 It connects:
 - **OpenRouter** or **Our Service (Premium)** for text replies
-- **SwarmUI** (local) or **Our Service (Premium)** for image/video generation
+- **SwarmUI** or **ComfyUI** (local), or **Our Service (Premium)** for image/video generation
 
 This project now includes a simple backend auth system:
 - Username + password account creation
@@ -80,8 +80,9 @@ Open:
 
 1. Enable image generation if you want automatic images
 2. Choose **Image Provider**
-3. For `Local (SwarmUI)`: make sure SwarmUI is running, set URL, load models, pick model
-4. For `Our Service (Premium)`: credits are charged and server key is used
+3. For `SwarmUI`: make sure SwarmUI is running, set URL, load models, pick model
+4. For `ComfyUI`: make sure ComfyUI is running with CORS enabled for the app origin, set URL, load checkpoints, pick one
+5. For `Our Service (Premium)`: credits are charged and server key is used
 
 If image generation is disabled, chat works without image provider setup.
 
@@ -116,6 +117,7 @@ EroChat/
     |-- api-openrouter.js
     |-- api-grok.js
     |-- api-image.js
+    |-- api-comfyui.js
     |-- api-swarmui.js
     |-- storage.js
     `-- utils.js
@@ -132,7 +134,7 @@ EroChat/
 ## Troubleshooting
 
 - **No reply from AI** -> Check provider, API key, and selected model
-- **No images** -> Check image provider configuration (SwarmUI URL/model, server key, and credits)
+- **No images** -> Check image provider configuration (SwarmUI or ComfyUI URL/model, server key, and credits)
 - **Slow responses** -> Try a lighter model or lower generation settings
 
 ## Notes

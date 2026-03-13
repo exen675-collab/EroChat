@@ -25,11 +25,11 @@ export function renderMessages() {
                 <div class="flex-1">
                     <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
                         <p class="text-gray-300 leading-relaxed">
-                            Welcome to <strong class="text-pink-400">EroChat + SwarmUI</strong>! I'm <strong class="text-purple-400">${escapeHtml(character.name)}</strong>, ready for intimate conversations. 
-                            Every response I give will be automatically visualized using your local SwarmUI instance.
+                            Welcome to <strong class="text-pink-400">EroChat</strong>! I'm <strong class="text-purple-400">${escapeHtml(character.name)}</strong>, ready for intimate conversations.
+                            Every response I give can be automatically visualized using your selected image provider.
                         </p>
                         <p class="text-gray-400 text-sm mt-3">
-                            Please configure your settings in the sidebar to get started. Make sure SwarmUI is running locally!
+                            Please configure your settings in the sidebar to get started.
                         </p>
                     </div>
                 </div>

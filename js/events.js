@@ -2,8 +2,9 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import * as ui from './ui.js';
 import { defaultCharacter } from './config.js';
-import { normalizeBaseUrl } from './utils.js';
+import { normalizeBaseUrl, normalizeImageProvider } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
+import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
@@ -183,6 +184,7 @@ export function setupEventListeners() {
 
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);
+    elements.fetchComfyModelsBtn.addEventListener('click', fetchComfyModels);
     elements.fetchOpenRouterModelsBtn.addEventListener('click', fetchOpenRouterModels);
     elements.refreshUsersBtn.addEventListener('click', () => {
         fetchAdminUsers();
@@ -208,8 +210,13 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.comfyModel.addEventListener('change', () => {
+        state.settings.comfyModel = elements.comfyModel.value;
+        saveToLocalStorage();
+    });
+
     elements.imageProvider.addEventListener('change', () => {
-        state.settings.imageProvider = elements.imageProvider.value;
+        state.settings.imageProvider = normalizeImageProvider(elements.imageProvider.value);
         saveToLocalStorage();
     });
 
@@ -243,7 +250,9 @@ export function setupEventListeners() {
             openrouterModel: elements.openrouterModel.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
-            imageProvider: elements.imageProvider.value,
+            comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),
+            comfyModel: elements.comfyModel.value,
+            imageProvider: normalizeImageProvider(elements.imageProvider.value),
             enableImageGeneration: elements.enableImageGeneration.checked,
             imgWidth: parseInt(elements.imgWidth.value, 10),
             imgHeight: parseInt(elements.imgHeight.value, 10),

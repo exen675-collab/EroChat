@@ -73,7 +73,7 @@ export async function fetchOpenRouterModels(silent = false) {
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'HTTP-Referer': window.location.href,
-                'X-Title': 'EroChat + SwarmUI'
+                'X-Title': 'EroChat'
             }
         });
 
@@ -115,7 +115,7 @@ export async function sendOpenRouterChatRequest(apiMessages) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${elements.openrouterKey.value}`,
             'HTTP-Referer': window.location.href,
-            'X-Title': 'EroChat + SwarmUI'
+            'X-Title': 'EroChat'
         },
         body: JSON.stringify({
             model: elements.openrouterModel.value,
@@ -191,7 +191,7 @@ async function generateCharacterSystemPromptOpenRouter({ name, description, back
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${elements.openrouterKey.value}`,
             'HTTP-Referer': window.location.href,
-            'X-Title': 'EroChat + SwarmUI'
+            'X-Title': 'EroChat'
         },
 
         body: JSON.stringify({

@@ -132,3 +132,17 @@ export function syncSwarmSamplerSelect(select, value, fallback = 'euler_ancestra
     const nextValue = normalizeSwarmSampler(value, fallback);
     select.value = SWARM_SAMPLERS.includes(nextValue) ? nextValue : fallback;
 }
+
+export function normalizeImageProvider(value, fallback = 'swarm') {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+
+    if (normalized === 'local') return 'swarm';
+    if (normalized === 'grok') return 'premium';
+    if (normalized === 'swarm' || normalized === 'comfy' || normalized === 'premium') {
+        return normalized;
+    }
+
+    return fallback;
+}

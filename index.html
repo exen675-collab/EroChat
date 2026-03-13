@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EroChat + SwarmUI</title>
+    <title>EroChat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -153,6 +153,44 @@
                     </div>
                 </div>
 
+                <!-- ComfyUI Settings -->
+                <div class="mb-6 p-4 rounded-xl glass">
+                    <h2 class="text-lg font-semibold text-orange-400 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.75 3v2.25m4.5-2.25v2.25M4.5 9.75h15M5.25 6.75h13.5A2.25 2.25 0 0121 9v9.75A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V9A2.25 2.25 0 015.25 6.75z">
+                            </path>
+                        </svg>
+                        ComfyUI
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Base URL</label>
+                            <input type="text" id="comfyUrl" placeholder="http://localhost:8188"
+                                class="w-full px-4 py-2 rounded-lg text-sm" value="http://localhost:8188">
+                            <p class="text-xs text-gray-500 mt-2">Requires ComfyUI CORS enabled for this app origin.</p>
+                        </div>
+
+                        <button id="fetchComfyModelsBtn"
+                            class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            Load Checkpoints
+                        </button>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Checkpoint</label>
+                            <select id="comfyModel" class="w-full px-4 py-2 rounded-lg text-sm">
+                                <option value="">Select a checkpoint...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="chatSettingsPane">
                 <!-- Characters Section -->
                 <div class="mb-6 p-4 rounded-xl glass">
@@ -195,7 +233,8 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Image Provider</label>
                             <select id="imageProvider" class="w-full px-4 py-2 rounded-lg text-sm">
-                                <option value="local">Local (SwarmUI)</option>
+                                <option value="swarm">SwarmUI</option>
+                                <option value="comfy">ComfyUI</option>
                                 <option value="premium">Our Service (Premium)</option>
                             </select>
                         </div>
@@ -307,6 +346,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         <div class="space-y-3 text-sm text-gray-400">
                             <p><strong class="text-gray-200">Grok:</strong> image creation, edit workflows, prompt help, and video generation.</p>
                             <p><strong class="text-gray-200">SwarmUI:</strong> local image generation with negative prompts, seeds, CFG, samplers, and controlled batches.</p>
+                            <p><strong class="text-gray-200">ComfyUI:</strong> local checkpoint-based image generation through a built-in txt2img workflow.</p>
                             <p><strong class="text-gray-200">History:</strong> generator jobs and assets are stored server-side and also appear in the gallery.</p>
                         </div>
                     </div>
@@ -389,14 +429,12 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                             <div class="flex-1">
                                 <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
                                     <p class="text-gray-300 leading-relaxed" id="welcomeMessage">
-                                        Welcome to <strong class="text-pink-400">EroChat + SwarmUI</strong>! I'm your AI
+                                        Welcome to <strong class="text-pink-400">EroChat</strong>! I'm your AI
                                         companion ready for intimate conversations.
-                                        Every response I give will be automatically visualized using your local SwarmUI
-                                        instance.
+                                        Every response I give can be automatically visualized using your selected image provider.
                                     </p>
                                     <p class="text-gray-400 text-sm mt-3">
-                                        Please configure your settings in the sidebar to get started. Make sure SwarmUI is
-                                        running locally!
+                                        Please configure your settings in the sidebar to get started.
                                     </p>
                                 </div>
                             </div>
@@ -465,7 +503,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                     <h2 class="generator-title">Create, edit, vary, and animate media outside chat.</h2>
                                 </div>
                                 <p class="generator-copy">
-                                    Use Grok for premium image and video workflows, or SwarmUI for local still generation with detailed controls.
+                                    Use Grok for premium image and video workflows, or SwarmUI and ComfyUI for local still generation.
                                 </p>
                             </div>
 
@@ -484,6 +522,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                     <select id="generatorProvider">
                                         <option value="grok">Grok</option>
                                         <option value="swarm">SwarmUI</option>
+                                        <option value="comfy">ComfyUI</option>
                                     </select>
                                 </label>
 

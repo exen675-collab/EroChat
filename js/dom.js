@@ -45,6 +45,8 @@ export const elements = {
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),
+    comfyUrl: document.getElementById('comfyUrl'),
+    comfyModel: document.getElementById('comfyModel'),
     imageProvider: document.getElementById('imageProvider'),
     enableImageGeneration: document.getElementById('enableImageGeneration'),
     imgWidth: document.getElementById('imgWidth'),
@@ -77,6 +79,7 @@ export const elements = {
 
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
+    fetchComfyModelsBtn: document.getElementById('fetchComfyModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),

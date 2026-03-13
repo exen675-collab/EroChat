@@ -3,7 +3,7 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
-import { generateId, normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
+import { generateId, normalizeImageProvider, normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -230,10 +230,8 @@ export function loadFromLocalStorage() {
                 if (parsed.settings.textProvider === 'grok') {
                     parsed.settings.textProvider = 'premium';
                 }
-                if (parsed.settings.imageProvider === 'grok') {
-                    parsed.settings.imageProvider = 'premium';
-                }
                 Object.assign(state.settings, parsed.settings);
+                state.settings.imageProvider = normalizeImageProvider(state.settings.imageProvider);
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
                 updateSettingsUI();
             }
@@ -325,7 +323,9 @@ export function updateSettingsUI() {
     elements.openrouterModel.value = state.settings.openrouterModel;
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
-    elements.imageProvider.value = state.settings.imageProvider || 'local';
+    elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';
+    elements.comfyModel.value = state.settings.comfyModel || '';
+    elements.imageProvider.value = normalizeImageProvider(state.settings.imageProvider);
     elements.enableImageGeneration.checked = state.settings.enableImageGeneration !== false;
     elements.imgWidth.value = state.settings.imgWidth;
     elements.imgHeight.value = state.settings.imgHeight;

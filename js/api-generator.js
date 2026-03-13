@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { generateComfyImages } from './api-comfyui.js';
 import { editGrokImage, generateGrokImages, generateGrokVideo, resumeGrokVideoStatus } from './api-grok.js';
 import { generateLocalImages } from './api-swarmui.js';
 import { persistImageForStorage, persistVideoForStorage } from './media.js';
@@ -94,8 +95,11 @@ async function persistGeneratedImages(results, request, metadataBuilder = () => 
 export async function executeGeneratorJob(job) {
     const request = job.requestJson || {};
 
-    if (job.mode === 'image_generate' && job.provider === 'swarm') {
-        const results = await generateLocalImages({
+    if (job.mode === 'image_generate' && (job.provider === 'swarm' || job.provider === 'comfy')) {
+        const generateImages = job.provider === 'comfy'
+            ? generateComfyImages
+            : generateLocalImages;
+        const results = await generateImages({
             prompt: job.prompt,
             negativePrompt: job.negativePrompt || request.negativePrompt || '',
             batchCount: request.batchCount || 1,

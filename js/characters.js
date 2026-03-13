@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
-import { escapeHtml, formatMessage } from './utils.js';
+import { escapeHtml, formatMessage, normalizeImageProvider } from './utils.js';
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
 import { persistImageForStorage } from './media.js';
 
@@ -139,8 +139,8 @@ export function updateCurrentCharacterUI() {
 
     // Update welcome message with character name
     elements.welcomeMessage.innerHTML = `
-        Welcome to <strong class="text-pink-400">EroChat + SwarmUI</strong>! I'm <strong class="text-purple-400">${escapeHtml(character.name)}</strong>, ready for intimate conversations. 
-        Every response I give will be automatically visualized using your local SwarmUI instance.
+        Welcome to <strong class="text-pink-400">EroChat</strong>! I'm <strong class="text-purple-400">${escapeHtml(character.name)}</strong>, ready for intimate conversations.
+        Every response I give can be automatically visualized using your selected image provider.
     `;
 }
 
@@ -404,9 +404,14 @@ export async function generateThumbnail() {
         return;
     }
 
-    const imageProvider = elements.imageProvider.value || state.settings.imageProvider || 'local';
-    if (imageProvider === 'local' && !elements.swarmModel.value) {
+    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    if (imageProvider === 'swarm' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model first.');
+        return;
+    }
+
+    if (imageProvider === 'comfy' && !elements.comfyModel.value) {
+        alert('Please select a ComfyUI checkpoint first.');
         return;
     }
 
