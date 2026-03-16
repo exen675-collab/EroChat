@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import * as ui from './ui.js';
 import { defaultCharacter } from './config.js';
-import { normalizeBaseUrl, normalizeContextMessageCount, normalizeImageProvider } from './utils.js';
+import { normalizeBaseUrl, normalizeContextMessageCount, normalizeImageProvider, normalizeTtsVoiceId } from './utils.js';
 import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
@@ -227,6 +227,11 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.ttsVoiceId.addEventListener('change', () => {
+        state.settings.ttsVoiceId = normalizeTtsVoiceId(elements.ttsVoiceId.value);
+        saveToLocalStorage();
+    });
+
     elements.swarmModel.addEventListener('change', () => {
         state.settings.swarmModel = elements.swarmModel.value;
         saveToLocalStorage();
@@ -276,6 +281,7 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
+            ttsVoiceId: normalizeTtsVoiceId(elements.ttsVoiceId.value),
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
             comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),

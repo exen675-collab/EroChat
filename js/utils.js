@@ -1,5 +1,15 @@
 import { elements } from './dom.js';
 
+export const DEFAULT_GROK_TTS_VOICE_ID = 'ara';
+export const MAX_GROK_TTS_TEXT_LENGTH = 15000;
+export const GROK_TTS_FALLBACK_VOICES = [
+    { voice_id: 'ara', name: 'Ara', language: 'multilingual' },
+    { voice_id: 'eve', name: 'Eve', language: 'multilingual' },
+    { voice_id: 'rex', name: 'Rex', language: 'multilingual' },
+    { voice_id: 'sal', name: 'Sal', language: 'multilingual' },
+    { voice_id: 'leo', name: 'Leo', language: 'multilingual' }
+];
+
 export const SWARM_SAMPLERS = [
     'euler',
     'euler_ancestral',
@@ -61,6 +71,9 @@ const SWARM_SAMPLER_ALIASES = {
     uni_pc: 'uni_pc'
 };
 
+const IMAGE_PROMPT_BLOCK_PATTERN = /---IMAGE_PROMPT START---[\s\S]*?---IMAGE_PROMPT END---/g;
+const ACTION_SEGMENT_PATTERN = /\*([^*]+)\*/g;
+
 // Generate unique ID
 export function generateId() {
     return 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -120,6 +133,40 @@ export function normalizeSwarmSampler(value, fallback = 'euler_ancestral') {
     return SWARM_SAMPLER_ALIASES[normalized] || fallback;
 }
 
+export function stripImagePromptBlocks(text) {
+    return String(text ?? '').replace(IMAGE_PROMPT_BLOCK_PATTERN, '');
+}
+
+export function getAssistantVisibleText(text, options = {}) {
+    const {
+        preserveActionMarkers = true,
+        normalizeWhitespace = false
+    } = options;
+
+    let normalized = stripImagePromptBlocks(text)
+        .replace(/\r\n?/g, '\n');
+
+    if (!preserveActionMarkers) {
+        normalized = normalized.replace(ACTION_SEGMENT_PATTERN, '$1');
+    }
+
+    if (normalizeWhitespace) {
+        normalized = normalized
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .replace(/[ \t]{2,}/g, ' ');
+    }
+
+    return normalized.trim();
+}
+
+export function getAssistantReadableText(text) {
+    return getAssistantVisibleText(text, {
+        preserveActionMarkers: false,
+        normalizeWhitespace: true
+    });
+}
+
 export function syncSwarmSamplerSelect(select, value, fallback = 'euler_ancestral') {
     if (!select) return;
 
@@ -154,6 +201,22 @@ export function normalizeContextMessageCount(value, fallback = 20) {
     }
 
     return Math.min(100, Math.max(1, parsed));
+}
+
+export function normalizeTtsVoiceId(value, allowedVoiceIds = null, fallback = DEFAULT_GROK_TTS_VOICE_ID) {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+
+    if (!normalized) {
+        return fallback;
+    }
+
+    if (!Array.isArray(allowedVoiceIds) || allowedVoiceIds.length === 0) {
+        return normalized;
+    }
+
+    return allowedVoiceIds.includes(normalized) ? normalized : fallback;
 }
 
 export function getContextMessages(messages, contextMessageCount = 20) {

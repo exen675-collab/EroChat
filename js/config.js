@@ -32,6 +32,7 @@ export const defaultSettings = {
     textProvider: 'premium',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
+    ttsVoiceId: 'ara',
     swarmUrl: 'http://localhost:7801',
     swarmModel: '',
     comfyUrl: 'http://localhost:8188',

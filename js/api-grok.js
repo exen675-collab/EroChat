@@ -1,7 +1,14 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
+import { GROK_TTS_FALLBACK_VOICES } from './utils.js';
 
 export const PREMIUM_CHAT_MODEL = 'grok-4-1-fast-reasoning';
+export const DEFAULT_GROK_TTS_LANGUAGE = 'auto';
+export const DEFAULT_GROK_TTS_OUTPUT_FORMAT = {
+    codec: 'mp3',
+    sample_rate: 24000,
+    bit_rate: 128000
+};
 
 function setCredits(credits) {
     const numericCredits = Number.parseInt(credits, 10);
@@ -20,7 +27,7 @@ function setCredits(credits) {
 function updateCreditsTooltip() {
     if (!elements.currentCredits || !state.creditCosts) return;
     const costs = state.creditCosts;
-    elements.currentCredits.title = `Premium costs - Chat: ${costs.chat}, Image: ${costs.image}, Video: ${costs.video}`;
+    elements.currentCredits.title = `Premium costs - Chat: ${costs.chat}, Image: ${costs.image}, Video: ${costs.video}, TTS: ${costs.tts ?? '--'}`;
 }
 
 function applyCreditsMetadata(meta) {
@@ -29,8 +36,35 @@ function applyCreditsMetadata(meta) {
     }
 }
 
+function applyCreditsHeaders(headers) {
+    const remainingCredits = Number.parseInt(headers?.get('X-Credits-Remaining') || '', 10);
+    const chargedCost = Number.parseInt(headers?.get('X-Credits-Cost') || '', 10);
+
+    if (Number.isFinite(remainingCredits)) {
+        setCredits(remainingCredits);
+    }
+
+    if (Number.isFinite(chargedCost)) {
+        state.creditCosts = {
+            ...(state.creditCosts || {}),
+            tts: chargedCost
+        };
+        updateCreditsTooltip();
+    }
+}
+
 async function parseJsonResponse(response) {
     return response.json().catch(() => ({}));
+}
+
+async function parseErrorResponse(response) {
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/json')) {
+        return parseJsonResponse(response);
+    }
+
+    const message = await response.text().catch(() => '');
+    return { error: message || `Request failed (${response.status})` };
 }
 
 async function postToGrokProxy(endpoint, payload) {
@@ -60,6 +94,24 @@ function normalizeImageRecord(record) {
         return { url: record.url };
     }
     return null;
+}
+
+function normalizeTtsVoiceRecord(record) {
+    const voiceId = typeof record?.voice_id === 'string'
+        ? record.voice_id.trim().toLowerCase()
+        : '';
+
+    if (!voiceId) return null;
+
+    return {
+        voice_id: voiceId,
+        name: typeof record?.name === 'string' && record.name.trim()
+            ? record.name.trim()
+            : voiceId.charAt(0).toUpperCase() + voiceId.slice(1),
+        language: typeof record?.language === 'string' && record.language.trim()
+            ? record.language.trim()
+            : 'multilingual'
+    };
 }
 
 function extractVideoStatus(data) {
@@ -171,6 +223,47 @@ export async function fetchCreditsSummary(silent = false) {
         }
         throw error;
     }
+}
+
+export async function fetchGrokTtsVoices() {
+    const response = await fetch('/api/premium/tts/voices', {
+        method: 'GET',
+        cache: 'no-store'
+    });
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok) {
+        throw new Error(data.error || `Failed to load TTS voices (${response.status}).`);
+    }
+
+    const voices = Array.isArray(data?.voices)
+        ? data.voices.map(normalizeTtsVoiceRecord).filter(Boolean)
+        : [];
+
+    return voices.length > 0 ? voices : [...GROK_TTS_FALLBACK_VOICES];
+}
+
+export async function generateGrokSpeechBlob(options = {}) {
+    const response = await fetch('/api/premium/tts', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            text: options.text || '',
+            voice_id: options.voiceId || options.voice_id,
+            language: options.language || DEFAULT_GROK_TTS_LANGUAGE,
+            output_format: options.outputFormat || DEFAULT_GROK_TTS_OUTPUT_FORMAT
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await parseErrorResponse(response);
+        throw new Error(errorData.error || `Failed to generate speech (${response.status}).`);
+    }
+
+    applyCreditsHeaders(response.headers);
+    return response.blob();
 }
 
 export async function sendGrokChatRequest(apiMessages, options = {}) {

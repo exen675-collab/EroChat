@@ -1,11 +1,12 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
-import { generateId, escapeHtml, formatMessage, getContextMessageIdSet } from './utils.js';
+import { generateId, escapeHtml, formatMessage, getAssistantVisibleText, getContextMessageIdSet } from './utils.js';
 import { scrollToBottom, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
 import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
+import { canPlayMessageTts, getTtsActionButtonMarkup, stopActiveTtsPlayback } from './tts.js';
 
 function getActiveContextMessageIds() {
     return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
@@ -44,7 +45,8 @@ function getMessageActionsMarkup(messageId, options = {}) {
     const {
         align = 'left',
         showRegenerate = false,
-        showGenerateVideo = false
+        showGenerateVideo = false,
+        showTts = false
     } = options;
 
     const alignmentClass = align === 'right' ? 'justify-end' : 'justify-between';
@@ -70,6 +72,10 @@ function getMessageActionsMarkup(messageId, options = {}) {
                 Generate Video
             </button>
         `);
+    }
+
+    if (showTts) {
+        actionButtons.push(getTtsActionButtonMarkup(messageId));
     }
 
     actionButtons.push(getRemoveMessageButtonMarkup(messageId));
@@ -112,6 +118,7 @@ export function refreshMessageContextIndicators() {
 
 // Render all messages
 export function renderMessages() {
+    stopActiveTtsPlayback();
     elements.chatContainer.innerHTML = '';
     
     const character = getCurrentCharacter();
@@ -187,8 +194,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     messageDiv.className = 'message-ai max-w-6xl';
     messageDiv.id = messageId;
     
-    // Remove the image prompt block from display
-    const displayContent = content.replace(/---IMAGE_PROMPT START---[\s\S]*?---IMAGE_PROMPT END---/, '').trim();
+    const displayContent = getAssistantVisibleText(content);
     
     let imageSection = '';
     if (videoUrl) {
@@ -224,6 +230,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
     const hasImage = imageSection !== '';
     const showRegenerate = Boolean(imageUrl || videoUrl);
     const showGenerateVideo = Boolean(imageUrl) && !videoUrl;
+    const showTts = canPlayMessageTts(content);
     
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
@@ -240,7 +247,8 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
         ${getMessageActionsMarkup(messageId, {
             align: 'left',
             showRegenerate,
-            showGenerateVideo
+            showGenerateVideo,
+            showTts
         })}
     `;
     

@@ -25,7 +25,15 @@ const MAX_JSON_BODY_BYTES = '25mb';
 const MAX_INLINE_MEDIA_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOADED_MEDIA_BYTES = 80 * 1024 * 1024;
 const MAX_REMOTE_MEDIA_BYTES = 80 * 1024 * 1024;
+const MAX_GROK_TTS_TEXT_LENGTH = 15000;
 const PREMIUM_GROK_CHAT_MODEL = 'grok-4-1-fast-reasoning';
+const DEFAULT_GROK_TTS_VOICE_ID = 'ara';
+const DEFAULT_GROK_TTS_LANGUAGE = 'auto';
+const DEFAULT_GROK_TTS_OUTPUT_FORMAT = Object.freeze({
+  codec: 'mp3',
+  sample_rate: 24000,
+  bit_rate: 128000
+});
 const DEFAULT_ADMIN_USERNAME = 'admin';
 const DEFAULT_ADMIN_PASSWORD = 'admin';
 
@@ -74,6 +82,7 @@ const DEFAULT_USER_CREDITS = getIntEnv('DEFAULT_USER_CREDITS', 100);
 const CREDIT_COST_GROK_CHAT = getIntEnv('CREDIT_COST_GROK_CHAT', 1);
 const CREDIT_COST_GROK_IMAGE = getIntEnv('CREDIT_COST_GROK_IMAGE', 2);
 const CREDIT_COST_GROK_VIDEO = getIntEnv('CREDIT_COST_GROK_VIDEO', 3);
+const CREDIT_COST_GROK_TTS = getIntEnv('CREDIT_COST_GROK_TTS', 1);
 
 function run(query, params = []) {
   return new Promise((resolve, reject) => {
@@ -150,7 +159,8 @@ function getCreditCosts() {
   return {
     chat: CREDIT_COST_GROK_CHAT,
     image: CREDIT_COST_GROK_IMAGE,
-    video: CREDIT_COST_GROK_VIDEO
+    video: CREDIT_COST_GROK_VIDEO,
+    tts: CREDIT_COST_GROK_TTS
   };
 }
 
@@ -499,6 +509,24 @@ function normalizeGrokImageInput(value) {
   }
 
   return null;
+}
+
+function normalizeTtsTextInput(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
+function normalizeTtsVoiceId(value) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return normalized || DEFAULT_GROK_TTS_VOICE_ID;
+}
+
+function normalizeTtsLanguage(value) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return normalized || DEFAULT_GROK_TTS_LANGUAGE;
 }
 
 function requireAuth(req, res, next) {
@@ -1012,6 +1040,126 @@ async function handleChargedGrokRequest(req, res, { path: upstreamPath, payload,
     res.status(500).json({ error: 'Failed to process Grok request.' });
   }
 }
+
+async function handleChargedGrokAudioRequest(req, res, { path: upstreamPath, payload, cost }) {
+  if (!ensureGrokConfigured(res)) return;
+
+  const userId = req.session.userId;
+
+  try {
+    const hasCredits = await reserveCredits(userId, cost);
+    if (!hasCredits) {
+      const credits = await getUserCredits(userId);
+      res.status(402).json({
+        error: `Not enough credits. Required: ${cost}.`,
+        credits,
+        required: cost,
+        costs: getCreditCosts()
+      });
+      return;
+    }
+
+    let response;
+    try {
+      response = await fetch(`https://api.x.ai${upstreamPath}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${GROK_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      await refundCredits(userId, cost);
+      throw error;
+    }
+
+    if (!response.ok) {
+      const rawBody = await response.text();
+      const parsedBody = jsonOrNull(rawBody);
+      await refundCredits(userId, cost);
+      const upstreamMessage = parsedBody?.error?.message || parsedBody?.error || rawBody || `Grok request failed (${response.status}).`;
+      res.status(response.status).json({ error: upstreamMessage });
+      return;
+    }
+
+    let buffer;
+    try {
+      const arrayBuffer = await response.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } catch (error) {
+      await refundCredits(userId, cost);
+      throw error;
+    }
+
+    const remainingCredits = await getUserCredits(userId);
+    const contentType = normalizeMimeType(response.headers.get('content-type')) || 'audio/mpeg';
+
+    res.status(response.status);
+    res.set('Content-Type', contentType);
+    res.set('Content-Length', String(buffer.length));
+    res.set('Cache-Control', 'no-store');
+    res.set('X-Credits-Remaining', String(remainingCredits));
+    res.set('X-Credits-Cost', String(cost));
+    res.send(buffer);
+  } catch (error) {
+    console.error('Grok proxy audio request failed:', error);
+    res.status(500).json({ error: 'Failed to process Grok TTS request.' });
+  }
+}
+
+app.get('/api/premium/tts/voices', requireApiAuth, async (req, res) => {
+  if (!ensureGrokConfigured(res)) return;
+
+  try {
+    const response = await fetch('https://api.x.ai/v1/tts/voices', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${GROK_API_KEY}`
+      }
+    });
+
+    const rawBody = await response.text();
+    const parsedBody = jsonOrNull(rawBody);
+
+    if (!response.ok) {
+      const upstreamMessage = parsedBody?.error?.message || parsedBody?.error || rawBody || `Failed to fetch TTS voices (${response.status}).`;
+      res.status(response.status).json({ error: upstreamMessage });
+      return;
+    }
+
+    res.status(200).json(parsedBody && typeof parsedBody === 'object' ? parsedBody : { voices: [] });
+  } catch (error) {
+    console.error('Failed to fetch Grok TTS voices:', error);
+    res.status(500).json({ error: 'Failed to fetch TTS voices.' });
+  }
+});
+
+app.post('/api/premium/tts', requireApiAuth, async (req, res) => {
+  const text = normalizeTtsTextInput(req.body?.text);
+  if (!text) {
+    res.status(400).json({ error: 'Text is required.' });
+    return;
+  }
+
+  if (text.length > MAX_GROK_TTS_TEXT_LENGTH) {
+    res.status(400).json({ error: `Text must be ${MAX_GROK_TTS_TEXT_LENGTH} characters or fewer.` });
+    return;
+  }
+
+  const payload = {
+    text,
+    voice_id: normalizeTtsVoiceId(req.body?.voice_id),
+    language: normalizeTtsLanguage(req.body?.language),
+    output_format: { ...DEFAULT_GROK_TTS_OUTPUT_FORMAT }
+  };
+
+  await handleChargedGrokAudioRequest(req, res, {
+    path: '/v1/tts',
+    payload,
+    cost: CREDIT_COST_GROK_TTS
+  });
+});
 
 app.post('/api/premium/chat', requireApiAuth, async (req, res) => {
   const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;

@@ -3,7 +3,7 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
-import { generateId, normalizeContextMessageCount, normalizeImageProvider, normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
+import { generateId, normalizeContextMessageCount, normalizeImageProvider, normalizeSwarmSampler, normalizeTtsVoiceId, syncSwarmSamplerSelect } from './utils.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -234,6 +234,7 @@ export function loadFromLocalStorage() {
                 state.settings.imageProvider = normalizeImageProvider(state.settings.imageProvider);
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
                 state.settings.contextMessageCount = normalizeContextMessageCount(state.settings.contextMessageCount);
+                state.settings.ttsVoiceId = normalizeTtsVoiceId(state.settings.ttsVoiceId);
                 updateSettingsUI();
             }
             if (parsed.characters) {
@@ -322,6 +323,7 @@ export function updateSettingsUI() {
     elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
+    elements.ttsVoiceId.value = normalizeTtsVoiceId(state.settings.ttsVoiceId);
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
     elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';

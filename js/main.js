@@ -17,6 +17,7 @@ import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchCreditsSummary } from './api-grok.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
+import { initTts, toggleMessageTts } from './tts.js';
 
 function normalizeViewFromHash(hashValue) {
     const normalized = String(hashValue || '').replace(/^#/, '').trim().toLowerCase();
@@ -243,10 +244,12 @@ async function init() {
 
     loadFromLocalStorage();
     await initGenerator();
+    await initTts();
 
     window.regenerateImage = regenerateImage;
     window.generateVideoForMessage = generateVideoForMessage;
     window.removeMessageFromContext = removeMessageFromContext;
+    window.playMessageTts = toggleMessageTts;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;
