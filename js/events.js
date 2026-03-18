@@ -2,8 +2,20 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import * as ui from './ui.js';
 import { defaultCharacter } from './config.js';
-import { normalizeBaseUrl, normalizeContextMessageCount, normalizeImageProvider, normalizeTtsVoiceId } from './utils.js';
-import { openCharacterModal, closeCharacterModal, saveCharacter, generateThumbnail, generateSystemPromptOnDemand, renderCharactersList } from './characters.js';
+import {
+    normalizeBaseUrl,
+    normalizeContextMessageCount,
+    normalizeImageProvider,
+    normalizeTtsVoiceId
+} from './utils.js';
+import {
+    openCharacterModal,
+    closeCharacterModal,
+    saveCharacter,
+    generateThumbnail,
+    generateSystemPromptOnDemand,
+    renderCharactersList
+} from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
@@ -58,7 +70,11 @@ export function setupEventListeners() {
         if (index !== -1) {
             state.characters[index].thumbnail = imageUrl;
         } else if (characterId === 'default') {
-            state.characters.unshift({ ...defaultCharacter, thumbnail: imageUrl, messages: [...(state.messages || [])] });
+            state.characters.unshift({
+                ...defaultCharacter,
+                thumbnail: imageUrl,
+                messages: [...(state.messages || [])]
+            });
         } else {
             return false;
         }
@@ -72,9 +88,15 @@ export function setupEventListeners() {
     elements.toggleSettings.addEventListener('click', () => ui.toggleSidebar());
     elements.overlay.addEventListener('click', () => ui.toggleSidebar(false));
     elements.closeSettingsBtn.addEventListener('click', () => ui.toggleSidebar(false));
-    elements.openAdvancedSettingsBtn.addEventListener('click', () => ui.toggleAdvancedSettings(true));
-    elements.openAdvancedSettingsPanelBtn.addEventListener('click', () => ui.toggleAdvancedSettings(true));
-    elements.advancedSettingsBackdrop.addEventListener('click', () => ui.toggleAdvancedSettings(false));
+    elements.openAdvancedSettingsBtn.addEventListener('click', () =>
+        ui.toggleAdvancedSettings(true)
+    );
+    elements.openAdvancedSettingsPanelBtn.addEventListener('click', () =>
+        ui.toggleAdvancedSettings(true)
+    );
+    elements.advancedSettingsBackdrop.addEventListener('click', () =>
+        ui.toggleAdvancedSettings(false)
+    );
     elements.closeAdvancedSettingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -253,7 +275,10 @@ export function setupEventListeners() {
     });
 
     elements.contextMessageCount.addEventListener('change', () => {
-        const nextValue = normalizeContextMessageCount(elements.contextMessageCount.value, state.settings.contextMessageCount);
+        const nextValue = normalizeContextMessageCount(
+            elements.contextMessageCount.value,
+            state.settings.contextMessageCount
+        );
         elements.contextMessageCount.value = nextValue;
         state.settings.contextMessageCount = nextValue;
         saveToLocalStorage();
@@ -288,7 +313,10 @@ export function setupEventListeners() {
             comfyModel: elements.comfyModel.value,
             imageProvider: normalizeImageProvider(elements.imageProvider.value),
             enableImageGeneration: elements.enableImageGeneration.checked,
-            contextMessageCount: normalizeContextMessageCount(elements.contextMessageCount.value, state.settings.contextMessageCount),
+            contextMessageCount: normalizeContextMessageCount(
+                elements.contextMessageCount.value,
+                state.settings.contextMessageCount
+            ),
             imgWidth: parseInt(elements.imgWidth.value, 10),
             imgHeight: parseInt(elements.imgHeight.value, 10),
             steps: parseInt(elements.steps.value, 10),

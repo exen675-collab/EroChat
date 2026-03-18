@@ -150,11 +150,7 @@ function formatNodeErrors(nodeErrors) {
         }
         if (typeof value === 'object') {
             const message =
-                value.message ||
-                value.error ||
-                value.details ||
-                value.exception_message ||
-                null;
+                value.message || value.error || value.details || value.exception_message || null;
             if (typeof message === 'string' && message.trim()) {
                 return message.trim();
             }
@@ -183,39 +179,49 @@ function formatComfyNetworkError(action, baseUrl, error) {
 }
 
 function buildComfyWorkflow(options = {}) {
-    const width = normalizePositiveInteger(options.width, parseInt(elements.imgWidth.value, 10) || 832);
-    const height = normalizePositiveInteger(options.height, parseInt(elements.imgHeight.value, 10) || 1216);
+    const width = normalizePositiveInteger(
+        options.width,
+        parseInt(elements.imgWidth.value, 10) || 832
+    );
+    const height = normalizePositiveInteger(
+        options.height,
+        parseInt(elements.imgHeight.value, 10) || 1216
+    );
     const steps = normalizePositiveInteger(options.steps, parseInt(elements.steps.value, 10) || 25);
-    const cfgScale = normalizePositiveFloat(options.cfgScale, parseFloat(elements.cfgScale.value) || 7);
+    const cfgScale = normalizePositiveFloat(
+        options.cfgScale,
+        parseFloat(elements.cfgScale.value) || 7
+    );
     const sampler = normalizeSwarmSampler(options.sampler || elements.sampler.value);
-    const negativePrompt = typeof options.negativePrompt === 'string' && options.negativePrompt.trim()
-        ? options.negativePrompt
-        : DEFAULT_NEGATIVE_PROMPT;
+    const negativePrompt =
+        typeof options.negativePrompt === 'string' && options.negativePrompt.trim()
+            ? options.negativePrompt
+            : DEFAULT_NEGATIVE_PROMPT;
     const seed = Math.max(1, normalizePositiveInteger(options.seed, 1));
     const model = options.model || elements.comfyModel.value;
 
     return {
-        '1': {
+        1: {
             class_type: 'CheckpointLoaderSimple',
             inputs: {
                 ckpt_name: model
             }
         },
-        '2': {
+        2: {
             class_type: 'CLIPTextEncode',
             inputs: {
                 text: options.prompt,
                 clip: ['1', 1]
             }
         },
-        '3': {
+        3: {
             class_type: 'CLIPTextEncode',
             inputs: {
                 text: negativePrompt,
                 clip: ['1', 1]
             }
         },
-        '4': {
+        4: {
             class_type: 'EmptyLatentImage',
             inputs: {
                 width,
@@ -223,7 +229,7 @@ function buildComfyWorkflow(options = {}) {
                 batch_size: 1
             }
         },
-        '5': {
+        5: {
             class_type: 'KSampler',
             inputs: {
                 seed,
@@ -238,14 +244,14 @@ function buildComfyWorkflow(options = {}) {
                 latent_image: ['4', 0]
             }
         },
-        '6': {
+        6: {
             class_type: 'VAEDecode',
             inputs: {
                 samples: ['5', 0],
                 vae: ['1', 2]
             }
         },
-        '7': {
+        7: {
             class_type: 'SaveImage',
             inputs: {
                 filename_prefix: 'EroChat',
@@ -362,16 +368,20 @@ async function waitForPromptImages(baseUrl, promptId) {
         }
 
         if (!response.ok) {
-            throw new Error(await extractResponseError(response, 'Failed to fetch ComfyUI job history.'));
+            throw new Error(
+                await extractResponseError(response, 'Failed to fetch ComfyUI job history.')
+            );
         }
 
         const data = await parseJson(response);
-        const historyEntry = data?.[promptId] || data?.[String(promptId)] || (data?.outputs ? data : null);
+        const historyEntry =
+            data?.[promptId] || data?.[String(promptId)] || (data?.outputs ? data : null);
         if (!historyEntry) {
             continue;
         }
 
-        const status = historyEntry?.status?.status_str || historyEntry?.status?.status || lastStatus;
+        const status =
+            historyEntry?.status?.status_str || historyEntry?.status?.status || lastStatus;
         if (status) {
             lastStatus = status;
         }
@@ -415,13 +425,17 @@ export async function fetchComfyModels(silent = false) {
         }
 
         if (!response.ok) {
-            throw new Error(await extractResponseError(response, 'Failed to fetch ComfyUI checkpoints.'));
+            throw new Error(
+                await extractResponseError(response, 'Failed to fetch ComfyUI checkpoints.')
+            );
         }
 
         const data = await parseJson(response);
         const models = parseModels(data);
         if (models.length === 0) {
-            throw new Error('ComfyUI returned no checkpoints. Load at least one checkpoint and try again.');
+            throw new Error(
+                'ComfyUI returned no checkpoints. Load at least one checkpoint and try again.'
+            );
         }
 
         renderModels(models, preferredModel);

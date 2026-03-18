@@ -1,8 +1,19 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getCurrentCharacter } from './characters.js';
-import { generateId, escapeHtml, formatMessage, getAssistantVisibleText, getContextMessageIdSet } from './utils.js';
-import { scrollToBottom, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
+import {
+    generateId,
+    escapeHtml,
+    formatMessage,
+    getAssistantVisibleText,
+    getContextMessageIdSet
+} from './utils.js';
+import {
+    scrollToBottom,
+    renderGallery,
+    renderGalleryCharacterFilter,
+    renderGalleryThumbnailCharacterSelect
+} from './ui.js';
 import { generateImage, generateVideoFromImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
@@ -82,17 +93,21 @@ function getMessageActionsMarkup(messageId, options = {}) {
 
     return `
         <div class="message-actions flex flex-wrap items-center gap-2 mt-2 ${align === 'right' ? 'mr-12 pr-1' : 'ml-12 pl-1'} ${alignmentClass}">
-            ${align === 'right' ? `
+            ${
+                align === 'right'
+                    ? `
                 <div class="flex flex-wrap items-center gap-2">
                     ${actionButtons.join('')}
                 </div>
                 ${getContextBadgeMarkup(messageId)}
-            ` : `
+            `
+                    : `
                 ${getContextBadgeMarkup(messageId)}
                 <div class="flex flex-wrap items-center gap-2">
                     ${actionButtons.join('')}
                 </div>
-            `}
+            `
+            }
         </div>
     `;
 }
@@ -120,9 +135,9 @@ export function refreshMessageContextIndicators() {
 export function renderMessages() {
     stopActiveTtsPlayback();
     elements.chatContainer.innerHTML = '';
-    
+
     const character = getCurrentCharacter();
-    
+
     // Show welcome message if no messages
     if (state.messages.length === 0) {
         const welcomeDiv = document.createElement('div');
@@ -148,25 +163,25 @@ export function renderMessages() {
         elements.chatContainer.appendChild(welcomeDiv);
         return;
     }
-    
-    state.messages.forEach(msg => {
+
+    state.messages.forEach((msg) => {
         if (msg.role === 'user') {
-            addUserMessageToUI(msg.content, msg.id, false);
+            addUserMessageToUI(msg.content, msg.id);
         } else {
-            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, false, msg.videoUrl || null);
+            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, msg.videoUrl || null);
         }
     });
-    
+
     scrollToBottom();
 }
 
 // Add user message to UI
-export function addUserMessageToUI(content, id = null, animate = true) {
+export function addUserMessageToUI(content, id = null) {
     const messageId = id || generateId();
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message-user flex justify-end max-w-3xl ml-auto';
     messageDiv.id = messageId;
-    
+
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3 flex-row-reverse">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
@@ -180,22 +195,22 @@ export function addUserMessageToUI(content, id = null, animate = true) {
         </div>
         ${getMessageActionsMarkup(messageId, { align: 'right' })}
     `;
-    
+
     elements.chatContainer.appendChild(messageDiv);
     scrollToBottom();
     return messageId;
 }
 
 // Add AI message to UI
-export function addAIMessageToUI(content, imageUrl = null, id = null, animate = true, videoUrl = null) {
+export function addAIMessageToUI(content, imageUrl = null, id = null, videoUrl = null) {
     const character = getCurrentCharacter();
     const messageId = id || generateId();
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message-ai max-w-6xl';
     messageDiv.id = messageId;
-    
+
     const displayContent = getAssistantVisibleText(content);
-    
+
     let imageSection = '';
     if (videoUrl) {
         imageSection = `
@@ -213,7 +228,10 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
                 </div>
             </div>
         `;
-    } else if (state.settings.enableImageGeneration !== false && content.includes('---IMAGE_PROMPT')) {
+    } else if (
+        state.settings.enableImageGeneration !== false &&
+        content.includes('---IMAGE_PROMPT')
+    ) {
         // Image is being generated
         imageSection = `
             <div class="w-full lg:w-1/3 flex-shrink-0">
@@ -226,12 +244,12 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
             </div>
         `;
     }
-    
+
     const hasImage = imageSection !== '';
     const showRegenerate = Boolean(imageUrl || videoUrl);
     const showGenerateVideo = Boolean(imageUrl) && !videoUrl;
     const showTts = canPlayMessageTts(content);
-    
+
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center flex-shrink-0">
@@ -251,7 +269,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, animate = 
             showTts
         })}
     `;
-    
+
     elements.chatContainer.appendChild(messageDiv);
     scrollToBottom();
     return messageId;
@@ -275,7 +293,8 @@ export function updateAIMessageImage(messageId, imageUrl) {
 
             if (!buttonGroup.querySelector('.regenerate-image-btn')) {
                 const regenerateButton = document.createElement('button');
-                regenerateButton.className = 'regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors';
+                regenerateButton.className =
+                    'regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors';
                 regenerateButton.onclick = () => window.regenerateImage(messageId);
                 regenerateButton.innerHTML = `
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,7 +307,8 @@ export function updateAIMessageImage(messageId, imageUrl) {
 
             if (!buttonGroup.querySelector('.generate-video-btn')) {
                 const videoButton = document.createElement('button');
-                videoButton.className = 'generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors';
+                videoButton.className =
+                    'generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors';
                 videoButton.onclick = () => window.generateVideoForMessage(messageId);
                 videoButton.innerHTML = `
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,17 +386,19 @@ export function addVideoToGallery(videoUrl, source = 'chat-video', messageId = n
 
 // Regenerate image for a message
 export async function regenerateImage(messageId) {
-    const message = state.messages.find(m => m.id === messageId);
+    const message = state.messages.find((m) => m.id === messageId);
     if (!message) return;
-    
-    const promptMatch = message.content.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/);
+
+    const promptMatch = message.content.match(
+        /---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/
+    );
     if (!promptMatch) {
         alert('No image prompt found in this message.');
         return;
     }
-    
+
     const imagePrompt = promptMatch[1].trim();
-    
+
     // Update UI to show loading
     const messageDiv = document.getElementById(messageId);
     if (messageDiv) {
@@ -392,17 +414,16 @@ export async function regenerateImage(messageId) {
             `;
         }
     }
-    
+
     try {
         const generatedImageUrl = await generateImage(imagePrompt);
         const imageUrl = await persistImageForStorage(generatedImageUrl);
         updateAIMessageImage(messageId, imageUrl);
-        
+
         // Update message in state
         message.imageUrl = imageUrl;
         message.videoUrl = null;
         addImageToGallery(imageUrl, 'regenerate', messageId);
-        
     } catch (error) {
         console.error('Failed to regenerate image:', error);
         if (messageDiv) {
@@ -420,7 +441,7 @@ export async function regenerateImage(messageId) {
 }
 
 export async function generateVideoForMessage(messageId) {
-    const message = state.messages.find(m => m.id === messageId);
+    const message = state.messages.find((m) => m.id === messageId);
     if (!message) return;
     if (!message.imageUrl) {
         alert('No generated image found for this message.');

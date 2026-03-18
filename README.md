@@ -3,10 +3,12 @@
 EroChat is a browser app for AI roleplay chat with automatic image generation.
 
 It connects:
+
 - **OpenRouter** or **Our Service (Premium)** for text replies
 - **SwarmUI** or **ComfyUI** (local), or **Our Service (Premium)** for image/video generation
 
 This project now includes a simple backend auth system:
+
 - Username + password account creation
 - Username + password login
 - Session-based auth with cookies
@@ -30,6 +32,7 @@ docker compose up -d --build
 ```
 
 Open:
+
 - `http://localhost:20121/` (login/create account)
 - `http://localhost:20121/app/` (chat app after login)
 
@@ -40,13 +43,13 @@ Open:
 - Set a real `SESSION_SECRET` in production
 - Set `COOKIE_SECURE=true` only when running behind HTTPS
 - Set premium service key on server using one of:
-  - `GROK_API_KEY` env variable, or
-  - `grok.key` file (default path mounted as `/app/grok.key`)
+    - `GROK_API_KEY` env variable, or
+    - `grok.key` file (default path mounted as `/app/grok.key`)
 - Optional credit envs:
-  - `DEFAULT_USER_CREDITS` (default: 100)
-  - `CREDIT_COST_GROK_CHAT` (default: 1)
-  - `CREDIT_COST_GROK_IMAGE` (default: 2)
-  - `CREDIT_COST_GROK_VIDEO` (default: 3)
+    - `DEFAULT_USER_CREDITS` (default: 100)
+    - `CREDIT_COST_GROK_CHAT` (default: 1)
+    - `CREDIT_COST_GROK_IMAGE` (default: 2)
+    - `CREDIT_COST_GROK_VIDEO` (default: 3)
 
 ## Run without Docker
 
@@ -63,7 +66,23 @@ npm start
 ```
 
 Open:
+
 - `http://localhost:20121/`
+
+## Development scripts
+
+```bash
+npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+npm run test
+npm run test:watch
+```
+
+- `lint` checks the server, frontend modules, config files, and tests with ESLint
+- `format` runs Prettier across the repo
+- `test` runs the Vitest unit suite in JSDOM
 
 ## Setup in the app
 
@@ -89,6 +108,7 @@ If image generation is disabled, chat works without image provider setup.
 ## Characters
 
 You can create multiple characters with their own:
+
 - name + emoji/avatar
 - system prompt
 - optional generated thumbnail

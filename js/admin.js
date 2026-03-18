@@ -52,7 +52,8 @@ function renderUserRow(user) {
 
     if (user.isAdmin) {
         const adminTag = document.createElement('span');
-        adminTag.className = 'text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-900/40 border border-amber-700/50 text-amber-300';
+        adminTag.className =
+            'text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-900/40 border border-amber-700/50 text-amber-300';
         adminTag.textContent = 'Admin';
         nameWrap.appendChild(adminTag);
     }
@@ -78,7 +79,8 @@ function renderUserRow(user) {
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.dataset.userId = String(user.id);
-    saveBtn.className = 'admin-save-credits-btn px-3 py-1.5 btn-secondary rounded-lg text-sm font-medium';
+    saveBtn.className =
+        'admin-save-credits-btn px-3 py-1.5 btn-secondary rounded-lg text-sm font-medium';
     saveBtn.textContent = 'Update';
 
     controls.appendChild(creditsInput);
@@ -140,8 +142,8 @@ export async function fetchAdminUsers(silent = false) {
 
         const users = Array.isArray(data.users)
             ? data.users
-                .map(normalizeUser)
-                .filter((user) => Number.isFinite(user.id) && user.id > 0)
+                  .map(normalizeUser)
+                  .filter((user) => Number.isFinite(user.id) && user.id > 0)
             : [];
 
         sortUsersByName(users);

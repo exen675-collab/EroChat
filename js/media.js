@@ -26,7 +26,8 @@ function isLocalishUrl(mediaUrl) {
     try {
         const parsed = new URL(mediaUrl, window.location.href);
         const host = parsed.hostname.toLowerCase();
-        if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') return true;
+        if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1')
+            return true;
         if (host.endsWith('.local')) return true;
         return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
     } catch {
@@ -118,7 +119,11 @@ export async function persistMediaForStorage(mediaUrl, options = {}) {
         return stored.url;
     }
 
-    if (isRemoteHttpUrl(mediaUrl) && !isLocalishUrl(mediaUrl) && options.preferRemoteImport !== false) {
+    if (
+        isRemoteHttpUrl(mediaUrl) &&
+        !isLocalishUrl(mediaUrl) &&
+        options.preferRemoteImport !== false
+    ) {
         const stored = await importRemoteMediaForStorage(mediaUrl);
         return stored.url;
     }

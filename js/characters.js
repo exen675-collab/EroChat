@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
-import { escapeHtml, formatMessage, normalizeImageProvider } from './utils.js';
+import { escapeHtml, normalizeImageProvider } from './utils.js';
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
 import { persistImageForStorage } from './media.js';
 
@@ -11,10 +11,10 @@ let editingCharacterId = null;
 
 // Get current character
 export function getCurrentCharacter() {
-    const selected = state.characters.find(c => c.id === state.currentCharacterId);
+    const selected = state.characters.find((c) => c.id === state.currentCharacterId);
     if (selected) return selected;
 
-    const storedDefault = state.characters.find(c => c.id === 'default');
+    const storedDefault = state.characters.find((c) => c.id === 'default');
     if (storedDefault) return storedDefault;
 
     return {
@@ -28,11 +28,14 @@ export function getCurrentCharacter() {
 export function renderCharactersList() {
     elements.charactersList.innerHTML = '';
 
-    const storedDefault = state.characters.find(c => c.id === 'default');
+    const storedDefault = state.characters.find((c) => c.id === 'default');
     const defaultEntry = storedDefault || { ...defaultCharacter };
-    const allCharacters = [defaultEntry, ...state.characters.filter(c => c.id !== 'default' && !c.isDefault)];
+    const allCharacters = [
+        defaultEntry,
+        ...state.characters.filter((c) => c.id !== 'default' && !c.isDefault)
+    ];
 
-    allCharacters.forEach(char => {
+    allCharacters.forEach((char) => {
         const isActive = state.currentCharacterId === char.id;
         const charDiv = document.createElement('div');
         charDiv.className = `character-card p-3 rounded-lg border border-purple-900/30 flex items-center justify-between ${isActive ? 'active' : ''}`;
@@ -54,7 +57,9 @@ export function renderCharactersList() {
                     <p class="text-xs text-gray-500 truncate">${char.isDefault ? 'Default' : 'Custom'}</p>
                 </div>
             </div>
-            ${!char.isDefault ? `
+            ${
+                !char.isDefault
+                    ? `
                 <div class="flex gap-1">
                     <button onclick="window.editCharacter('${char.id}')" class="p-1.5 hover:bg-purple-900/30 rounded-lg text-purple-400 transition-colors" title="Edit">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +72,9 @@ export function renderCharactersList() {
                         </svg>
                     </button>
                 </div>
-            ` : ''}
+            `
+                    : ''
+            }
         `;
         elements.charactersList.appendChild(charDiv);
     });
@@ -77,12 +84,16 @@ export function renderCharactersList() {
 export function setCharacterThumbnail(characterId, imageUrl) {
     if (!characterId || !imageUrl) return false;
 
-    const index = state.characters.findIndex(c => c.id === characterId);
+    const index = state.characters.findIndex((c) => c.id === characterId);
 
     if (index !== -1) {
         state.characters[index].thumbnail = imageUrl;
     } else if (characterId === 'default') {
-        state.characters.unshift({ ...defaultCharacter, thumbnail: imageUrl, messages: [...state.messages] });
+        state.characters.unshift({
+            ...defaultCharacter,
+            thumbnail: imageUrl,
+            messages: [...state.messages]
+        });
     } else {
         return false;
     }
@@ -96,12 +107,12 @@ export function setCharacterThumbnail(characterId, imageUrl) {
 // Select a character
 export function selectCharacter(charId) {
     // Save current messages to the previous character before switching
-    const oldCharIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
+    const oldCharIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
     if (oldCharIndex !== -1) {
         state.characters[oldCharIndex].messages = [...state.messages];
     } else if (state.currentCharacterId === 'default') {
         // Handle default if it's not in the array for some reason (though it should be)
-        const defaultInList = state.characters.find(c => c.id === 'default');
+        const defaultInList = state.characters.find((c) => c.id === 'default');
         if (defaultInList) {
             defaultInList.messages = [...state.messages];
         }
@@ -121,12 +132,12 @@ export function selectCharacter(charId) {
     updateCurrentCharacterUI();
 
     // Import and call renderMessages to refresh the chat view
-    import('./messages.js').then(m => m.renderMessages());
+    import('./messages.js').then((m) => m.renderMessages());
 
     saveToLocalStorage();
 
     if (window.innerWidth < 1024) {
-        import('./ui.js').then(ui => ui.toggleSidebar(false));
+        import('./ui.js').then((ui) => ui.toggleSidebar(false));
     }
 }
 
@@ -147,7 +158,7 @@ export function updateCurrentCharacterUI() {
 // Delete a character
 export function deleteCharacter(charId) {
     if (confirm('Are you sure you want to delete this character?')) {
-        state.characters = state.characters.filter(c => c.id !== charId);
+        state.characters = state.characters.filter((c) => c.id !== charId);
 
         // If we deleted the current character, switch to default
         if (state.currentCharacterId === charId) {
@@ -169,7 +180,7 @@ export function openCharacterModal(characterId = null) {
     editingCharacterId = characterId;
 
     if (characterId) {
-        const character = state.characters.find(c => c.id === characterId);
+        const character = state.characters.find((c) => c.id === characterId);
         if (character) {
             elements.modalTitle.textContent = 'Edit Character';
             elements.charName.value = character.name;
@@ -239,7 +250,10 @@ export async function generateSystemPromptOnDemand() {
     }
 
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    if (textProvider !== 'premium' && (!elements.openrouterKey.value || !elements.openrouterModel.value)) {
+    if (
+        textProvider !== 'premium' &&
+        (!elements.openrouterKey.value || !elements.openrouterModel.value)
+    ) {
         alert('Please enter your OpenRouter API key and select a model in settings.');
         return;
     }
@@ -307,9 +321,15 @@ export async function saveCharacter() {
             return;
         }
 
-        const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-        if (textProvider !== 'premium' && (!elements.openrouterKey.value || !elements.openrouterModel.value)) {
-            alert('Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.');
+        const textProvider =
+            elements.textProvider.value || state.settings.textProvider || 'premium';
+        if (
+            textProvider !== 'premium' &&
+            (!elements.openrouterKey.value || !elements.openrouterModel.value)
+        ) {
+            alert(
+                'Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.'
+            );
             return;
         }
 
@@ -344,7 +364,7 @@ export async function saveCharacter() {
 
     if (editingCharacterId) {
         // Edit existing character
-        const index = state.characters.findIndex(c => c.id === editingCharacterId);
+        const index = state.characters.findIndex((c) => c.id === editingCharacterId);
         if (index !== -1) {
             const updatedChar = {
                 ...state.characters[index],
@@ -404,7 +424,9 @@ export async function generateThumbnail() {
         return;
     }
 
-    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    const imageProvider = normalizeImageProvider(
+        elements.imageProvider.value || state.settings.imageProvider || 'swarm'
+    );
     if (imageProvider === 'swarm' && !elements.swarmModel.value) {
         alert('Please select a SwarmUI model first.');
         return;
@@ -445,7 +467,7 @@ export async function generateThumbnail() {
 
             // Save thumbnail to character if editing
             if (editingCharacterId) {
-                const index = state.characters.findIndex(c => c.id === editingCharacterId);
+                const index = state.characters.findIndex((c) => c.id === editingCharacterId);
                 if (index !== -1) {
                     state.characters[index].thumbnail = thumbnailUrl;
                     saveToLocalStorage();

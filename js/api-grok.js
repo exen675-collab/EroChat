@@ -97,20 +97,21 @@ function normalizeImageRecord(record) {
 }
 
 function normalizeTtsVoiceRecord(record) {
-    const voiceId = typeof record?.voice_id === 'string'
-        ? record.voice_id.trim().toLowerCase()
-        : '';
+    const voiceId =
+        typeof record?.voice_id === 'string' ? record.voice_id.trim().toLowerCase() : '';
 
     if (!voiceId) return null;
 
     return {
         voice_id: voiceId,
-        name: typeof record?.name === 'string' && record.name.trim()
-            ? record.name.trim()
-            : voiceId.charAt(0).toUpperCase() + voiceId.slice(1),
-        language: typeof record?.language === 'string' && record.language.trim()
-            ? record.language.trim()
-            : 'multilingual'
+        name:
+            typeof record?.name === 'string' && record.name.trim()
+                ? record.name.trim()
+                : voiceId.charAt(0).toUpperCase() + voiceId.slice(1),
+        language:
+            typeof record?.language === 'string' && record.language.trim()
+                ? record.language.trim()
+                : 'multilingual'
     };
 }
 
@@ -126,7 +127,8 @@ function extractVideoStatus(data) {
         data?.data?.output?.url ||
         null;
     const status = (data?.status || data?.data?.status || '').toLowerCase() || null;
-    const requestId = data?.request_id || data?.id || data?.data?.request_id || data?.data?.id || null;
+    const requestId =
+        data?.request_id || data?.id || data?.data?.request_id || data?.data?.id || null;
     const errorMessage = data?.error?.message || data?.message || null;
 
     return {
@@ -143,7 +145,8 @@ function isLocalOrPrivateUrl(rawUrl) {
         if (!/^https?:$/i.test(parsed.protocol)) return true;
 
         const host = parsed.hostname.toLowerCase();
-        if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') return true;
+        if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1')
+            return true;
         if (host.endsWith('.local')) return true;
 
         return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
@@ -284,7 +287,21 @@ export function pickAspectRatio(width, height) {
     }
 
     const target = width / height;
-    const supported = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '19.5:9', '9:19.5', '20:9', '9:20'];
+    const supported = [
+        '1:1',
+        '16:9',
+        '9:16',
+        '4:3',
+        '3:4',
+        '3:2',
+        '2:3',
+        '2:1',
+        '1:2',
+        '19.5:9',
+        '9:19.5',
+        '20:9',
+        '9:20'
+    ];
 
     let best = 'auto';
     let bestDiff = Number.POSITIVE_INFINITY;
@@ -314,7 +331,11 @@ export async function generateGrokImages(options) {
     const payload = {
         model: options?.model || 'grok-imagine-image',
         prompt: options?.prompt || '',
-        n: Number.isFinite(options?.batchCount) ? options.batchCount : (Number.isFinite(options?.n) ? options.n : 1),
+        n: Number.isFinite(options?.batchCount)
+            ? options.batchCount
+            : Number.isFinite(options?.n)
+              ? options.n
+              : 1,
         response_format: options?.responseFormat || 'b64_json'
     };
 
@@ -355,7 +376,7 @@ export async function editGrokImage(options) {
 
     if (Array.isArray(options?.images) && options.images.length > 0) {
         payload.images = await Promise.all(
-            options.images.slice(0, 3).map(async imageUrl => ({
+            options.images.slice(0, 3).map(async (imageUrl) => ({
                 url: await prepareImageUrlForGrok(imageUrl),
                 type: 'image_url'
             }))
@@ -413,7 +434,7 @@ async function waitForGrokVideoResult(requestId) {
     let lastKnownStatus = 'unknown';
 
     while (Date.now() - startTime < maxWaitMs) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
         const status = await resumeGrokVideoStatus(requestId);
 
         if (status.url) {
@@ -422,17 +443,28 @@ async function waitForGrokVideoResult(requestId) {
         if (status.status) {
             lastKnownStatus = status.status;
         }
-        if (status.status === 'failed' || status.status === 'error' || status.status === 'cancelled' || status.status === 'expired') {
+        if (
+            status.status === 'failed' ||
+            status.status === 'error' ||
+            status.status === 'cancelled' ||
+            status.status === 'expired'
+        ) {
             throw new Error(status.errorMessage || 'Video generation failed.');
         }
-        if (status.status === 'completed' || status.status === 'done' || status.status === 'succeeded') {
+        if (
+            status.status === 'completed' ||
+            status.status === 'done' ||
+            status.status === 'succeeded'
+        ) {
             throw new Error('Video generation completed but no video URL was returned.');
         }
 
         delayMs = Math.min(delayMs + 500, 7000);
     }
 
-    throw new Error(`Timed out while waiting for video generation to finish (last status: ${lastKnownStatus}).`);
+    throw new Error(
+        `Timed out while waiting for video generation to finish (last status: ${lastKnownStatus}).`
+    );
 }
 
 export async function generateGrokVideoFromImage(imageUrl) {

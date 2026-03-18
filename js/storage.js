@@ -3,7 +3,14 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
-import { generateId, normalizeContextMessageCount, normalizeImageProvider, normalizeSwarmSampler, normalizeTtsVoiceId, syncSwarmSamplerSelect } from './utils.js';
+import {
+    generateId,
+    normalizeContextMessageCount,
+    normalizeImageProvider,
+    normalizeSwarmSampler,
+    normalizeTtsVoiceId,
+    syncSwarmSamplerSelect
+} from './utils.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -46,14 +53,13 @@ function migrateGalleryFromCharacterMessages() {
     const migrated = [];
     const seen = new Set();
 
-    const allCharacters = state.characters.length > 0
-        ? state.characters
-        : [{ ...defaultCharacter }];
+    const allCharacters =
+        state.characters.length > 0 ? state.characters : [{ ...defaultCharacter }];
 
-    allCharacters.forEach(character => {
+    allCharacters.forEach((character) => {
         const characterMessages = Array.isArray(character.messages) ? character.messages : [];
 
-        characterMessages.forEach(message => {
+        characterMessages.forEach((message) => {
             if (message.role !== 'assistant' || (!message.imageUrl && !message.videoUrl)) return;
 
             const mediaUrl = message.videoUrl || message.imageUrl;
@@ -84,16 +90,17 @@ function isDataUrl(value) {
 
 function isQuotaExceededError(error) {
     if (!error) return false;
-    if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+    if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+        return true;
     return error.code === 22 || error.code === 1014;
 }
 
 function syncCurrentMessagesToCharacter() {
-    const currentCharIndex = state.characters.findIndex(c => c.id === state.currentCharacterId);
+    const currentCharIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
     if (currentCharIndex !== -1) {
         state.characters[currentCharIndex].messages = [...state.messages];
     } else if (state.currentCharacterId === 'default') {
-        const defaultInList = state.characters.find(c => c.id === 'default');
+        const defaultInList = state.characters.find((c) => c.id === 'default');
         if (defaultInList) {
             defaultInList.messages = [...state.messages];
         }
@@ -151,7 +158,7 @@ function clearOldestMessageMedia(preferDataUrls = false) {
             message.videoUrl = null;
 
             if (message.id) {
-                const activeMessage = state.messages.find(m => m.id === message.id);
+                const activeMessage = state.messages.find((m) => m.id === message.id);
                 if (activeMessage) {
                     activeMessage.imageUrl = null;
                     activeMessage.videoUrl = null;
@@ -233,7 +240,9 @@ export function loadFromLocalStorage() {
                 Object.assign(state.settings, parsed.settings);
                 state.settings.imageProvider = normalizeImageProvider(state.settings.imageProvider);
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
-                state.settings.contextMessageCount = normalizeContextMessageCount(state.settings.contextMessageCount);
+                state.settings.contextMessageCount = normalizeContextMessageCount(
+                    state.settings.contextMessageCount
+                );
                 state.settings.ttsVoiceId = normalizeTtsVoiceId(state.settings.ttsVoiceId);
                 updateSettingsUI();
             }
@@ -257,7 +266,9 @@ export function loadFromLocalStorage() {
             }
             if (parsed.generatorPrefs && typeof parsed.generatorPrefs === 'object') {
                 Object.assign(state.generatorPrefs, parsed.generatorPrefs);
-                state.generatorPrefs.swarmSampler = normalizeSwarmSampler(state.generatorPrefs.swarmSampler);
+                state.generatorPrefs.swarmSampler = normalizeSwarmSampler(
+                    state.generatorPrefs.swarmSampler
+                );
             }
             // Temporarily store old top-level messages for migration
             if (parsed.messages && parsed.messages.length > 0) {
@@ -280,16 +291,18 @@ export function loadFromLocalStorage() {
 
     // Handle migration if needed
     if (migratedMessages) {
-        const currentChar = state.characters.find(c => c.id === (state.currentCharacterId || 'default')) ||
-            state.characters.find(c => c.id === 'default');
+        const currentChar =
+            state.characters.find((c) => c.id === (state.currentCharacterId || 'default')) ||
+            state.characters.find((c) => c.id === 'default');
         if (currentChar && (!currentChar.messages || currentChar.messages.length === 0)) {
             currentChar.messages = migratedMessages;
         }
     }
 
     // Populate active messages from current character
-    const character = state.characters.find(c => c.id === state.currentCharacterId) ||
-        state.characters.find(c => c.id === 'default') ||
+    const character =
+        state.characters.find((c) => c.id === state.currentCharacterId) ||
+        state.characters.find((c) => c.id === 'default') ||
         state.characters[0];
 
     if (character) {
@@ -330,7 +343,9 @@ export function updateSettingsUI() {
     elements.comfyModel.value = state.settings.comfyModel || '';
     elements.imageProvider.value = normalizeImageProvider(state.settings.imageProvider);
     elements.enableImageGeneration.checked = state.settings.enableImageGeneration !== false;
-    elements.contextMessageCount.value = normalizeContextMessageCount(state.settings.contextMessageCount);
+    elements.contextMessageCount.value = normalizeContextMessageCount(
+        state.settings.contextMessageCount
+    );
     elements.imgWidth.value = state.settings.imgWidth;
     elements.imgHeight.value = state.settings.imgHeight;
     elements.steps.value = state.settings.steps;

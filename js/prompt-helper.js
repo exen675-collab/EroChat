@@ -9,11 +9,21 @@ export const PROMPT_TEMPLATE_GROUPS = [
     },
     {
         label: 'Lighting',
-        chips: ['soft rim lighting', 'golden hour glow', 'neon backlight', 'high-contrast studio light']
+        chips: [
+            'soft rim lighting',
+            'golden hour glow',
+            'neon backlight',
+            'high-contrast studio light'
+        ]
     },
     {
         label: 'Camera',
-        chips: ['85mm portrait lens', 'wide establishing shot', 'overhead composition', 'close-up detail shot']
+        chips: [
+            '85mm portrait lens',
+            'wide establishing shot',
+            'overhead composition',
+            'close-up detail shot'
+        ]
     },
     {
         label: 'Mood',
@@ -24,7 +34,8 @@ export const PROMPT_TEMPLATE_GROUPS = [
 const ACTION_PROMPTS = {
     refine: 'Rewrite this prompt so it is more coherent, vivid, and production-ready while preserving intent. Return only the revised prompt.',
     expand: 'Expand this prompt with stronger visual detail, composition, lighting, and material cues. Return only the revised prompt.',
-    variations: 'Rewrite this prompt so it encourages controlled variation while preserving the core subject and style. Return only one revised prompt.',
+    variations:
+        'Rewrite this prompt so it encourages controlled variation while preserving the core subject and style. Return only one revised prompt.',
     preset: 'Refine this prompt after the user applied template fragments. Keep it concise but polished. Return only the revised prompt.'
 };
 
@@ -33,7 +44,8 @@ function buildHelperMessages(action, prompt, negativePrompt = '') {
     return [
         {
             role: 'system',
-            content: 'You are a prompt editor for image and video generation. Return only the improved prompt text, with no explanation.'
+            content:
+                'You are a prompt editor for image and video generation. Return only the improved prompt text, with no explanation.'
         },
         {
             role: 'user',
@@ -48,7 +60,12 @@ export function appendTemplateSnippet(prompt, snippet) {
     return `${base}, ${snippet}`;
 }
 
-export async function runPromptHelperAction({ action, prompt, negativePrompt = '', provider = 'off' }) {
+export async function runPromptHelperAction({
+    action,
+    prompt,
+    negativePrompt = '',
+    provider = 'off'
+}) {
     const trimmedPrompt = String(prompt || '').trim();
     if (!trimmedPrompt) {
         throw new Error('Enter a prompt before using the prompt helper.');
@@ -67,7 +84,9 @@ export async function runPromptHelperAction({ action, prompt, negativePrompt = '
     }
 
     if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
-        throw new Error('OpenRouter is not configured. Add your key and select a model in settings.');
+        throw new Error(
+            'OpenRouter is not configured. Add your key and select a model in settings.'
+        );
     }
 
     return sendOpenRouterChatRequest(messages);

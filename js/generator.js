@@ -1,6 +1,11 @@
 import { state } from './state.js';
 import { saveToLocalStorage } from './storage.js';
-import { toggleAdvancedSettings, renderGallery, renderGalleryCharacterFilter, renderGalleryThumbnailCharacterSelect } from './ui.js';
+import {
+    toggleAdvancedSettings,
+    renderGallery,
+    renderGalleryCharacterFilter,
+    renderGalleryThumbnailCharacterSelect
+} from './ui.js';
 import {
     fetchGeneratorAssets,
     fetchGeneratorJobs,
@@ -9,7 +14,11 @@ import {
     executeGeneratorJob,
     pollVideoGeneratorJob
 } from './api-generator.js';
-import { PROMPT_TEMPLATE_GROUPS, appendTemplateSnippet, runPromptHelperAction } from './prompt-helper.js';
+import {
+    PROMPT_TEMPLATE_GROUPS,
+    appendTemplateSnippet,
+    runPromptHelperAction
+} from './prompt-helper.js';
 import { uploadFileForStorage } from './media.js';
 import { normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
 
@@ -79,22 +88,22 @@ function escapeHtml(text) {
 }
 
 function getGeneratorAssetsForPicker() {
-    return state.generatorAssets.filter(asset => asset.mediaType === 'image');
+    return state.generatorAssets.filter((asset) => asset.mediaType === 'image');
 }
 
 function getGalleryImageOptions() {
-    return state.galleryImages.filter(item => item.imageUrl);
+    return state.galleryImages.filter((item) => item.imageUrl);
 }
 
 function upsertJobs(jobs) {
-    const map = new Map(state.generatorJobs.map(job => [job.id, job]));
-    jobs.forEach(job => map.set(job.id, { ...map.get(job.id), ...job }));
+    const map = new Map(state.generatorJobs.map((job) => [job.id, job]));
+    jobs.forEach((job) => map.set(job.id, { ...map.get(job.id), ...job }));
     state.generatorJobs = Array.from(map.values()).sort((a, b) => b.id - a.id);
 }
 
 function upsertAssets(assets) {
-    const map = new Map(state.generatorAssets.map(asset => [asset.id, asset]));
-    assets.forEach(asset => map.set(asset.id, { ...map.get(asset.id), ...asset }));
+    const map = new Map(state.generatorAssets.map((asset) => [asset.id, asset]));
+    assets.forEach((asset) => map.set(asset.id, { ...map.get(asset.id), ...asset }));
     state.generatorAssets = Array.from(map.values()).sort((a, b) => b.id - a.id);
     renderGalleryCharacterFilter();
     renderGalleryThumbnailCharacterSelect();
@@ -102,11 +111,11 @@ function upsertAssets(assets) {
 }
 
 function serializeSourceAssetIds() {
-    return Array.from(new Set(selectedSources.map(source => source.assetId).filter(Boolean)));
+    return Array.from(new Set(selectedSources.map((source) => source.assetId).filter(Boolean)));
 }
 
 function serializeSourceUrls() {
-    return selectedSources.map(source => source.url).filter(Boolean);
+    return selectedSources.map((source) => source.url).filter(Boolean);
 }
 
 function getModeLabel(mode) {
@@ -150,20 +159,28 @@ function applyPrefsToForm() {
 }
 
 function renderPromptTemplates() {
-    elements.generatorTemplateChips.innerHTML = PROMPT_TEMPLATE_GROUPS.map(group => `
+    elements.generatorTemplateChips.innerHTML = PROMPT_TEMPLATE_GROUPS.map(
+        (group) => `
         <div class="generator-chip-group">
             <p class="generator-overline mb-2">${escapeHtml(group.label)}</p>
             <div class="flex flex-wrap gap-2">
-                ${group.chips.map(chip => `
+                ${group.chips
+                    .map(
+                        (chip) => `
                     <button type="button" class="generator-chip" data-template-chip="${escapeHtml(chip)}">${escapeHtml(chip)}</button>
-                `).join('')}
+                `
+                    )
+                    .join('')}
             </div>
         </div>
-    `).join('');
+    `
+    ).join('');
 }
 
 function renderPresets() {
-    const presets = Array.isArray(state.generatorPrefs.promptPresets) ? state.generatorPrefs.promptPresets : [];
+    const presets = Array.isArray(state.generatorPrefs.promptPresets)
+        ? state.generatorPrefs.promptPresets
+        : [];
     elements.generatorPresets.innerHTML = '<option value="">Select a preset...</option>';
     presets.forEach((preset, index) => {
         const option = document.createElement('option');
@@ -174,8 +191,9 @@ function renderPresets() {
 }
 
 function renderSourcePickers() {
-    elements.generatorRecentSource.innerHTML = '<option value="">Select a recent generator image...</option>';
-    getGeneratorAssetsForPicker().forEach(asset => {
+    elements.generatorRecentSource.innerHTML =
+        '<option value="">Select a recent generator image...</option>';
+    getGeneratorAssetsForPicker().forEach((asset) => {
         const option = document.createElement('option');
         option.value = String(asset.id);
         option.textContent = `${asset.prompt || 'Generator image'} (#${asset.id})`;
@@ -183,7 +201,7 @@ function renderSourcePickers() {
     });
 
     elements.gallerySourcePicker.innerHTML = '<option value="">Select a gallery image...</option>';
-    getGalleryImageOptions().forEach(item => {
+    getGalleryImageOptions().forEach((item) => {
         const option = document.createElement('option');
         option.value = item.id;
         option.textContent = item.characterName || item.source || 'Gallery image';
@@ -193,11 +211,14 @@ function renderSourcePickers() {
 
 function renderSelectedSources() {
     if (selectedSources.length === 0) {
-        elements.selectedGeneratorSources.innerHTML = '<p class="text-sm text-gray-500">No source images selected yet.</p>';
+        elements.selectedGeneratorSources.innerHTML =
+            '<p class="text-sm text-gray-500">No source images selected yet.</p>';
         return;
     }
 
-    elements.selectedGeneratorSources.innerHTML = selectedSources.map(source => `
+    elements.selectedGeneratorSources.innerHTML = selectedSources
+        .map(
+            (source) => `
         <div class="generator-source-pill">
             <img src="${source.url}" alt="Source" class="generator-source-thumb">
             <div class="min-w-0">
@@ -206,14 +227,20 @@ function renderSelectedSources() {
             </div>
             <button type="button" class="generator-chip" data-remove-source="${escapeHtml(source.id)}">Remove</button>
         </div>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 function renderQueueSummary() {
     const total = state.generatorJobs.length;
-    const running = state.generatorJobs.filter(job => job.status === 'running' || job.status === 'polling').length;
-    const completed = state.generatorJobs.filter(job => job.status === 'succeeded').length;
-    const failed = state.generatorJobs.filter(job => job.status === 'failed' || job.status === 'interrupted').length;
+    const running = state.generatorJobs.filter(
+        (job) => job.status === 'running' || job.status === 'polling'
+    ).length;
+    const completed = state.generatorJobs.filter((job) => job.status === 'succeeded').length;
+    const failed = state.generatorJobs.filter(
+        (job) => job.status === 'failed' || job.status === 'interrupted'
+    ).length;
 
     elements.generatorQueueSummary.innerHTML = `
         <div class="generator-stat"><span>Total</span><strong>${total}</strong></div>
@@ -226,11 +253,14 @@ function renderQueueSummary() {
 function renderQueueList() {
     const jobs = state.generatorJobs.slice(0, 16);
     if (jobs.length === 0) {
-        elements.generatorQueueList.innerHTML = '<p class="text-sm text-gray-500">No generator jobs yet.</p>';
+        elements.generatorQueueList.innerHTML =
+            '<p class="text-sm text-gray-500">No generator jobs yet.</p>';
         return;
     }
 
-    elements.generatorQueueList.innerHTML = jobs.map(job => `
+    elements.generatorQueueList.innerHTML = jobs
+        .map(
+            (job) => `
         <div class="generator-job-card">
             <div class="flex items-center justify-between gap-3">
                 <p class="font-medium text-gray-200">${escapeHtml(getModeLabel(job.mode))} · ${escapeHtml(getProviderLabel(job.provider))}</p>
@@ -239,22 +269,29 @@ function renderQueueList() {
             <p class="text-sm text-gray-400 mt-2 line-clamp-3">${escapeHtml(job.prompt)}</p>
             ${job.errorMessage ? `<p class="text-xs text-red-300 mt-2">${escapeHtml(job.errorMessage)}</p>` : ''}
         </div>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 function renderResults() {
     const assets = state.generatorAssets.slice(0, 24);
     if (assets.length === 0) {
-        elements.generatorResults.innerHTML = '<p class="text-sm text-gray-500">Generated results will appear here.</p>';
+        elements.generatorResults.innerHTML =
+            '<p class="text-sm text-gray-500">Generated results will appear here.</p>';
         return;
     }
 
-    elements.generatorResults.innerHTML = assets.map(asset => `
+    elements.generatorResults.innerHTML = assets
+        .map(
+            (asset) => `
         <article class="generator-result-card">
             <div class="generator-result-media">
-                ${asset.mediaType === 'video'
-                    ? `<video src="${asset.url}" autoplay loop muted playsinline class="w-full h-full object-cover rounded-xl"></video>`
-                    : `<img src="${asset.url}" alt="Generated" class="w-full h-full object-cover rounded-xl">`}
+                ${
+                    asset.mediaType === 'video'
+                        ? `<video src="${asset.url}" autoplay loop muted playsinline class="w-full h-full object-cover rounded-xl"></video>`
+                        : `<img src="${asset.url}" alt="Generated" class="w-full h-full object-cover rounded-xl">`
+                }
             </div>
             <div class="mt-3 space-y-3">
                 <div>
@@ -271,7 +308,9 @@ function renderResults() {
                 </div>
             </div>
         </article>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 function syncFieldVisibility() {
@@ -280,10 +319,22 @@ function syncFieldVisibility() {
     const isLocalImageProvider = provider === 'swarm' || provider === 'comfy';
 
     elements.generatorProvider.disabled = mode !== 'image_generate';
-    elements.generatorNegativePromptWrap.classList.toggle('hidden', !(mode === 'image_generate' && isLocalImageProvider));
-    elements.generatorSourcePanel.classList.toggle('hidden', !(mode === 'image_edit' || mode === 'video_generate'));
-    elements.generatorGrokFields.classList.toggle('hidden', !(mode === 'image_generate' && provider === 'grok'));
-    elements.generatorSwarmFields.classList.toggle('hidden', !(mode === 'image_generate' && isLocalImageProvider));
+    elements.generatorNegativePromptWrap.classList.toggle(
+        'hidden',
+        !(mode === 'image_generate' && isLocalImageProvider)
+    );
+    elements.generatorSourcePanel.classList.toggle(
+        'hidden',
+        !(mode === 'image_edit' || mode === 'video_generate')
+    );
+    elements.generatorGrokFields.classList.toggle(
+        'hidden',
+        !(mode === 'image_generate' && provider === 'grok')
+    );
+    elements.generatorSwarmFields.classList.toggle(
+        'hidden',
+        !(mode === 'image_generate' && isLocalImageProvider)
+    );
     elements.generatorEditFields.classList.toggle('hidden', mode !== 'image_edit');
     elements.generatorVideoFields.classList.toggle('hidden', mode !== 'video_generate');
 }
@@ -308,9 +359,10 @@ function readPrefsFromForm() {
         prompt: elements.generatorPrompt.value,
         negativePrompt: elements.generatorNegativePrompt.value,
         batchCount: parseInt(elements.generatorBatchCount.value, 10) || 1,
-        aspectRatio: elements.generatorMode.value === 'image_edit'
-            ? elements.generatorEditAspectRatio.value
-            : elements.generatorAspectRatio.value,
+        aspectRatio:
+            elements.generatorMode.value === 'image_edit'
+                ? elements.generatorEditAspectRatio.value
+                : elements.generatorAspectRatio.value,
         imageResolution: elements.generatorImageResolution.value,
         editResolution: elements.generatorEditResolution.value,
         videoDuration: parseInt(elements.generatorVideoDuration.value, 10) || 4,
@@ -362,9 +414,10 @@ function buildJobRequests() {
                     cfgScale: state.generatorPrefs.swarmCfgScale,
                     sampler: normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
                     seedMode: state.generatorPrefs.swarmSeedMode,
-                    baseSeed: state.generatorPrefs.swarmSeedMode === 'increment'
-                        ? state.generatorPrefs.swarmBaseSeed + index
-                        : state.generatorPrefs.swarmBaseSeed
+                    baseSeed:
+                        state.generatorPrefs.swarmSeedMode === 'increment'
+                            ? state.generatorPrefs.swarmBaseSeed + index
+                            : state.generatorPrefs.swarmBaseSeed
                 }
             });
             continue;
@@ -458,7 +511,14 @@ async function resumePollingJob(job) {
             return;
         }
 
-        setTimeout(() => resumePollingJob({ ...job, providerRequestId: polled.providerRequestId || job.providerRequestId }), 3500);
+        setTimeout(
+            () =>
+                resumePollingJob({
+                    ...job,
+                    providerRequestId: polled.providerRequestId || job.providerRequestId
+                }),
+            3500
+        );
     } catch (error) {
         await patchAndStoreJob(job.id, {
             status: 'failed',
@@ -474,7 +534,7 @@ async function processGeneratorQueue() {
     try {
         while (true) {
             const nextJob = [...state.generatorJobs]
-                .filter(job => job.status === 'queued')
+                .filter((job) => job.status === 'queued')
                 .sort((a, b) => a.id - b.id)[0];
             if (!nextJob) break;
 
@@ -547,7 +607,7 @@ function addSource(source) {
     const next = [...selectedSources, source];
     const deduped = [];
     const seen = new Set();
-    next.forEach(item => {
+    next.forEach((item) => {
         const key = item.assetId ? `asset:${item.assetId}` : item.url;
         if (seen.has(key)) return;
         seen.add(key);
@@ -572,9 +632,9 @@ function populateFromAsset(asset, mode) {
 }
 
 async function retryAsset(assetId) {
-    const asset = state.generatorAssets.find(item => item.id === assetId);
+    const asset = state.generatorAssets.find((item) => item.id === assetId);
     if (!asset) return;
-    const sourceJob = state.generatorJobs.find(job => job.id === asset.jobId);
+    const sourceJob = state.generatorJobs.find((job) => job.id === asset.jobId);
     if (!sourceJob) return;
 
     const retryPayload = {
@@ -599,7 +659,10 @@ function bindEvents() {
         if (elements.generatorMode.value !== 'image_generate') {
             elements.generatorProvider.value = 'grok';
         }
-        selectedSources = selectedSources.slice(0, elements.generatorMode.value === 'image_edit' ? 3 : 1);
+        selectedSources = selectedSources.slice(
+            0,
+            elements.generatorMode.value === 'image_edit' ? 3 : 1
+        );
         readPrefsFromForm();
     });
 
@@ -623,7 +686,7 @@ function bindEvents() {
         elements.generatorSwarmBaseSeed,
         elements.generatorEditAspectRatio,
         elements.generatorHelperProvider
-    ].forEach(input => {
+    ].forEach((input) => {
         input.addEventListener('input', readPrefsFromForm);
         input.addEventListener('change', readPrefsFromForm);
     });
@@ -657,7 +720,9 @@ function bindEvents() {
     });
 
     elements.addRecentSourceBtn.addEventListener('click', () => {
-        const asset = state.generatorAssets.find(item => item.id === Number.parseInt(elements.generatorRecentSource.value, 10));
+        const asset = state.generatorAssets.find(
+            (item) => item.id === Number.parseInt(elements.generatorRecentSource.value, 10)
+        );
         if (!asset) return;
         addSource({
             id: `asset_${asset.id}`,
@@ -669,7 +734,9 @@ function bindEvents() {
     });
 
     elements.addGallerySourceBtn.addEventListener('click', () => {
-        const item = state.galleryImages.find(entry => entry.id === elements.gallerySourcePicker.value);
+        const item = state.galleryImages.find(
+            (entry) => entry.id === elements.gallerySourcePicker.value
+        );
         if (!item?.imageUrl) return;
         addSource({
             id: `gallery_${item.id}`,
@@ -683,19 +750,26 @@ function bindEvents() {
     elements.selectedGeneratorSources.addEventListener('click', (event) => {
         const removeBtn = event.target.closest('[data-remove-source]');
         if (!removeBtn) return;
-        selectedSources = selectedSources.filter(source => source.id !== removeBtn.getAttribute('data-remove-source'));
+        selectedSources = selectedSources.filter(
+            (source) => source.id !== removeBtn.getAttribute('data-remove-source')
+        );
         renderSelectedSources();
     });
 
     elements.generatorTemplateChips.addEventListener('click', (event) => {
         const chip = event.target.closest('[data-template-chip]');
         if (!chip) return;
-        elements.generatorPrompt.value = appendTemplateSnippet(elements.generatorPrompt.value, chip.getAttribute('data-template-chip'));
+        elements.generatorPrompt.value = appendTemplateSnippet(
+            elements.generatorPrompt.value,
+            chip.getAttribute('data-template-chip')
+        );
         readPrefsFromForm();
     });
 
-    elements.promptHelperBtns.forEach(button => {
-        button.addEventListener('click', () => handlePromptHelper(button.getAttribute('data-generator-helper-action')));
+    elements.promptHelperBtns.forEach((button) => {
+        button.addEventListener('click', () =>
+            handlePromptHelper(button.getAttribute('data-generator-helper-action'))
+        );
     });
 
     elements.promptPresetSaveBtn.addEventListener('click', () => {
@@ -705,7 +779,9 @@ function bindEvents() {
             return;
         }
 
-        const presets = Array.isArray(state.generatorPrefs.promptPresets) ? [...state.generatorPrefs.promptPresets] : [];
+        const presets = Array.isArray(state.generatorPrefs.promptPresets)
+            ? [...state.generatorPrefs.promptPresets]
+            : [];
         presets.push({
             name,
             prompt: elements.generatorPrompt.value,
@@ -738,7 +814,7 @@ function bindEvents() {
         if (!actionBtn) return;
 
         const assetId = Number.parseInt(actionBtn.getAttribute('data-asset-id'), 10);
-        const asset = state.generatorAssets.find(item => item.id === assetId);
+        const asset = state.generatorAssets.find((item) => item.id === assetId);
         if (!asset) return;
 
         const action = actionBtn.getAttribute('data-result-action');
@@ -756,7 +832,7 @@ function bindEvents() {
             return;
         }
         if (action === 'reuse-source') {
-            const sourceJob = state.generatorJobs.find(job => job.id === asset.jobId);
+            const sourceJob = state.generatorJobs.find((job) => job.id === asset.jobId);
             const sourceUrl = sourceJob?.requestJson?.sourceUrls?.[0];
             if (!sourceUrl) return;
             elements.generatorMode.value = 'video_generate';
@@ -788,8 +864,12 @@ export async function loadGeneratorHistory() {
 }
 
 async function resumePendingJobs() {
-    const pollingJobs = state.generatorJobs.filter(job => job.status === 'polling' && job.providerRequestId);
-    const interruptedJobs = state.generatorJobs.filter(job => job.status === 'running' && !job.providerRequestId);
+    const pollingJobs = state.generatorJobs.filter(
+        (job) => job.status === 'polling' && job.providerRequestId
+    );
+    const interruptedJobs = state.generatorJobs.filter(
+        (job) => job.status === 'running' && !job.providerRequestId
+    );
 
     for (const job of interruptedJobs) {
         await patchAndStoreJob(job.id, {
@@ -798,7 +878,7 @@ async function resumePendingJobs() {
         });
     }
 
-    pollingJobs.forEach(job => {
+    pollingJobs.forEach((job) => {
         resumePollingJob(job);
     });
 }

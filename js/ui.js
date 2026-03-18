@@ -107,7 +107,10 @@ function isWorkspaceOpen() {
 }
 
 function isAdvancedSettingsOpen() {
-    return elements.advancedSettingsModal && !elements.advancedSettingsModal.classList.contains('hidden');
+    return (
+        elements.advancedSettingsModal &&
+        !elements.advancedSettingsModal.classList.contains('hidden')
+    );
 }
 
 function syncBodyOverlayState() {
@@ -115,7 +118,10 @@ function syncBodyOverlayState() {
 }
 
 export function ensureAdvancedSettingsModalMounted() {
-    if (!elements.advancedSettingsModal || !document.body.contains(elements.advancedSettingsModal)) {
+    if (
+        !elements.advancedSettingsModal ||
+        !document.body.contains(elements.advancedSettingsModal)
+    ) {
         return;
     }
 
@@ -126,9 +132,10 @@ export function ensureAdvancedSettingsModalMounted() {
 
 // Toggle settings popout visibility
 export function toggleSidebar(forceOpen = null) {
-    const shouldOpen = forceOpen !== null
-        ? forceOpen
-        : elements.settingsPanel.classList.contains('-translate-x-full');
+    const shouldOpen =
+        forceOpen !== null
+            ? forceOpen
+            : elements.settingsPanel.classList.contains('-translate-x-full');
 
     elements.settingsPanel.classList.toggle('-translate-x-full', !shouldOpen);
     elements.overlay.classList.toggle('hidden', !shouldOpen);
@@ -142,9 +149,10 @@ export function toggleAdvancedSettings(forceOpen = null) {
 
     ensureAdvancedSettingsModalMounted();
 
-    const shouldOpen = forceOpen !== null
-        ? forceOpen
-        : elements.advancedSettingsModal.classList.contains('hidden');
+    const shouldOpen =
+        forceOpen !== null
+            ? forceOpen
+            : elements.advancedSettingsModal.classList.contains('hidden');
 
     if (shouldOpen) {
         toggleSidebar(false);
@@ -180,7 +188,8 @@ export function setCurrentView(view, options = {}) {
     elements.chatSettingsPane.classList.toggle('hidden', nextView !== 'chat');
     elements.generatorSettingsPane.classList.toggle('hidden', nextView !== 'generator');
     elements.currentCharacterDisplay.classList.toggle('hidden', nextView !== 'chat');
-    elements.currentViewDescription.textContent = VIEW_DESCRIPTIONS[nextView] || VIEW_DESCRIPTIONS.chat;
+    elements.currentViewDescription.textContent =
+        VIEW_DESCRIPTIONS[nextView] || VIEW_DESCRIPTIONS.chat;
 
     setActiveNavButton(nextView);
 
@@ -239,14 +248,15 @@ export function renderGalleryCharacterFilter() {
 // Render target character selector for thumbnail assignment
 export function renderGalleryThumbnailCharacterSelect() {
     const allCharacters = [];
-    const storedDefault = state.characters.find((c) => c.id === 'default') || { ...defaultCharacter };
+    const storedDefault = state.characters.find((c) => c.id === 'default') || {
+        ...defaultCharacter
+    };
     allCharacters.push(storedDefault);
 
-    state.characters
-        .filter((c) => c.id !== 'default')
-        .forEach((c) => allCharacters.push(c));
+    state.characters.filter((c) => c.id !== 'default').forEach((c) => allCharacters.push(c));
 
-    const currentSelection = elements.galleryThumbnailCharacter.value || state.currentCharacterId || 'default';
+    const currentSelection =
+        elements.galleryThumbnailCharacter.value || state.currentCharacterId || 'default';
     elements.galleryThumbnailCharacter.innerHTML = '';
 
     allCharacters.forEach((char) => {
@@ -297,9 +307,7 @@ export function renderGallery() {
             ? 'Generator'
             : escapeHtml(item.characterName || 'Unknown Character');
 
-        const icon = item.isGeneratorAsset
-            ? '🎞️'
-            : escapeHtml(item.characterAvatar || '🤖');
+        const icon = item.isGeneratorAsset ? '🎞️' : escapeHtml(item.characterAvatar || '🤖');
 
         const detail = item.isGeneratorAsset
             ? escapeHtml(item.prompt || 'Generated asset')

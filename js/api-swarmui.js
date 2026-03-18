@@ -65,16 +65,25 @@ function parseModels(data) {
     let models = [];
 
     if (data.models && Array.isArray(data.models)) {
-        models = data.models.map(model => typeof model === 'string' ? model : (model.name || model.title || JSON.stringify(model)));
+        models = data.models.map((model) =>
+            typeof model === 'string' ? model : model.name || model.title || JSON.stringify(model)
+        );
     } else if (data.files && Array.isArray(data.files)) {
         models = data.files
-            .map(file => typeof file === 'string' ? file : (file.name || file.title || file.path || null))
-            .filter(file => file && typeof file === 'string' && (file.endsWith('.safetensors') || file.endsWith('.ckpt') || !file.includes('.')));
+            .map((file) =>
+                typeof file === 'string' ? file : file.name || file.title || file.path || null
+            )
+            .filter(
+                (file) =>
+                    file &&
+                    typeof file === 'string' &&
+                    (file.endsWith('.safetensors') || file.endsWith('.ckpt') || !file.includes('.'))
+            );
     } else if (typeof data === 'object' && data) {
         for (const key of Object.keys(data)) {
             if (!Array.isArray(data[key])) continue;
             const candidates = data[key]
-                .map(item => {
+                .map((item) => {
                     if (typeof item === 'string') return item;
                     if (typeof item === 'object' && item !== null) {
                         return item.name || item.title || item.path || null;
@@ -96,7 +105,7 @@ function parseModels(data) {
 function renderModels(models, preferredModel) {
     elements.swarmModel.innerHTML = '<option value="">Select a model...</option>';
 
-    models.forEach(model => {
+    models.forEach((model) => {
         const option = document.createElement('option');
         option.value = model;
         option.textContent = model;
@@ -202,11 +211,21 @@ export async function getSwarmSession() {
 }
 
 function buildSwarmPayload(options = {}) {
-    const batchCount = Number.isFinite(options.batchCount) ? Math.max(1, Math.min(4, Math.trunc(options.batchCount))) : 1;
-    const width = Number.isFinite(options.width) ? Math.trunc(options.width) : parseInt(elements.imgWidth.value, 10);
-    const height = Number.isFinite(options.height) ? Math.trunc(options.height) : parseInt(elements.imgHeight.value, 10);
-    const steps = Number.isFinite(options.steps) ? Math.trunc(options.steps) : parseInt(elements.steps.value, 10);
-    const cfgScale = Number.isFinite(options.cfgScale) ? options.cfgScale : parseFloat(elements.cfgScale.value);
+    const batchCount = Number.isFinite(options.batchCount)
+        ? Math.max(1, Math.min(4, Math.trunc(options.batchCount)))
+        : 1;
+    const width = Number.isFinite(options.width)
+        ? Math.trunc(options.width)
+        : parseInt(elements.imgWidth.value, 10);
+    const height = Number.isFinite(options.height)
+        ? Math.trunc(options.height)
+        : parseInt(elements.imgHeight.value, 10);
+    const steps = Number.isFinite(options.steps)
+        ? Math.trunc(options.steps)
+        : parseInt(elements.steps.value, 10);
+    const cfgScale = Number.isFinite(options.cfgScale)
+        ? options.cfgScale
+        : parseFloat(elements.cfgScale.value);
     const sampler = normalizeSwarmSampler(options.sampler || elements.sampler.value);
     const seedMode = options.seedMode || 'random';
     const baseSeed = Number.isFinite(options.baseSeed) ? Math.trunc(options.baseSeed) : 1;
@@ -216,9 +235,10 @@ function buildSwarmPayload(options = {}) {
         images: batchCount,
         batchsize: String(batchCount),
         prompt: options.prompt,
-        negativeprompt: typeof options.negativePrompt === 'string'
-            ? options.negativePrompt
-            : ' (bad quality:1.15), (worst quality:1.3)',
+        negativeprompt:
+            typeof options.negativePrompt === 'string'
+                ? options.negativePrompt
+                : ' (bad quality:1.15), (worst quality:1.3)',
         model: options.model || elements.swarmModel.value,
         width,
         height,
@@ -264,7 +284,9 @@ export async function generateLocalImages(options = {}) {
         }
 
         if (!response.ok) {
-            throw new Error(await extractResponseError(response, 'Failed to generate image after retry'));
+            throw new Error(
+                await extractResponseError(response, 'Failed to generate image after retry')
+            );
         }
 
         const data = await response.json();
@@ -275,7 +297,10 @@ export async function generateLocalImages(options = {}) {
 
         return images.map((imagePath, index) => ({
             url: `${url}/${imagePath}`,
-            seed: payload.seed === -1 ? null : payload.seed + (options.seedMode === 'increment' ? index : 0)
+            seed:
+                payload.seed === -1
+                    ? null
+                    : payload.seed + (options.seedMode === 'increment' ? index : 0)
         }));
     } catch (error) {
         console.error('Error generating Swarm image batch:', error);

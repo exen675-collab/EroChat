@@ -6,7 +6,9 @@ import { generateLocalImage, generateLocalImages } from './api-swarmui.js';
 import { normalizeImageProvider } from './utils.js';
 
 export async function generateImage(prompt, width = null, height = null) {
-    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    const imageProvider = normalizeImageProvider(
+        elements.imageProvider.value || state.settings.imageProvider || 'swarm'
+    );
     if (imageProvider === 'premium') {
         try {
             elements.imageIndicator.classList.remove('hidden');
@@ -24,7 +26,9 @@ export async function generateImage(prompt, width = null, height = null) {
 }
 
 export async function generateImageBatch(options = {}) {
-    const imageProvider = normalizeImageProvider(options.provider || elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    const imageProvider = normalizeImageProvider(
+        options.provider || elements.imageProvider.value || state.settings.imageProvider || 'swarm'
+    );
     if (imageProvider === 'premium' || imageProvider === 'grok') {
         try {
             elements.imageIndicator.classList.remove('hidden');

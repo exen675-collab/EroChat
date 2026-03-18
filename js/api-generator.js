@@ -1,6 +1,11 @@
 import { state } from './state.js';
 import { generateComfyImages } from './api-comfyui.js';
-import { editGrokImage, generateGrokImages, generateGrokVideo, resumeGrokVideoStatus } from './api-grok.js';
+import {
+    editGrokImage,
+    generateGrokImages,
+    generateGrokVideo,
+    resumeGrokVideoStatus
+} from './api-grok.js';
 import { generateLocalImages } from './api-swarmui.js';
 import { persistImageForStorage, persistVideoForStorage } from './media.js';
 
@@ -85,9 +90,7 @@ async function persistGeneratedImages(results, request, metadataBuilder = () => 
     for (let index = 0; index < results.length; index += 1) {
         const result = results[index];
         const storedUrl = await persistImageForStorage(result.url);
-        assets.push(
-            imageAssetPayload(storedUrl, request, metadataBuilder(result, index))
-        );
+        assets.push(imageAssetPayload(storedUrl, request, metadataBuilder(result, index)));
     }
     return assets;
 }
@@ -96,9 +99,7 @@ export async function executeGeneratorJob(job) {
     const request = job.requestJson || {};
 
     if (job.mode === 'image_generate' && (job.provider === 'swarm' || job.provider === 'comfy')) {
-        const generateImages = job.provider === 'comfy'
-            ? generateComfyImages
-            : generateLocalImages;
+        const generateImages = job.provider === 'comfy' ? generateComfyImages : generateLocalImages;
         const results = await generateImages({
             prompt: job.prompt,
             negativePrompt: job.negativePrompt || request.negativePrompt || '',
@@ -146,7 +147,9 @@ export async function executeGeneratorJob(job) {
     }
 
     if (job.mode === 'image_edit') {
-        const sourceUrls = Array.isArray(request.sourceUrls) ? request.sourceUrls.filter(Boolean).slice(0, 3) : [];
+        const sourceUrls = Array.isArray(request.sourceUrls)
+            ? request.sourceUrls.filter(Boolean).slice(0, 3)
+            : [];
         const results = await editGrokImage({
             prompt: job.prompt,
             image: sourceUrls[0] || null,
@@ -222,7 +225,12 @@ export async function pollVideoGeneratorJob(job) {
         };
     }
 
-    if (status.status === 'failed' || status.status === 'error' || status.status === 'cancelled' || status.status === 'expired') {
+    if (
+        status.status === 'failed' ||
+        status.status === 'error' ||
+        status.status === 'cancelled' ||
+        status.status === 'expired'
+    ) {
         return {
             done: true,
             failed: true,

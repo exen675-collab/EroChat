@@ -8,29 +8,29 @@ let fetchedModels = [];
 // Filter and populate models based on search query
 function filterAndPopulateModels(searchQuery = '', preferredModelId = null) {
     const query = searchQuery.toLowerCase().trim();
-    const previousValue = preferredModelId || elements.openrouterModel.value || state.settings.openrouterModel;
+    const previousValue =
+        preferredModelId || elements.openrouterModel.value || state.settings.openrouterModel;
 
     // Clear current options
     elements.openrouterModel.innerHTML = '<option value="">Select a model...</option>';
 
     // Filter models
     const filteredModels = query
-        ? fetchedModels.filter(model =>
-            model.name.toLowerCase().includes(query) ||
-            model.id.toLowerCase().includes(query)
-        )
+        ? fetchedModels.filter(
+              (model) =>
+                  model.name.toLowerCase().includes(query) || model.id.toLowerCase().includes(query)
+          )
         : fetchedModels;
 
     // Populate select with filtered models
-    filteredModels.forEach(model => {
+    filteredModels.forEach((model) => {
         const option = document.createElement('option');
         option.value = model.id;
         option.textContent = `${model.name} (${model.id})`;
         elements.openrouterModel.appendChild(option);
     });
 
-
-    if (previousValue && filteredModels.some(model => model.id === previousValue)) {
+    if (previousValue && filteredModels.some((model) => model.id === previousValue)) {
         elements.openrouterModel.value = previousValue;
     }
 
@@ -71,7 +71,7 @@ export async function fetchOpenRouterModels(silent = false) {
         const response = await fetch('https://openrouter.ai/api/v1/models', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                Authorization: `Bearer ${apiKey}`,
                 'HTTP-Referer': window.location.href,
                 'X-Title': 'EroChat'
             }
@@ -93,7 +93,6 @@ export async function fetchOpenRouterModels(silent = false) {
         filterAndPopulateModels('', state.settings.openrouterModel);
 
         if (!silent) alert(`Successfully fetched ${fetchedModels.length} models from OpenRouter!`);
-
     } catch (error) {
         console.error('Error fetching OpenRouter models:', error);
         if (!silent) alert('Failed to fetch models: ' + error.message);
@@ -113,7 +112,7 @@ export async function sendOpenRouterChatRequest(apiMessages) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.openrouterKey.value}`,
+            Authorization: `Bearer ${elements.openrouterKey.value}`,
             'HTTP-Referer': window.location.href,
             'X-Title': 'EroChat'
         },
@@ -143,9 +142,13 @@ export async function sendChatRequest(apiMessages) {
     return sendOpenRouterChatRequest(apiMessages);
 }
 
-
 // Generate a high-quality system prompt for a character using Claude 4.5 Sonnet via OpenRouter
-async function generateCharacterSystemPromptOpenRouter({ name, description, background, userInfo }) {
+async function generateCharacterSystemPromptOpenRouter({
+    name,
+    description,
+    background,
+    userInfo
+}) {
     const generatorModel = 'anthropic/claude-sonnet-4.5';
     var ROLEPLAY_TEMPLATE = `
     # SYSTEM PROMPT – Roleplay Agent
@@ -184,12 +187,12 @@ async function generateCharacterSystemPromptOpenRouter({ name, description, back
     ---IMAGE_PROMPT START---
     masterpiece, best_quality, ...
     ---IMAGE_PROMPT END---
-    `
+    `;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${elements.openrouterKey.value}`,
+            Authorization: `Bearer ${elements.openrouterKey.value}`,
             'HTTP-Referer': window.location.href,
             'X-Title': 'EroChat'
         },
@@ -199,7 +202,8 @@ async function generateCharacterSystemPromptOpenRouter({ name, description, back
             messages: [
                 {
                     role: 'system',
-                    content: 'Jesteś edytorem promptów. Otrzymujesz TEMPLATE z placeholderami {{PLACEHOLDER}} oraz DANE POSTACI. Wypełnij wszystkie placeholdery odpowiednimi danymi. Zachowaj oryginalną strukturę i formatowanie. Zwróć TYLKO wypełniony prompt, bez żadnych komentarzy. Prompt będzie słózył do erotycznego roleplay. Masz odrobine dowolnosci do edycji ogrinalnego promptu tak zeby pasował pod dane które zostaną ci wysłane.'
+                    content:
+                        'Jesteś edytorem promptów. Otrzymujesz TEMPLATE z placeholderami {{PLACEHOLDER}} oraz DANE POSTACI. Wypełnij wszystkie placeholdery odpowiednimi danymi. Zachowaj oryginalną strukturę i formatowanie. Zwróć TYLKO wypełniony prompt, bez żadnych komentarzy. Prompt będzie słózył do erotycznego roleplay. Masz odrobine dowolnosci do edycji ogrinalnego promptu tak zeby pasował pod dane które zostaną ci wysłane.'
                 },
                 {
                     role: 'user',
@@ -252,7 +256,8 @@ async function generateCharacterSystemPromptGrok({ name, description, background
         [
             {
                 role: 'system',
-                content: 'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
+                content:
+                    'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
             },
             {
                 role: 'user',

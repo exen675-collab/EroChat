@@ -1,6 +1,10 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
-import { DEFAULT_GROK_TTS_OUTPUT_FORMAT, fetchGrokTtsVoices, generateGrokSpeechBlob } from './api-grok.js';
+import {
+    DEFAULT_GROK_TTS_OUTPUT_FORMAT,
+    fetchGrokTtsVoices,
+    generateGrokSpeechBlob
+} from './api-grok.js';
 import {
     DEFAULT_GROK_TTS_VOICE_ID,
     GROK_TTS_FALLBACK_VOICES,
@@ -46,15 +50,16 @@ function setAvailableVoices(voices) {
 
     const normalizedVoices = voices
         .map((voice) => ({
-            voice_id: String(voice.voice_id || '').trim().toLowerCase(),
+            voice_id: String(voice.voice_id || '')
+                .trim()
+                .toLowerCase(),
             name: String(voice.name || voice.voice_id || '').trim(),
             language: String(voice.language || 'multilingual').trim()
         }))
         .filter((voice) => voice.voice_id && voice.name);
 
-    availableTtsVoices = normalizedVoices.length > 0
-        ? normalizedVoices
-        : [...GROK_TTS_FALLBACK_VOICES];
+    availableTtsVoices =
+        normalizedVoices.length > 0 ? normalizedVoices : [...GROK_TTS_FALLBACK_VOICES];
 }
 
 function renderVoiceOptions() {
@@ -196,7 +201,9 @@ export async function initTts() {
 }
 
 export async function toggleMessageTts(messageId) {
-    const message = state.messages.find((entry) => entry.id === messageId && entry.role === 'assistant');
+    const message = state.messages.find(
+        (entry) => entry.id === messageId && entry.role === 'assistant'
+    );
     if (!message) return;
 
     const readableText = getAssistantReadableText(message.content);
@@ -206,7 +213,9 @@ export async function toggleMessageTts(messageId) {
     }
 
     if (readableText.length > MAX_GROK_TTS_TEXT_LENGTH) {
-        alert(`This message is too long for Grok TTS (${readableText.length}/${MAX_GROK_TTS_TEXT_LENGTH} characters).`);
+        alert(
+            `This message is too long for Grok TTS (${readableText.length}/${MAX_GROK_TTS_TEXT_LENGTH} characters).`
+        );
         return;
     }
 
@@ -232,16 +241,22 @@ export async function toggleMessageTts(messageId) {
         activeMessageId = messageId;
         activeAudioUrl = URL.createObjectURL(blob);
         activeAudio = new Audio(activeAudioUrl);
-        activeAudio.addEventListener('ended', () => handlePlaybackFinished(messageId), { once: true });
-        activeAudio.addEventListener('error', () => {
-            if (requestId !== playbackRequestSequence) return;
-            const failedMessageId = activeMessageId;
-            stopPlaybackOnly();
-            refreshTtsButtons();
-            if (failedMessageId) {
-                alert('Failed to play the generated speech audio.');
-            }
-        }, { once: true });
+        activeAudio.addEventListener('ended', () => handlePlaybackFinished(messageId), {
+            once: true
+        });
+        activeAudio.addEventListener(
+            'error',
+            () => {
+                if (requestId !== playbackRequestSequence) return;
+                const failedMessageId = activeMessageId;
+                stopPlaybackOnly();
+                refreshTtsButtons();
+                if (failedMessageId) {
+                    alert('Failed to play the generated speech audio.');
+                }
+            },
+            { once: true }
+        );
 
         await activeAudio.play();
         refreshTtsButtons();

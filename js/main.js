@@ -2,7 +2,15 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 import { getCurrentCharacter } from './characters.js';
-import { addUserMessageToUI, addAIMessageToUI, updateAIMessageImage, addImageToGallery, generateVideoForMessage, refreshMessageContextIndicators, removeMessageFromContext } from './messages.js';
+import {
+    addUserMessageToUI,
+    addAIMessageToUI,
+    updateAIMessageImage,
+    addImageToGallery,
+    generateVideoForMessage,
+    refreshMessageContextIndicators,
+    removeMessageFromContext
+} from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
 import { toggleAdvancedSettings, scrollToBottom, setCurrentView } from './ui.js';
@@ -20,7 +28,10 @@ import { initGenerator, refreshGeneratorView } from './generator.js';
 import { initTts, toggleMessageTts } from './tts.js';
 
 function normalizeViewFromHash(hashValue) {
-    const normalized = String(hashValue || '').replace(/^#/, '').trim().toLowerCase();
+    const normalized = String(hashValue || '')
+        .replace(/^#/, '')
+        .trim()
+        .toLowerCase();
     return ['chat', 'generator', 'gallery'].includes(normalized) ? normalized : null;
 }
 
@@ -74,7 +85,9 @@ export async function sendMessage() {
     if (!content || state.isGenerating) return;
 
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    const imageProvider = normalizeImageProvider(
+        elements.imageProvider.value || state.settings.imageProvider || 'swarm'
+    );
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
         alert('Please enter your OpenRouter API key in settings.');
@@ -88,13 +101,21 @@ export async function sendMessage() {
         return;
     }
 
-    if (state.settings.enableImageGeneration !== false && imageProvider === 'swarm' && !elements.swarmModel.value) {
+    if (
+        state.settings.enableImageGeneration !== false &&
+        imageProvider === 'swarm' &&
+        !elements.swarmModel.value
+    ) {
         alert('Please select a SwarmUI model in settings or disable image generation.');
         toggleAdvancedSettings(true);
         return;
     }
 
-    if (state.settings.enableImageGeneration !== false && imageProvider === 'comfy' && !elements.comfyModel.value) {
+    if (
+        state.settings.enableImageGeneration !== false &&
+        imageProvider === 'comfy' &&
+        !elements.comfyModel.value
+    ) {
         alert('Please select a ComfyUI checkpoint in settings or disable image generation.');
         toggleAdvancedSettings(true);
         return;
@@ -118,17 +139,28 @@ export async function sendMessage() {
         const character = getCurrentCharacter();
         const apiMessages = [
             { role: 'system', content: character.systemPrompt },
-            ...getContextMessages(state.messages, state.settings.contextMessageCount).map((m) => ({ role: m.role, content: m.content }))
+            ...getContextMessages(state.messages, state.settings.contextMessageCount).map((m) => ({
+                role: m.role,
+                content: m.content
+            }))
         ];
 
         const aiResponse = await sendChatRequest(apiMessages);
         elements.typingIndicator.classList.add('hidden');
 
-        const promptMatch = aiResponse.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/);
+        const promptMatch = aiResponse.match(
+            /---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/
+        );
         const imagePrompt = promptMatch ? promptMatch[1].trim() : null;
 
         const aiMessageId = generateId();
-        state.messages.push({ id: aiMessageId, role: 'assistant', content: aiResponse, imageUrl: null, videoUrl: null });
+        state.messages.push({
+            id: aiMessageId,
+            role: 'assistant',
+            content: aiResponse,
+            imageUrl: null,
+            videoUrl: null
+        });
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
         saveToLocalStorage();
@@ -188,7 +220,9 @@ export async function sendMessage() {
 }
 
 async function autoFetchModels() {
-    const imageProvider = normalizeImageProvider(elements.imageProvider.value || state.settings.imageProvider || 'swarm');
+    const imageProvider = normalizeImageProvider(
+        elements.imageProvider.value || state.settings.imageProvider || 'swarm'
+    );
 
     if (imageProvider === 'swarm' && elements.swarmUrl.value) {
         try {

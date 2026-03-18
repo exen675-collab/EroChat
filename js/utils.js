@@ -93,21 +93,23 @@ export function escapeHtml(text) {
 export function formatMessage(text, role = 'ai') {
     const safeText = String(text ?? '');
     const actionClass = role === 'user' ? 'chat-action user-action' : 'chat-action ai-action';
-    const withActionLineBreaks = safeText.replace(/\*([^*]+)\*/g, (match, actionText, offset, source) => {
-        const afterAction = source.slice(offset + match.length);
-        const alreadyEndsLine = /^\s*\n/.test(afterAction);
-        return `<span class="${actionClass}">${actionText}</span>${alreadyEndsLine ? '' : '\n'}`;
-    });
+    const withActionLineBreaks = safeText.replace(
+        /\*([^*]+)\*/g,
+        (match, actionText, offset, source) => {
+            const afterAction = source.slice(offset + match.length);
+            const alreadyEndsLine = /^\s*\n/.test(afterAction);
+            return `<span class="${actionClass}">${actionText}</span>${alreadyEndsLine ? '' : '\n'}`;
+        }
+    );
 
-    return withActionLineBreaks
-        .replace(/\n/g, '<br>');
+    return withActionLineBreaks.replace(/\n/g, '<br>');
 }
 
 // Update connection status indicator
 export function updateConnectionStatus(connected) {
     const dot = elements.connectionStatus.querySelector('span:first-child');
     const text = elements.connectionStatus.querySelector('span:last-child');
-    
+
     if (connected) {
         dot.className = 'w-2 h-2 rounded-full bg-green-500';
         text.textContent = 'Connected';
@@ -118,7 +120,6 @@ export function updateConnectionStatus(connected) {
         text.className = 'text-gray-400';
     }
 }
-
 
 // Normalize base URL by trimming spaces and trailing slash
 export function normalizeBaseUrl(url) {
@@ -138,13 +139,9 @@ export function stripImagePromptBlocks(text) {
 }
 
 export function getAssistantVisibleText(text, options = {}) {
-    const {
-        preserveActionMarkers = true,
-        normalizeWhitespace = false
-    } = options;
+    const { preserveActionMarkers = true, normalizeWhitespace = false } = options;
 
-    let normalized = stripImagePromptBlocks(text)
-        .replace(/\r\n?/g, '\n');
+    let normalized = stripImagePromptBlocks(text).replace(/\r\n?/g, '\n');
 
     if (!preserveActionMarkers) {
         normalized = normalized.replace(ACTION_SEGMENT_PATTERN, '$1');
@@ -171,9 +168,9 @@ export function syncSwarmSamplerSelect(select, value, fallback = 'euler_ancestra
     if (!select) return;
 
     if (select.options.length !== SWARM_SAMPLERS.length) {
-        select.innerHTML = SWARM_SAMPLERS
-            .map((sampler) => `<option value="${sampler}">${sampler}</option>`)
-            .join('');
+        select.innerHTML = SWARM_SAMPLERS.map(
+            (sampler) => `<option value="${sampler}">${sampler}</option>`
+        ).join('');
     }
 
     const nextValue = normalizeSwarmSampler(value, fallback);
@@ -203,7 +200,11 @@ export function normalizeContextMessageCount(value, fallback = 20) {
     return Math.min(100, Math.max(1, parsed));
 }
 
-export function normalizeTtsVoiceId(value, allowedVoiceIds = null, fallback = DEFAULT_GROK_TTS_VOICE_ID) {
+export function normalizeTtsVoiceId(
+    value,
+    allowedVoiceIds = null,
+    fallback = DEFAULT_GROK_TTS_VOICE_ID
+) {
     const normalized = String(value || '')
         .trim()
         .toLowerCase();
@@ -221,9 +222,7 @@ export function normalizeTtsVoiceId(value, allowedVoiceIds = null, fallback = DE
 
 export function getContextMessages(messages, contextMessageCount = 20) {
     const normalizedCount = normalizeContextMessageCount(contextMessageCount);
-    return Array.isArray(messages)
-        ? messages.slice(-normalizedCount)
-        : [];
+    return Array.isArray(messages) ? messages.slice(-normalizedCount) : [];
 }
 
 export function getContextMessageIdSet(messages, contextMessageCount = 20) {
