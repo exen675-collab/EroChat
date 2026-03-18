@@ -8,6 +8,7 @@ const multer = require('multer');
 const SQLiteStoreFactory = require('connect-sqlite3');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
+const { parseCharacterCardImportFile } = require('./character-card-import.cjs');
 
 const app = express();
 const SQLiteStore = SQLiteStoreFactory(session);
@@ -949,6 +950,40 @@ app.post('/api/media/upload', requireApiAuth, upload.single('file'), async (req,
     } catch (error) {
         console.error('Failed to store uploaded media:', error);
         res.status(400).json({ error: error.message || 'Failed to store uploaded media.' });
+    }
+});
+
+app.post('/api/characters/import-card', requireApiAuth, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        res.status(400).json({ error: 'A character card file is required.' });
+        return;
+    }
+
+    try {
+        const parsed = parseCharacterCardImportFile(req.file);
+        let thumbnailUrl = null;
+
+        if (parsed.thumbnailBuffer && parsed.thumbnailMimeType) {
+            const storedThumbnail = await storeMediaBuffer(
+                parsed.thumbnailBuffer,
+                parsed.thumbnailMimeType,
+                MAX_UPLOADED_MEDIA_BYTES
+            );
+            thumbnailUrl = storedThumbnail.url;
+        }
+
+        res.status(201).json({
+            card: parsed.card,
+            thumbnailUrl,
+            fileName: parsed.fileName,
+            warnings: parsed.warnings
+        });
+    } catch (error) {
+        const statusCode = Number.isFinite(error?.statusCode) ? error.statusCode : 400;
+        console.error('Failed to import character card:', error);
+        res.status(statusCode).json({
+            error: error?.message || 'Failed to import character card.'
+        });
     }
 });
 

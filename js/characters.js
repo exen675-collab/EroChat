@@ -299,18 +299,19 @@ export async function saveCharacter() {
     const background = elements.charBackground.value.trim();
     const userInfo = elements.charUserInfo.value.trim();
     const appearance = elements.charAppearance.value.trim();
+    const hasUsableSystemPrompt = Boolean(systemPrompt);
 
     if (!name) {
         alert('Please enter a character name.');
         return;
     }
 
-    if (!description) {
+    if (!description && !hasUsableSystemPrompt) {
         alert('Please enter a description / personality.');
         return;
     }
 
-    if (!userInfo) {
+    if (!userInfo && !hasUsableSystemPrompt) {
         alert('Please enter user info and description.');
         return;
     }

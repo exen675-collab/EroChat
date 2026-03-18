@@ -23,6 +23,7 @@ import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
 import { sendMessage } from './main.js';
+import { importCharacterCardFile } from './character-import.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -287,6 +288,37 @@ export function setupEventListeners() {
 
     // Character modal events
     elements.addCharacterBtn.addEventListener('click', () => openCharacterModal());
+    elements.importCharacterBtn.addEventListener('click', () => {
+        elements.characterImportInput.value = '';
+        elements.characterImportInput.click();
+    });
+    elements.characterImportInput.addEventListener('change', async (event) => {
+        const [file] = Array.from(event.target.files || []);
+        event.target.value = '';
+
+        if (!file) {
+            return;
+        }
+
+        const originalLabel = elements.importCharacterBtn.innerHTML;
+        elements.importCharacterBtn.disabled = true;
+        elements.importCharacterBtn.innerHTML = 'Importing...';
+
+        try {
+            const result = await importCharacterCardFile(file);
+            const warningText =
+                result.warnings.length > 0
+                    ? `\n\nWarnings:\n- ${result.warnings.join('\n- ')}`
+                    : '';
+            alert(`Imported "${result.character.name}" successfully.${warningText}`);
+        } catch (error) {
+            console.error('Character import failed:', error);
+            alert(`Failed to import character card: ${error.message}`);
+        } finally {
+            elements.importCharacterBtn.disabled = false;
+            elements.importCharacterBtn.innerHTML = originalLabel;
+        }
+    });
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
     elements.saveCharBtn.addEventListener('click', saveCharacter);

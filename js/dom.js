@@ -69,6 +69,8 @@ export const elements = {
     // Character elements
     charactersList: document.getElementById('charactersList'),
     addCharacterBtn: document.getElementById('addCharacterBtn'),
+    importCharacterBtn: document.getElementById('importCharacterBtn'),
+    characterImportInput: document.getElementById('characterImportInput'),
     characterModal: document.getElementById('characterModal'),
     closeModalBtn: document.getElementById('closeModalBtn'),
     cancelCharBtn: document.getElementById('cancelCharBtn'),
