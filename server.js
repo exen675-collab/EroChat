@@ -21,6 +21,7 @@ const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
 const GROK_API_KEY_FILE = process.env.GROK_API_KEY_FILE || path.join(ROOT_DIR, 'grok.key');
+const GENERATOR_WORKER_TOKEN = (process.env.GENERATOR_WORKER_TOKEN || '').trim();
 
 const MAX_JSON_BODY_BYTES = '25mb';
 const MAX_INLINE_MEDIA_BYTES = 10 * 1024 * 1024;
@@ -37,6 +38,7 @@ const DEFAULT_GROK_TTS_OUTPUT_FORMAT = Object.freeze({
 });
 const DEFAULT_ADMIN_USERNAME = 'admin';
 const DEFAULT_ADMIN_PASSWORD = 'admin';
+const SWARM_WORKER_STALE_JOB_MS = getIntEnv('SWARM_WORKER_STALE_JOB_MS', 15 * 60 * 1000);
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
@@ -366,6 +368,23 @@ function isTerminalGeneratorStatus(status) {
     return status === 'succeeded' || status === 'failed' || status === 'interrupted';
 }
 
+function isWorkerManagedGeneratorRow(row) {
+    return row?.provider === 'swarm' && row?.mode === 'image_generate';
+}
+
+function isReclaimableWorkerJobRow(row, now = Date.now()) {
+    if (!isWorkerManagedGeneratorRow(row) || row?.status !== 'running') {
+        return false;
+    }
+
+    const updatedAtMs = Date.parse(row.updated_at || row.updatedAt || '');
+    if (!Number.isFinite(updatedAtMs)) {
+        return true;
+    }
+
+    return now - updatedAtMs >= SWARM_WORKER_STALE_JOB_MS;
+}
+
 function mapGeneratorJobRow(row) {
     if (!row) return null;
     return {
@@ -445,6 +464,80 @@ async function getGeneratorAssetsByIds(userId, assetIds) {
     );
 
     return rows.map(mapGeneratorAssetRow);
+}
+
+async function claimNextWorkerGeneratorJob() {
+    await run('BEGIN IMMEDIATE TRANSACTION');
+
+    try {
+        const now = Date.now();
+        const staleJobs = await all(
+            `
+          SELECT * FROM generator_jobs
+          WHERE provider = 'swarm'
+            AND mode = 'image_generate'
+            AND status = 'running'
+          ORDER BY updated_at ASC, id ASC
+        `
+        );
+
+        for (const staleJob of staleJobs) {
+            if (!isReclaimableWorkerJobRow(staleJob, now)) {
+                continue;
+            }
+
+            await run(
+                `
+              UPDATE generator_jobs
+              SET
+                status = 'queued',
+                error_message = ?,
+                updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `,
+                ['Re-queued after worker timeout.', staleJob.id]
+            );
+        }
+
+        const candidate = await get(
+            `
+          SELECT * FROM generator_jobs
+          WHERE provider = 'swarm'
+            AND mode = 'image_generate'
+            AND status = 'queued'
+          ORDER BY id ASC
+          LIMIT 1
+        `
+        );
+
+        if (!candidate) {
+            await run('COMMIT');
+            return null;
+        }
+
+        await run(
+            `
+          UPDATE generator_jobs
+          SET
+            status = 'running',
+            error_message = NULL,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `,
+            [candidate.id]
+        );
+
+        const claimed = await get('SELECT * FROM generator_jobs WHERE id = ?', [candidate.id]);
+        await run('COMMIT');
+        return mapGeneratorJobRow(claimed);
+    } catch (error) {
+        try {
+            await run('ROLLBACK');
+        } catch {
+            // Ignore rollback failures.
+        }
+        throw error;
+    }
 }
 
 function isBlockedRemoteHost(hostname) {
@@ -564,6 +657,16 @@ function normalizeTtsLanguage(value) {
     return normalized || DEFAULT_GROK_TTS_LANGUAGE;
 }
 
+function getBearerToken(req) {
+    const header = typeof req.headers?.authorization === 'string' ? req.headers.authorization : '';
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    return match ? match[1].trim() : '';
+}
+
+function isWorkerTokenValid(req) {
+    return Boolean(GENERATOR_WORKER_TOKEN) && getBearerToken(req) === GENERATOR_WORKER_TOKEN;
+}
+
 function requireAuth(req, res, next) {
     if (!req.session || !req.session.userId) {
         res.redirect('/');
@@ -578,6 +681,35 @@ function requireApiAuth(req, res, next) {
         return;
     }
     next();
+}
+
+function requireWorkerAuth(req, res, next) {
+    if (!GENERATOR_WORKER_TOKEN) {
+        res.status(503).json({ error: 'Worker token is not configured.' });
+        return;
+    }
+
+    if (!isWorkerTokenValid(req)) {
+        res.status(401).json({ error: 'Unauthorized worker request.' });
+        return;
+    }
+
+    next();
+}
+
+function requireUserOrWorkerApiAuth(req, res, next) {
+    if (req.session?.userId) {
+        next();
+        return;
+    }
+
+    if (isWorkerTokenValid(req)) {
+        req.isWorkerRequest = true;
+        next();
+        return;
+    }
+
+    res.status(401).json({ error: 'Unauthorized.' });
 }
 
 async function requireAdmin(req, res, next) {
@@ -934,7 +1066,7 @@ app.post('/api/media/store', requireApiAuth, async (req, res) => {
     }
 });
 
-app.post('/api/media/upload', requireApiAuth, upload.single('file'), async (req, res) => {
+app.post('/api/media/upload', requireUserOrWorkerApiAuth, upload.single('file'), async (req, res) => {
     if (!req.file) {
         res.status(400).json({ error: 'A media file is required.' });
         return;
@@ -1418,6 +1550,210 @@ app.get('/api/premium/video/:requestId', requireApiAuth, async (req, res) => {
     }
 });
 
+async function handleGeneratorJobPatch(req, res, options = {}) {
+    const isWorkerRequest = options.isWorkerRequest === true;
+    const requestedJobId = Number.parseInt(req.params?.jobId ?? req.body?.jobId, 10);
+    if (!Number.isFinite(requestedJobId) || requestedJobId <= 0) {
+        res.status(400).json({ error: 'Invalid generator job ID.' });
+        return;
+    }
+
+    try {
+        const existing = isWorkerRequest
+            ? await get('SELECT * FROM generator_jobs WHERE id = ?', [requestedJobId])
+            : await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [
+                  requestedJobId,
+                  req.session.userId
+              ]);
+
+        if (!existing) {
+            res.status(404).json({ error: 'Generator job not found.' });
+            return;
+        }
+
+        if (isWorkerRequest && !isWorkerManagedGeneratorRow(existing)) {
+            res.status(403).json({ error: 'Worker can only update Swarm generator jobs.' });
+            return;
+        }
+
+        const status =
+            req.body?.status == null ? existing.status : normalizeGeneratorStatus(req.body.status);
+        if (!status) {
+            res.status(400).json({ error: 'Invalid generator job status.' });
+            return;
+        }
+
+        const providerRequestId =
+            req.body?.providerRequestId === null
+                ? null
+                : typeof req.body?.providerRequestId === 'string' &&
+                    req.body.providerRequestId.trim()
+                  ? req.body.providerRequestId.trim()
+                  : existing.provider_request_id;
+
+        const errorMessage =
+            req.body?.errorMessage === null
+                ? null
+                : typeof req.body?.errorMessage === 'string' && req.body.errorMessage.trim()
+                  ? req.body.errorMessage.trim()
+                  : existing.error_message;
+
+        const requestJson =
+            req.body?.requestJson &&
+            typeof req.body.requestJson === 'object' &&
+            !Array.isArray(req.body.requestJson)
+                ? req.body.requestJson
+                : parseJsonObject(existing.request_json);
+
+        const creditsCharged = Number.isFinite(req.body?.creditsCharged)
+            ? Math.max(0, Math.trunc(req.body.creditsCharged))
+            : Number.isFinite(existing.credits_charged)
+              ? existing.credits_charged
+              : 0;
+
+        const assetInputs = Array.isArray(req.body?.assets) ? req.body.assets : [];
+        const insertedAssetIds = [];
+
+        for (const assetInput of assetInputs) {
+            const mediaType =
+                assetInput?.mediaType === 'video'
+                    ? 'video'
+                    : assetInput?.mediaType === 'image'
+                      ? 'image'
+                      : null;
+            const url = typeof assetInput?.url === 'string' ? assetInput.url.trim() : '';
+            const thumbnailUrl =
+                typeof assetInput?.thumbnailUrl === 'string' && assetInput.thumbnailUrl.trim()
+                    ? assetInput.thumbnailUrl.trim()
+                    : null;
+
+            if (!mediaType || !url || !url.startsWith('/app/media/')) {
+                res.status(400).json({
+                    error: 'Generator assets must use stored /app/media/ URLs.'
+                });
+                return;
+            }
+
+            const width = Number.isFinite(assetInput?.width)
+                ? Math.max(0, Math.trunc(assetInput.width))
+                : null;
+            const height = Number.isFinite(assetInput?.height)
+                ? Math.max(0, Math.trunc(assetInput.height))
+                : null;
+            const durationSeconds = Number.isFinite(assetInput?.durationSeconds)
+                ? Math.max(0, Math.trunc(assetInput.durationSeconds))
+                : null;
+            const metadata =
+                assetInput?.metadata &&
+                typeof assetInput.metadata === 'object' &&
+                !Array.isArray(assetInput.metadata)
+                    ? assetInput.metadata
+                    : {};
+
+            const result = await run(
+                `
+          INSERT INTO generator_assets (
+            job_id,
+            user_id,
+            media_type,
+            url,
+            thumbnail_url,
+            width,
+            height,
+            duration_seconds,
+            source,
+            metadata_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'generator', ?)
+        `,
+                [
+                    requestedJobId,
+                    existing.user_id,
+                    mediaType,
+                    url,
+                    thumbnailUrl,
+                    width,
+                    height,
+                    durationSeconds,
+                    stringifyJson(metadata, {})
+                ]
+            );
+
+            insertedAssetIds.push(result.lastID);
+        }
+
+        const existingResultAssetIds = normalizeIntegerArray(existing.result_asset_ids);
+        const resultAssetIds = Array.isArray(req.body?.resultAssetIds)
+            ? Array.from(
+                  new Set(
+                      req.body.resultAssetIds
+                          .map((value) => Number.parseInt(value, 10))
+                          .filter((value) => Number.isFinite(value) && value > 0)
+                  )
+              )
+            : Array.from(new Set([...existingResultAssetIds, ...insertedAssetIds]));
+
+        let completedAt = existing.completed_at || null;
+        if (req.body?.completedAt === null) {
+            completedAt = null;
+        } else if (typeof req.body?.completedAt === 'string' && req.body.completedAt.trim()) {
+            completedAt = req.body.completedAt.trim();
+        } else if (isTerminalGeneratorStatus(status) && !completedAt) {
+            completedAt = new Date().toISOString();
+        }
+
+        await run(
+            `
+        UPDATE generator_jobs
+        SET
+          status = ?,
+          provider_request_id = ?,
+          request_json = ?,
+          result_asset_ids = ?,
+          error_message = ?,
+          credits_charged = ?,
+          updated_at = CURRENT_TIMESTAMP,
+          completed_at = ?
+        WHERE id = ?
+      `,
+            [
+                status,
+                providerRequestId,
+                stringifyJson(requestJson, {}),
+                stringifyJson(resultAssetIds, []),
+                errorMessage,
+                creditsCharged,
+                completedAt,
+                requestedJobId
+            ]
+        );
+
+        const updatedJob = await get('SELECT * FROM generator_jobs WHERE id = ?', [requestedJobId]);
+        const createdAssets = await getGeneratorAssetsByIds(existing.user_id, insertedAssetIds);
+
+        res.json({
+            job: mapGeneratorJobRow(updatedJob),
+            assets: createdAssets
+        });
+    } catch (error) {
+        console.error('Failed to update generator job:', error);
+        res.status(500).json({ error: 'Failed to update generator job.' });
+    }
+}
+
+app.post('/api/generator/worker/jobs/claim', requireWorkerAuth, async (req, res) => {
+    try {
+        const job = await claimNextWorkerGeneratorJob();
+        res.json({ job });
+    } catch (error) {
+        console.error('Failed to claim worker generator job:', error);
+        res.status(500).json({ error: 'Failed to claim generator job.' });
+    }
+});
+
+app.patch('/api/generator/worker/jobs/:jobId', requireWorkerAuth, async (req, res) => {
+    await handleGeneratorJobPatch(req, res, { isWorkerRequest: true });
+});
+
 app.get('/api/generator/jobs', requireApiAuth, async (req, res) => {
     const userId = req.session.userId;
     const limit = normalizePositiveInt(req.query?.limit, 40, 1, 100);
@@ -1457,6 +1793,31 @@ app.get('/api/generator/jobs', requireApiAuth, async (req, res) => {
     } catch (error) {
         console.error('Failed to load generator jobs:', error);
         res.status(500).json({ error: 'Failed to load generator jobs.' });
+    }
+});
+
+app.get('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const jobId = Number.parseInt(req.params?.jobId, 10);
+    if (!Number.isFinite(jobId) || jobId <= 0) {
+        res.status(400).json({ error: 'Invalid generator job ID.' });
+        return;
+    }
+
+    try {
+        const row = await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [
+            jobId,
+            userId
+        ]);
+        if (!row) {
+            res.status(404).json({ error: 'Generator job not found.' });
+            return;
+        }
+
+        res.json({ job: mapGeneratorJobRow(row) });
+    } catch (error) {
+        console.error('Failed to load generator job:', error);
+        res.status(500).json({ error: 'Failed to load generator job.' });
     }
 });
 
@@ -1559,189 +1920,7 @@ app.post('/api/generator/jobs', requireApiAuth, async (req, res) => {
 });
 
 app.patch('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
-    const userId = req.session.userId;
-    const jobId = Number.parseInt(req.params?.jobId, 10);
-    if (!Number.isFinite(jobId) || jobId <= 0) {
-        res.status(400).json({ error: 'Invalid generator job ID.' });
-        return;
-    }
-
-    try {
-        const existing = await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [
-            jobId,
-            userId
-        ]);
-        if (!existing) {
-            res.status(404).json({ error: 'Generator job not found.' });
-            return;
-        }
-
-        const status =
-            req.body?.status == null ? existing.status : normalizeGeneratorStatus(req.body.status);
-        if (!status) {
-            res.status(400).json({ error: 'Invalid generator job status.' });
-            return;
-        }
-
-        const providerRequestId =
-            req.body?.providerRequestId === null
-                ? null
-                : typeof req.body?.providerRequestId === 'string' &&
-                    req.body.providerRequestId.trim()
-                  ? req.body.providerRequestId.trim()
-                  : existing.provider_request_id;
-
-        const errorMessage =
-            req.body?.errorMessage === null
-                ? null
-                : typeof req.body?.errorMessage === 'string' && req.body.errorMessage.trim()
-                  ? req.body.errorMessage.trim()
-                  : existing.error_message;
-
-        const requestJson =
-            req.body?.requestJson &&
-            typeof req.body.requestJson === 'object' &&
-            !Array.isArray(req.body.requestJson)
-                ? req.body.requestJson
-                : parseJsonObject(existing.request_json);
-
-        const creditsCharged = Number.isFinite(req.body?.creditsCharged)
-            ? Math.max(0, Math.trunc(req.body.creditsCharged))
-            : Number.isFinite(existing.credits_charged)
-              ? existing.credits_charged
-              : 0;
-
-        const assetInputs = Array.isArray(req.body?.assets) ? req.body.assets : [];
-        const insertedAssetIds = [];
-
-        for (const assetInput of assetInputs) {
-            const mediaType =
-                assetInput?.mediaType === 'video'
-                    ? 'video'
-                    : assetInput?.mediaType === 'image'
-                      ? 'image'
-                      : null;
-            const url = typeof assetInput?.url === 'string' ? assetInput.url.trim() : '';
-            const thumbnailUrl =
-                typeof assetInput?.thumbnailUrl === 'string' && assetInput.thumbnailUrl.trim()
-                    ? assetInput.thumbnailUrl.trim()
-                    : null;
-
-            if (!mediaType || !url || !url.startsWith('/app/media/')) {
-                res.status(400).json({
-                    error: 'Generator assets must use stored /app/media/ URLs.'
-                });
-                return;
-            }
-
-            const width = Number.isFinite(assetInput?.width)
-                ? Math.max(0, Math.trunc(assetInput.width))
-                : null;
-            const height = Number.isFinite(assetInput?.height)
-                ? Math.max(0, Math.trunc(assetInput.height))
-                : null;
-            const durationSeconds = Number.isFinite(assetInput?.durationSeconds)
-                ? Math.max(0, Math.trunc(assetInput.durationSeconds))
-                : null;
-            const metadata =
-                assetInput?.metadata &&
-                typeof assetInput.metadata === 'object' &&
-                !Array.isArray(assetInput.metadata)
-                    ? assetInput.metadata
-                    : {};
-
-            const result = await run(
-                `
-          INSERT INTO generator_assets (
-            job_id,
-            user_id,
-            media_type,
-            url,
-            thumbnail_url,
-            width,
-            height,
-            duration_seconds,
-            source,
-            metadata_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'generator', ?)
-        `,
-                [
-                    jobId,
-                    userId,
-                    mediaType,
-                    url,
-                    thumbnailUrl,
-                    width,
-                    height,
-                    durationSeconds,
-                    stringifyJson(metadata, {})
-                ]
-            );
-
-            insertedAssetIds.push(result.lastID);
-        }
-
-        const existingResultAssetIds = normalizeIntegerArray(existing.result_asset_ids);
-        const resultAssetIds = Array.isArray(req.body?.resultAssetIds)
-            ? Array.from(
-                  new Set(
-                      req.body.resultAssetIds
-                          .map((value) => Number.parseInt(value, 10))
-                          .filter((value) => Number.isFinite(value) && value > 0)
-                  )
-              )
-            : Array.from(new Set([...existingResultAssetIds, ...insertedAssetIds]));
-
-        let completedAt = existing.completed_at || null;
-        if (req.body?.completedAt === null) {
-            completedAt = null;
-        } else if (typeof req.body?.completedAt === 'string' && req.body.completedAt.trim()) {
-            completedAt = req.body.completedAt.trim();
-        } else if (isTerminalGeneratorStatus(status) && !completedAt) {
-            completedAt = new Date().toISOString();
-        }
-
-        await run(
-            `
-        UPDATE generator_jobs
-        SET
-          status = ?,
-          provider_request_id = ?,
-          request_json = ?,
-          result_asset_ids = ?,
-          error_message = ?,
-          credits_charged = ?,
-          updated_at = CURRENT_TIMESTAMP,
-          completed_at = ?
-        WHERE id = ? AND user_id = ?
-      `,
-            [
-                status,
-                providerRequestId,
-                stringifyJson(requestJson, {}),
-                stringifyJson(resultAssetIds, []),
-                errorMessage,
-                creditsCharged,
-                completedAt,
-                jobId,
-                userId
-            ]
-        );
-
-        const updatedJob = await get('SELECT * FROM generator_jobs WHERE id = ? AND user_id = ?', [
-            jobId,
-            userId
-        ]);
-        const createdAssets = await getGeneratorAssetsByIds(userId, insertedAssetIds);
-
-        res.json({
-            job: mapGeneratorJobRow(updatedJob),
-            assets: createdAssets
-        });
-    } catch (error) {
-        console.error('Failed to update generator job:', error);
-        res.status(500).json({ error: 'Failed to update generator job.' });
-    }
+    await handleGeneratorJobPatch(req, res, { isWorkerRequest: false });
 });
 
 app.get('/api/generator/assets', requireApiAuth, async (req, res) => {

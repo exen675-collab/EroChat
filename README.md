@@ -50,6 +50,7 @@ Open:
     - `CREDIT_COST_GROK_CHAT` (default: 1)
     - `CREDIT_COST_GROK_IMAGE` (default: 2)
     - `CREDIT_COST_GROK_VIDEO` (default: 3)
+    - `GENERATOR_WORKER_TOKEN` (required if you want a remote SwarmUI worker)
 
 ## Run without Docker
 
@@ -83,6 +84,45 @@ npm run test:watch
 - `lint` checks the server, frontend modules, config files, and tests with ESLint
 - `format` runs Prettier across the repo
 - `test` runs the Vitest unit suite in JSDOM
+
+## Remote SwarmUI worker
+
+SwarmUI image-generation jobs can now run through a separate Python worker instead of the browser.
+
+Server-side requirements:
+
+- Set `GENERATOR_WORKER_TOKEN` on the EroChat server
+- Keep using the normal generator UI in the app to queue `SwarmUI` image jobs
+
+Worker script:
+
+- Path: `scripts/swarm_worker.py`
+- Python 3 standard-library only, no extra package install required
+
+Example:
+
+```bash
+python scripts/swarm_worker.py \
+  --app-url http://your-hosted-erochat:20121 \
+  --worker-token YOUR_SHARED_WORKER_TOKEN \
+  --swarm-url http://127.0.0.1:7801
+```
+
+Useful env vars for the worker:
+
+- `EROCHAT_APP_URL`
+- `EROCHAT_WORKER_TOKEN`
+- `SWARMUI_URL`
+- `EROCHAT_POLL_INTERVAL`
+- `EROCHAT_WORKER_NAME`
+
+Worker behavior:
+
+- polls the app for queued Swarm jobs
+- claims one job atomically
+- runs the prompt through local SwarmUI
+- uploads generated media back to the app
+- marks the job as `succeeded` or `failed`
 
 ## Setup in the app
 

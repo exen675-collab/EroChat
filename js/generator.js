@@ -21,6 +21,11 @@ import {
 } from './prompt-helper.js';
 import { uploadFileForStorage } from './media.js';
 import { normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
+import {
+    isRemoteSwarmJob,
+    shouldExecuteGeneratorJobLocally,
+    shouldMarkGeneratorJobInterruptedOnReload
+} from './generator-queue.js';
 
 let elements = null;
 let initialized = false;
@@ -408,6 +413,7 @@ function buildJobRequests() {
                 providerModel: provider === 'comfy' ? 'comfyui' : 'swarmui',
                 requestJson: {
                     batchCount: 1,
+                    model: provider === 'swarm' ? state.settings.swarmModel || '' : '',
                     width: state.generatorPrefs.swarmWidth,
                     height: state.generatorPrefs.swarmHeight,
                     steps: state.generatorPrefs.swarmSteps,
@@ -534,7 +540,7 @@ async function processGeneratorQueue() {
     try {
         while (true) {
             const nextJob = [...state.generatorJobs]
-                .filter((job) => job.status === 'queued')
+                .filter((job) => job.status === 'queued' && shouldExecuteGeneratorJobLocally(job))
                 .sort((a, b) => a.id - b.id)[0];
             if (!nextJob) break;
 
@@ -579,6 +585,9 @@ async function handleSubmit() {
     const payload = await createGeneratorJobs(jobsToCreate);
     upsertJobs(payload.jobs || []);
     renderAll();
+    if (jobsToCreate.some((job) => isRemoteSwarmJob(job))) {
+        setHelperStatus('SwarmUI jobs were queued for the remote worker.');
+    }
     processGeneratorQueue();
 }
 
@@ -867,8 +876,8 @@ async function resumePendingJobs() {
     const pollingJobs = state.generatorJobs.filter(
         (job) => job.status === 'polling' && job.providerRequestId
     );
-    const interruptedJobs = state.generatorJobs.filter(
-        (job) => job.status === 'running' && !job.providerRequestId
+    const interruptedJobs = state.generatorJobs.filter((job) =>
+        shouldMarkGeneratorJobInterruptedOnReload(job)
     );
 
     for (const job of interruptedJobs) {

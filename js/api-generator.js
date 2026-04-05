@@ -62,6 +62,12 @@ export async function fetchGeneratorJobs(params = {}) {
     return jsonRequest(`/api/generator/jobs${suffix}`, { method: 'GET' });
 }
 
+export async function fetchGeneratorJob(jobId) {
+    return jsonRequest(`/api/generator/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'GET'
+    });
+}
+
 export async function fetchGeneratorAssets(params = {}) {
     const query = new URLSearchParams();
     if (params.limit) query.set('limit', String(params.limit));
