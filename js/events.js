@@ -22,7 +22,7 @@ import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages } from './messages.js';
-import { sendMessage } from './main.js';
+import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
 import { importCharacterCardFile } from './character-import.js';
 
 function closeSettingsPanel() {
@@ -122,7 +122,10 @@ export function setupEventListeners() {
     });
 
     // Textarea auto-resize
-    elements.messageInput.addEventListener('input', ui.autoResizeTextarea);
+    elements.messageInput.addEventListener('input', () => {
+        ui.autoResizeTextarea();
+        updateRequestPreviewButtonState();
+    });
 
     // Send message on Enter (not Shift+Enter)
     elements.messageInput.addEventListener('keydown', (e) => {
@@ -134,6 +137,7 @@ export function setupEventListeners() {
 
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
+    elements.previewRequestBtn.addEventListener('click', openRequestPreview);
 
     // Chat media lightbox
     elements.chatContainer.addEventListener('click', (e) => {
@@ -224,6 +228,11 @@ export function setupEventListeners() {
 
         if (e.key === 'Escape' && !elements.galleryLightbox.classList.contains('hidden')) {
             closeLightbox();
+            return;
+        }
+
+        if (e.key === 'Escape' && !elements.requestPreviewModal.classList.contains('hidden')) {
+            ui.closeRequestPreviewModal();
         }
     });
 
@@ -320,6 +329,15 @@ export function setupEventListeners() {
         }
     });
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);
+    elements.closeRequestPreviewBtn.addEventListener('click', ui.closeRequestPreviewModal);
+    elements.copyRequestPreviewBtn.addEventListener('click', async () => {
+        try {
+            await ui.copyCurrentChatRequestPreview();
+        } catch (error) {
+            console.error('Request preview copy failed:', error);
+            alert(`Failed to copy request: ${error.message}`);
+        }
+    });
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
     elements.saveCharBtn.addEventListener('click', saveCharacter);
     elements.generateThumbnailBtn.addEventListener('click', generateThumbnail);
@@ -329,6 +347,11 @@ export function setupEventListeners() {
     elements.characterModal.addEventListener('click', (e) => {
         if (e.target === elements.characterModal) {
             closeCharacterModal();
+        }
+    });
+    elements.requestPreviewModal.addEventListener('click', (e) => {
+        if (e.target === elements.requestPreviewModal) {
+            ui.closeRequestPreviewModal();
         }
     });
 

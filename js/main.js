@@ -13,8 +13,13 @@ import {
 } from './messages.js';
 import { generateImage } from './api-image.js';
 import { sendChatRequest } from './api-openrouter.js';
-import { toggleAdvancedSettings, scrollToBottom, setCurrentView } from './ui.js';
-import { escapeHtml, generateId, getContextMessages, normalizeImageProvider } from './utils.js';
+import {
+    toggleAdvancedSettings,
+    scrollToBottom,
+    setCurrentView,
+    showChatRequestPreview
+} from './ui.js';
+import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { regenerateImage } from './messages.js';
@@ -26,6 +31,40 @@ import { fetchCreditsSummary } from './api-grok.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
 import { initTts, toggleMessageTts } from './tts.js';
+import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
+
+export function updateRequestPreviewButtonState() {
+    if (!elements.previewRequestBtn) return;
+
+    const shouldEnable = canPreviewChatRequest(elements.messageInput.value, state.isGenerating);
+    elements.previewRequestBtn.disabled = !shouldEnable;
+    elements.previewRequestBtn.classList.toggle('opacity-60', !shouldEnable);
+    elements.previewRequestBtn.classList.toggle('cursor-not-allowed', !shouldEnable);
+}
+
+export function buildCurrentChatRequestPreview(draftMessage = elements.messageInput.value.trim()) {
+    const character = getCurrentCharacter();
+
+    return buildChatRequestPreview({
+        textProvider: elements.textProvider.value || state.settings.textProvider || 'premium',
+        draftMessage,
+        systemPrompt: character?.systemPrompt || '',
+        historyMessages: state.messages,
+        contextMessageCount: state.settings.contextMessageCount,
+        openrouterKey: elements.openrouterKey.value,
+        openrouterModel: elements.openrouterModel.value,
+        currentUrl: window.location.href
+    });
+}
+
+export function openRequestPreview() {
+    const draftMessage = elements.messageInput.value.trim();
+    if (!canPreviewChatRequest(draftMessage, state.isGenerating)) {
+        return;
+    }
+
+    showChatRequestPreview(buildCurrentChatRequestPreview(draftMessage));
+}
 
 function normalizeViewFromHash(hashValue) {
     const normalized = String(hashValue || '')
@@ -121,8 +160,11 @@ export async function sendMessage() {
         return;
     }
 
+    const requestPreview = buildCurrentChatRequestPreview(content);
+
     elements.messageInput.value = '';
     elements.messageInput.style.height = 'auto';
+    updateRequestPreviewButtonState();
 
     const userMessageId = generateId();
     state.messages.push({ id: userMessageId, role: 'user', content });
@@ -134,18 +176,10 @@ export async function sendMessage() {
     state.isGenerating = true;
     elements.sendBtn.disabled = true;
     elements.sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
+    updateRequestPreviewButtonState();
 
     try {
-        const character = getCurrentCharacter();
-        const apiMessages = [
-            { role: 'system', content: character.systemPrompt },
-            ...getContextMessages(state.messages, state.settings.contextMessageCount).map((m) => ({
-                role: m.role,
-                content: m.content
-            }))
-        ];
-
-        const aiResponse = await sendChatRequest(apiMessages);
+        const aiResponse = await sendChatRequest(requestPreview);
         elements.typingIndicator.classList.add('hidden');
 
         const promptMatch = aiResponse.match(
@@ -216,6 +250,7 @@ export async function sendMessage() {
         state.isGenerating = false;
         elements.sendBtn.disabled = false;
         elements.sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        updateRequestPreviewButtonState();
     }
 }
 
@@ -252,6 +287,7 @@ async function autoFetchModels() {
 // Initialize application
 async function init() {
     setupEventListeners();
+    updateRequestPreviewButtonState();
 
     state.currentUser = await loadCurrentUser();
     if (!state.currentUser) {

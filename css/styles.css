@@ -207,6 +207,65 @@ select:focus {
     backdrop-filter: blur(4px);
 }
 
+.request-preview-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.request-preview-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    background: rgba(7, 11, 24, 0.7);
+}
+
+.request-preview-endpoint {
+    flex: 1 1 320px;
+}
+
+.request-preview-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(148, 163, 184, 0.88);
+}
+
+.request-preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.request-preview-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #f5d0fe;
+    font-weight: 600;
+}
+
+.request-preview-code {
+    margin: 0;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(34, 211, 238, 0.16);
+    background:
+        linear-gradient(180deg, rgba(9, 14, 29, 0.96), rgba(7, 10, 21, 0.98)),
+        rgba(7, 10, 21, 0.95);
+    color: #dbeafe;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+}
+
 .spinner {
     width: 34px;
     height: 34px;

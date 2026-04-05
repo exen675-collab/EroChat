@@ -108,20 +108,32 @@ export async function fetchOpenRouterModels(silent = false) {
 }
 
 export async function sendOpenRouterChatRequest(apiMessages) {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const request =
+        apiMessages &&
+        typeof apiMessages === 'object' &&
+        !Array.isArray(apiMessages) &&
+        Array.isArray(apiMessages.body?.messages)
+            ? apiMessages
+            : {
+                  url: 'https://openrouter.ai/api/v1/chat/completions',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${elements.openrouterKey.value}`,
+                      'HTTP-Referer': window.location.href,
+                      'X-Title': 'EroChat'
+                  },
+                  body: {
+                      model: elements.openrouterModel.value,
+                      messages: apiMessages,
+                      temperature: 0.9,
+                      max_tokens: 2000
+                  }
+              };
+
+    const response = await fetch(request.url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${elements.openrouterKey.value}`,
-            'HTTP-Referer': window.location.href,
-            'X-Title': 'EroChat'
-        },
-        body: JSON.stringify({
-            model: elements.openrouterModel.value,
-            messages: apiMessages,
-            temperature: 0.9,
-            max_tokens: 2000
-        })
+        headers: request.headers,
+        body: JSON.stringify(request.body)
     });
 
     if (!response.ok) {
@@ -135,7 +147,14 @@ export async function sendOpenRouterChatRequest(apiMessages) {
 
 // Send chat completion request to selected provider
 export async function sendChatRequest(apiMessages) {
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
+    const textProvider =
+        apiMessages &&
+        typeof apiMessages === 'object' &&
+        !Array.isArray(apiMessages) &&
+        apiMessages.provider
+            ? apiMessages.provider
+            : elements.textProvider.value || state.settings.textProvider || 'premium';
+
     if (textProvider === 'premium') {
         return sendGrokChatRequest(apiMessages);
     }

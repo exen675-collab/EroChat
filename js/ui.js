@@ -9,6 +9,7 @@ const VIEW_DESCRIPTIONS = {
     generator: 'Standalone generator',
     gallery: 'Media gallery'
 };
+let currentChatRequestPreview = null;
 
 function normalizeView(view) {
     return ['chat', 'generator', 'gallery'].includes(view) ? view : 'chat';
@@ -113,8 +114,15 @@ function isAdvancedSettingsOpen() {
     );
 }
 
+function isRequestPreviewOpen() {
+    return elements.requestPreviewModal && !elements.requestPreviewModal.classList.contains('hidden');
+}
+
 function syncBodyOverlayState() {
-    document.body.classList.toggle('settings-open', isWorkspaceOpen() || isAdvancedSettingsOpen());
+    document.body.classList.toggle(
+        'settings-open',
+        isWorkspaceOpen() || isAdvancedSettingsOpen() || isRequestPreviewOpen()
+    );
 }
 
 export function ensureAdvancedSettingsModalMounted() {
@@ -162,6 +170,45 @@ export function toggleAdvancedSettings(forceOpen = null) {
     elements.advancedSettingsModal.classList.toggle('hidden', !shouldOpen);
     elements.advancedSettingsBackdrop.classList.toggle('hidden', !shouldOpen);
     syncBodyOverlayState();
+}
+
+export function closeRequestPreviewModal() {
+    if (!elements.requestPreviewModal) {
+        return;
+    }
+
+    elements.requestPreviewModal.classList.add('hidden');
+    syncBodyOverlayState();
+}
+
+export function showChatRequestPreview(preview) {
+    if (!elements.requestPreviewModal) {
+        return;
+    }
+
+    currentChatRequestPreview = preview || null;
+    elements.requestPreviewProvider.textContent =
+        preview?.provider === 'premium' ? 'Premium' : 'OpenRouter';
+    elements.requestPreviewEndpoint.textContent = `${preview?.method || 'POST'} ${preview?.url || ''}`;
+    elements.requestPreviewHeaders.textContent = JSON.stringify(preview?.headers || {}, null, 2);
+    elements.requestPreviewBody.textContent = JSON.stringify(preview?.body || {}, null, 2);
+    elements.copyRequestPreviewBtn.textContent = 'Copy request';
+    elements.requestPreviewModal.classList.remove('hidden');
+    syncBodyOverlayState();
+}
+
+export async function copyCurrentChatRequestPreview() {
+    if (!currentChatRequestPreview?.displayText || !navigator.clipboard?.writeText) {
+        throw new Error('Clipboard is not available.');
+    }
+
+    await navigator.clipboard.writeText(currentChatRequestPreview.displayText);
+    elements.copyRequestPreviewBtn.textContent = 'Copied!';
+    window.setTimeout(() => {
+        if (elements.copyRequestPreviewBtn) {
+            elements.copyRequestPreviewBtn.textContent = 'Copy request';
+        }
+    }, 1500);
 }
 
 // Auto-resize textarea as user types

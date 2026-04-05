@@ -270,12 +270,18 @@ export async function generateGrokSpeechBlob(options = {}) {
 }
 
 export async function sendGrokChatRequest(apiMessages, options = {}) {
-    const payload = {
-        model: PREMIUM_CHAT_MODEL,
-        messages: apiMessages,
-        temperature: options.temperature ?? 0.9,
-        max_tokens: options.maxTokens ?? 2000
-    };
+    const payload =
+        apiMessages &&
+        typeof apiMessages === 'object' &&
+        !Array.isArray(apiMessages) &&
+        Array.isArray(apiMessages.body?.messages)
+            ? apiMessages.body
+            : {
+                  model: PREMIUM_CHAT_MODEL,
+                  messages: apiMessages,
+                  temperature: options.temperature ?? 0.9,
+                  max_tokens: options.maxTokens ?? 2000
+              };
 
     const data = await postToGrokProxy('/api/premium/chat', payload);
     return data.choices?.[0]?.message?.content || '';
