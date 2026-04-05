@@ -10,6 +10,7 @@ const VIEW_DESCRIPTIONS = {
     gallery: 'Media gallery'
 };
 let currentChatRequestPreview = null;
+let currentEditingMessageId = null;
 
 function normalizeView(view) {
     return ['chat', 'generator', 'gallery'].includes(view) ? view : 'chat';
@@ -118,10 +119,17 @@ function isRequestPreviewOpen() {
     return elements.requestPreviewModal && !elements.requestPreviewModal.classList.contains('hidden');
 }
 
+function isEditMessageModalOpen() {
+    return elements.editMessageModal && !elements.editMessageModal.classList.contains('hidden');
+}
+
 function syncBodyOverlayState() {
     document.body.classList.toggle(
         'settings-open',
-        isWorkspaceOpen() || isAdvancedSettingsOpen() || isRequestPreviewOpen()
+        isWorkspaceOpen() ||
+            isAdvancedSettingsOpen() ||
+            isRequestPreviewOpen() ||
+            isEditMessageModalOpen()
     );
 }
 
@@ -179,6 +187,37 @@ export function closeRequestPreviewModal() {
 
     elements.requestPreviewModal.classList.add('hidden');
     syncBodyOverlayState();
+}
+
+export function closeEditMessageModal() {
+    if (!elements.editMessageModal) {
+        return;
+    }
+
+    currentEditingMessageId = null;
+    elements.editMessageTextarea.value = '';
+    elements.editMessageModal.classList.add('hidden');
+    syncBodyOverlayState();
+}
+
+export function openEditMessageModal(message) {
+    if (!elements.editMessageModal || !message) {
+        return;
+    }
+
+    currentEditingMessageId = message.id || null;
+    elements.editMessageTextarea.value = String(message.content || '');
+    elements.editMessageModal.classList.remove('hidden');
+    syncBodyOverlayState();
+    elements.editMessageTextarea.focus();
+    elements.editMessageTextarea.setSelectionRange(
+        elements.editMessageTextarea.value.length,
+        elements.editMessageTextarea.value.length
+    );
+}
+
+export function getCurrentEditingMessageId() {
+    return currentEditingMessageId;
 }
 
 export function showChatRequestPreview(preview) {

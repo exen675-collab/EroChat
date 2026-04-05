@@ -22,7 +22,7 @@ import {
 import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
-import { regenerateImage } from './messages.js';
+import { editAssistantMessage, regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
@@ -319,6 +319,7 @@ async function init() {
     window.regenerateImage = regenerateImage;
     window.generateVideoForMessage = generateVideoForMessage;
     window.removeMessageFromContext = removeMessageFromContext;
+    window.editAssistantMessage = editAssistantMessage;
     window.playMessageTts = toggleMessageTts;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;

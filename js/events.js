@@ -21,7 +21,7 @@ import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
-import { renderMessages } from './messages.js';
+import { renderMessages, saveEditedAssistantMessage } from './messages.js';
 import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
 import { importCharacterCardFile } from './character-import.js';
 
@@ -233,6 +233,11 @@ export function setupEventListeners() {
 
         if (e.key === 'Escape' && !elements.requestPreviewModal.classList.contains('hidden')) {
             ui.closeRequestPreviewModal();
+            return;
+        }
+
+        if (e.key === 'Escape' && !elements.editMessageModal.classList.contains('hidden')) {
+            ui.closeEditMessageModal();
         }
     });
 
@@ -329,6 +334,8 @@ export function setupEventListeners() {
         }
     });
     elements.closeModalBtn.addEventListener('click', closeCharacterModal);
+    elements.closeEditMessageBtn.addEventListener('click', ui.closeEditMessageModal);
+    elements.cancelEditMessageBtn.addEventListener('click', ui.closeEditMessageModal);
     elements.closeRequestPreviewBtn.addEventListener('click', ui.closeRequestPreviewModal);
     elements.copyRequestPreviewBtn.addEventListener('click', async () => {
         try {
@@ -336,6 +343,17 @@ export function setupEventListeners() {
         } catch (error) {
             console.error('Request preview copy failed:', error);
             alert(`Failed to copy request: ${error.message}`);
+        }
+    });
+    elements.saveEditMessageBtn.addEventListener('click', () => {
+        try {
+            saveEditedAssistantMessage(
+                ui.getCurrentEditingMessageId(),
+                elements.editMessageTextarea.value
+            );
+            ui.closeEditMessageModal();
+        } catch (error) {
+            alert(error.message);
         }
     });
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
@@ -352,6 +370,11 @@ export function setupEventListeners() {
     elements.requestPreviewModal.addEventListener('click', (e) => {
         if (e.target === elements.requestPreviewModal) {
             ui.closeRequestPreviewModal();
+        }
+    });
+    elements.editMessageModal.addEventListener('click', (e) => {
+        if (e.target === elements.editMessageModal) {
+            ui.closeEditMessageModal();
         }
     });
 

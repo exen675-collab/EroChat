@@ -10,6 +10,7 @@ import {
 } from './utils.js';
 import {
     scrollToBottom,
+    openEditMessageModal,
     renderGallery,
     renderGalleryCharacterFilter,
     renderGalleryThumbnailCharacterSelect
@@ -52,16 +53,36 @@ function getRemoveMessageButtonMarkup(messageId) {
     `;
 }
 
+function getEditMessageButtonMarkup(messageId) {
+    return `
+        <button onclick="window.editAssistantMessage('${messageId}')"
+            class="edit-message-btn text-xs text-gray-500 hover:text-amber-300 flex items-center gap-1 transition-colors"
+            type="button">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Edit Message
+        </button>
+    `;
+}
+
 function getMessageActionsMarkup(messageId, options = {}) {
     const {
         align = 'left',
         showRegenerate = false,
         showGenerateVideo = false,
-        showTts = false
+        showTts = false,
+        showEdit = false,
+        isEdited = false
     } = options;
 
     const alignmentClass = align === 'right' ? 'justify-end' : 'justify-between';
     const actionButtons = [];
+
+    if (showEdit) {
+        actionButtons.push(getEditMessageButtonMarkup(messageId));
+    }
 
     if (showRegenerate) {
         actionButtons.push(`
@@ -102,7 +123,14 @@ function getMessageActionsMarkup(messageId, options = {}) {
                 ${getContextBadgeMarkup(messageId)}
             `
                     : `
-                ${getContextBadgeMarkup(messageId)}
+                <div class="flex flex-wrap items-center gap-2">
+                    ${getContextBadgeMarkup(messageId)}
+                    ${
+                        isEdited
+                            ? '<span class="message-edited-badge">Edited</span>'
+                            : ''
+                    }
+                </div>
                 <div class="flex flex-wrap items-center gap-2">
                     ${actionButtons.join('')}
                 </div>
@@ -168,7 +196,7 @@ export function renderMessages() {
         if (msg.role === 'user') {
             addUserMessageToUI(msg.content, msg.id);
         } else {
-            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, msg.videoUrl || null);
+            addAIMessageToUI(msg.content, msg.imageUrl, msg.id, msg.videoUrl || null, msg.editedAt);
         }
     });
 
@@ -202,7 +230,13 @@ export function addUserMessageToUI(content, id = null) {
 }
 
 // Add AI message to UI
-export function addAIMessageToUI(content, imageUrl = null, id = null, videoUrl = null) {
+export function addAIMessageToUI(
+    content,
+    imageUrl = null,
+    id = null,
+    videoUrl = null,
+    editedAt = null
+) {
     const character = getCurrentCharacter();
     const messageId = id || generateId();
     const messageDiv = document.createElement('div');
@@ -249,6 +283,7 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, videoUrl =
     const showRegenerate = Boolean(imageUrl || videoUrl);
     const showGenerateVideo = Boolean(imageUrl) && !videoUrl;
     const showTts = canPlayMessageTts(content);
+    const isEdited = Boolean(editedAt);
 
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
@@ -266,7 +301,9 @@ export function addAIMessageToUI(content, imageUrl = null, id = null, videoUrl =
             align: 'left',
             showRegenerate,
             showGenerateVideo,
-            showTts
+            showTts,
+            showEdit: true,
+            isEdited
         })}
     `;
 
@@ -506,6 +543,34 @@ export function removeMessageFromContext(messageId) {
     if (!confirmed) return;
 
     state.messages = state.messages.filter((item) => item.id !== messageId);
+    saveToLocalStorage();
+    renderMessages();
+}
+
+export function editAssistantMessage(messageId) {
+    const message = state.messages.find(
+        (item) => item.id === messageId && item.role === 'assistant'
+    );
+    if (!message) return;
+
+    openEditMessageModal(message);
+}
+
+export function saveEditedAssistantMessage(messageId, nextContent) {
+    const message = state.messages.find(
+        (item) => item.id === messageId && item.role === 'assistant'
+    );
+    if (!message) {
+        throw new Error('Assistant message not found.');
+    }
+
+    const content = String(nextContent ?? '');
+    if (!content.trim()) {
+        throw new Error('Assistant message content cannot be empty.');
+    }
+
+    message.content = content;
+    message.editedAt = new Date().toISOString();
     saveToLocalStorage();
     renderMessages();
 }
