@@ -30,6 +30,8 @@ export const elements = {
     connectionStatus: document.getElementById('connectionStatus'),
     logoutBtn: document.getElementById('logoutBtn'),
     galleryGrid: document.getElementById('galleryGrid'),
+    gallerySearchInput: document.getElementById('gallerySearchInput'),
+    gallerySortOrder: document.getElementById('gallerySortOrder'),
     gallerySourceFilter: document.getElementById('gallerySourceFilter'),
     galleryCharacterFilter: document.getElementById('galleryCharacterFilter'),
     galleryThumbnailCharacter: document.getElementById('galleryThumbnailCharacter'),

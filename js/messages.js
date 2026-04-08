@@ -362,7 +362,7 @@ export function updateAIMessageVideo(messageId, videoUrl) {
 }
 
 // Add generated image to persistent gallery store
-export function addImageToGallery(imageUrl, source = 'chat', messageId = null) {
+export function addImageToGallery(imageUrl, source = 'chat', messageId = null, metadata = {}) {
     if (!imageUrl) return;
 
     const character = getCurrentCharacter();
@@ -374,7 +374,18 @@ export function addImageToGallery(imageUrl, source = 'chat', messageId = null) {
         characterAvatar: character.avatar,
         source,
         messageId,
-        createdAt: new Date().toISOString()
+        prompt: typeof metadata.prompt === 'string' ? metadata.prompt : '',
+        provider: typeof metadata.provider === 'string' ? metadata.provider : '',
+        providerModel:
+            typeof metadata.providerModel === 'string' ? metadata.providerModel : '',
+        metadata:
+            metadata.metadata && typeof metadata.metadata === 'object' && !Array.isArray(metadata.metadata)
+                ? metadata.metadata
+                : {},
+        createdAt:
+            typeof metadata.createdAt === 'string' && metadata.createdAt
+                ? metadata.createdAt
+                : new Date().toISOString()
     };
 
     state.galleryImages.unshift(galleryItem);
@@ -445,7 +456,14 @@ export async function regenerateImage(messageId) {
         // Update message in state
         message.imageUrl = imageUrl;
         message.videoUrl = null;
-        addImageToGallery(imageUrl, 'regenerate', messageId);
+        const provider = state.settings.imageProvider;
+        const providerModel =
+            provider === 'comfy' ? state.settings.comfyModel || '' : state.settings.swarmModel || '';
+        addImageToGallery(imageUrl, 'regenerate', messageId, {
+            prompt: imagePrompt,
+            provider,
+            providerModel
+        });
         recordGeneratedMedia({
             provider: state.settings.imageProvider,
             prompt: imagePrompt,

@@ -27,6 +27,8 @@ export const state = {
     currentView: 'chat',
     messages: [],
     galleryImages: [],
+    gallerySearchQuery: '',
+    gallerySortOrder: 'newest',
     gallerySourceFilter: 'all',
     galleryFilterCharacterId: 'all',
     generatorJobs: [],

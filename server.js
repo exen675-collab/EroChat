@@ -379,6 +379,7 @@ function mapGeneratorAssetRow(row) {
         prompt: row.job_prompt || null,
         mode: row.job_mode || null,
         provider: row.job_provider || null,
+        providerModel: row.job_provider_model || '',
         jobStatus: row.job_status || null,
         batchId: row.batch_id || null
     };
@@ -405,6 +406,7 @@ async function getGeneratorAssetsByIds(userId, assetIds) {
         j.prompt AS job_prompt,
         j.mode AS job_mode,
         j.provider AS job_provider,
+                j.provider_model AS job_provider_model,
         j.status AS job_status,
         j.batch_id
       FROM generator_assets a
@@ -1325,6 +1327,7 @@ app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
       j.prompt AS job_prompt,
       j.mode AS job_mode,
       j.provider AS job_provider,
+            j.provider_model AS job_provider_model,
       j.status AS job_status,
       j.batch_id
     FROM generator_assets a

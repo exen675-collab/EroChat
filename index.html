@@ -1470,6 +1470,21 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                             </p>
                         </div>
                         <div class="flex items-center gap-3 flex-wrap justify-end">
+                            <input
+                                id="gallerySearchInput"
+                                type="search"
+                                class="px-3 py-2 rounded-lg text-sm min-w-[280px]"
+                                placeholder="Search prompt, model, tags, date... Try model:sdxl date:2026-04"
+                                autocomplete="off"
+                            />
+                            <select
+                                id="gallerySortOrder"
+                                class="px-3 py-2 rounded-lg text-sm min-w-[160px]"
+                            >
+                                <option value="newest">Newest first</option>
+                                <option value="oldest">Oldest first</option>
+                                <option value="relevance">Best match</option>
+                            </select>
                             <select
                                 id="gallerySourceFilter"
                                 class="px-3 py-2 rounded-lg text-sm min-w-[180px]"

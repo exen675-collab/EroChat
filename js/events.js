@@ -176,6 +176,26 @@ export function setupEventListeners() {
         }
     });
 
+    let gallerySearchPersistTimer = null;
+    const persistGallerySearchSoon = () => {
+        window.clearTimeout(gallerySearchPersistTimer);
+        gallerySearchPersistTimer = window.setTimeout(() => {
+            saveToLocalStorage();
+        }, 150);
+    };
+
+    elements.gallerySearchInput.addEventListener('input', (e) => {
+        state.gallerySearchQuery = e.target.value || '';
+        ui.renderGallery();
+        persistGallerySearchSoon();
+    });
+
+    elements.gallerySortOrder.addEventListener('change', (e) => {
+        state.gallerySortOrder = e.target.value || 'newest';
+        ui.renderGallery();
+        saveToLocalStorage();
+    });
+
     elements.gallerySourceFilter.addEventListener('change', (e) => {
         state.gallerySourceFilter = e.target.value || 'all';
         ui.renderGallery();

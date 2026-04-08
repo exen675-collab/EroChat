@@ -113,6 +113,8 @@ function buildPersistedData() {
         characters: state.characters,
         currentCharacterId: state.currentCharacterId,
         galleryImages: state.galleryImages,
+        gallerySearchQuery: state.gallerySearchQuery || '',
+        gallerySortOrder: state.gallerySortOrder || 'newest',
         galleryFilterCharacterId: state.galleryFilterCharacterId,
         gallerySourceFilter: state.gallerySourceFilter || 'all',
         currentView: state.currentView || 'chat',
@@ -255,6 +257,12 @@ export function loadFromLocalStorage() {
             if (Array.isArray(parsed.galleryImages)) {
                 state.galleryImages = parsed.galleryImages;
             }
+            if (typeof parsed.gallerySearchQuery === 'string') {
+                state.gallerySearchQuery = parsed.gallerySearchQuery;
+            }
+            if (parsed.gallerySortOrder) {
+                state.gallerySortOrder = parsed.gallerySortOrder;
+            }
             if (parsed.galleryFilterCharacterId) {
                 state.galleryFilterCharacterId = parsed.galleryFilterCharacterId;
             }
@@ -316,6 +324,14 @@ export function loadFromLocalStorage() {
 
     if (!state.galleryFilterCharacterId) {
         state.galleryFilterCharacterId = 'all';
+    }
+
+    if (!state.gallerySearchQuery) {
+        state.gallerySearchQuery = '';
+    }
+
+    if (!state.gallerySortOrder) {
+        state.gallerySortOrder = 'newest';
     }
 
     if (!state.gallerySourceFilter) {

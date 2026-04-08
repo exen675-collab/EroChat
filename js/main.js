@@ -215,13 +215,21 @@ export async function sendMessage() {
             try {
                 const generatedImageUrl = await generateImage(imagePrompt);
                 const imageUrl = await persistImageForStorage(generatedImageUrl);
+                const imageProviderModel =
+                    imageProvider === 'comfy'
+                        ? state.settings.comfyModel || ''
+                        : state.settings.swarmModel || '';
                 updateAIMessageImage(aiMessageId, imageUrl);
 
                 const msgIndex = state.messages.findIndex((m) => m.id === aiMessageId);
                 if (msgIndex !== -1) {
                     state.messages[msgIndex].imageUrl = imageUrl;
                 }
-                addImageToGallery(imageUrl, 'chat', aiMessageId);
+                addImageToGallery(imageUrl, 'chat', aiMessageId, {
+                    prompt: imagePrompt,
+                    provider: imageProvider,
+                    providerModel: imageProviderModel
+                });
                 recordGeneratedMedia({
                     provider: imageProvider,
                     prompt: imagePrompt,

@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { escapeHtml } from './utils.js';
 import { saveToLocalStorage } from './storage.js';
+import { filterAndSortGalleryItems } from './gallery-search.js';
 import { renderStatisticsDashboard, trackViewVisit } from './stats.js';
 
 const VIEW_DESCRIPTIONS = {
@@ -41,11 +42,15 @@ function getGeneratorGalleryItems() {
         source: 'generator',
         mediaSource: 'generator',
         prompt: asset.prompt || '',
+        provider: asset.provider || '',
+        providerModel:
+            asset.providerModel || asset.metadata?.providerModel || asset.metadata?.model || '',
         mode: asset.mode || 'generator',
         assetId: asset.id,
         messageId: null,
         createdAt: asset.createdAt,
         thumbnailUrl: asset.thumbnailUrl || null,
+        metadata: asset.metadata || {},
         isGeneratorAsset: true
     }));
 }
@@ -73,23 +78,11 @@ function getMergedGalleryItems() {
 }
 
 function getFilteredGalleryItems() {
-    const sourceFilter = state.gallerySourceFilter || 'all';
-    const characterFilter = state.galleryFilterCharacterId || 'all';
-
-    return getMergedGalleryItems().filter((item) => {
-        if (sourceFilter !== 'all' && item.mediaSource !== sourceFilter) {
-            return false;
-        }
-
-        if (characterFilter === 'all') {
-            return true;
-        }
-
-        if (item.mediaSource === 'generator') {
-            return sourceFilter === 'all';
-        }
-
-        return item.characterId === characterFilter;
+    return filterAndSortGalleryItems(getMergedGalleryItems(), {
+        sourceFilter: state.gallerySourceFilter || 'all',
+        characterFilter: state.galleryFilterCharacterId || 'all',
+        searchQuery: state.gallerySearchQuery || '',
+        sortOrder: state.gallerySortOrder || 'newest'
     });
 }
 
@@ -289,6 +282,8 @@ export function setCurrentView(view, options = {}) {
         renderGalleryThumbnailCharacterSelect();
         elements.galleryCharacterFilter.value = state.galleryFilterCharacterId || 'all';
         elements.gallerySourceFilter.value = state.gallerySourceFilter || 'all';
+        elements.gallerySearchInput.value = state.gallerySearchQuery || '';
+        elements.gallerySortOrder.value = state.gallerySortOrder || 'newest';
         renderGallery();
     }
 
@@ -375,12 +370,13 @@ export function renderGalleryThumbnailCharacterSelect() {
 // Render gallery grid
 export function renderGallery() {
     const filteredItems = getFilteredGalleryItems();
+    const hasQuery = Boolean((state.gallerySearchQuery || '').trim());
 
     if (filteredItems.length === 0) {
         elements.galleryGrid.innerHTML = `
             <div class="col-span-full text-center py-12 text-gray-400">
                 <p class="text-lg mb-1">No media found</p>
-                <p class="text-sm text-gray-500">Generate images in chat or use the standalone generator to populate this gallery.</p>
+                <p class="text-sm text-gray-500">${hasQuery ? 'Try a broader search or use filters like model:sdxl, tag:portrait, or date:2026-04.' : 'Generate images in chat or use the standalone generator to populate this gallery.'}</p>
             </div>
         `;
         return;
