@@ -30,6 +30,7 @@ import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
 import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
 import { fetchSuggestions, renderSuggestions, clearSuggestions } from './suggestions.js';
+import { recordAssistantReply, recordGeneratedMedia, recordUserMessage } from './stats.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
@@ -69,7 +70,7 @@ function normalizeViewFromHash(hashValue) {
         .replace(/^#/, '')
         .trim()
         .toLowerCase();
-    return ['chat', 'generator', 'gallery'].includes(normalized) ? normalized : null;
+    return ['chat', 'generator', 'gallery', 'stats'].includes(normalized) ? normalized : null;
 }
 
 function syncViewFromHash() {
@@ -159,6 +160,7 @@ export async function sendMessage() {
     }
 
     const requestPreview = buildCurrentChatRequestPreview(content);
+    const createdAt = new Date().toISOString();
 
     elements.messageInput.value = '';
     elements.messageInput.style.height = 'auto';
@@ -166,7 +168,8 @@ export async function sendMessage() {
     clearSuggestions();
 
     const userMessageId = generateId();
-    state.messages.push({ id: userMessageId, role: 'user', content });
+    state.messages.push({ id: userMessageId, role: 'user', content, createdAt });
+    recordUserMessage({ content, createdAt });
     addUserMessageToUI(content, userMessageId);
     refreshMessageContextIndicators();
     saveToLocalStorage();
@@ -186,13 +189,20 @@ export async function sendMessage() {
         );
         const imagePrompt = promptMatch ? promptMatch[1].trim() : null;
 
+        const aiCreatedAt = new Date().toISOString();
         const aiMessageId = generateId();
         state.messages.push({
             id: aiMessageId,
             role: 'assistant',
             content: aiResponse,
             imageUrl: null,
-            videoUrl: null
+            videoUrl: null,
+            createdAt: aiCreatedAt
+        });
+        recordAssistantReply({
+            textProvider,
+            model: elements.openrouterModel.value || state.settings.openrouterModel || '',
+            createdAt: aiCreatedAt
         });
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
@@ -212,6 +222,12 @@ export async function sendMessage() {
                     state.messages[msgIndex].imageUrl = imageUrl;
                 }
                 addImageToGallery(imageUrl, 'chat', aiMessageId);
+                recordGeneratedMedia({
+                    provider: imageProvider,
+                    prompt: imagePrompt,
+                    source: 'chat'
+                });
+                saveToLocalStorage();
             } catch (imgError) {
                 console.error('Image generation failed:', imgError);
                 const messageDiv = document.getElementById(aiMessageId);

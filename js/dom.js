@@ -12,11 +12,13 @@ export const elements = {
     chatView: document.getElementById('chatView'),
     generatorView: document.getElementById('generatorView'),
     galleryView: document.getElementById('galleryView'),
+    statsView: document.getElementById('statsView'),
     chatSettingsPane: document.getElementById('chatSettingsPane'),
     generatorSettingsPane: document.getElementById('generatorSettingsPane'),
     navChatBtn: document.getElementById('navChatBtn'),
     navGeneratorBtn: document.getElementById('navGeneratorBtn'),
     navGalleryBtn: document.getElementById('navGalleryBtn'),
+    navStatsBtn: document.getElementById('navStatsBtn'),
     currentViewDescription: document.getElementById('currentViewDescription'),
     chatContainer: document.getElementById('chatContainer'),
     messageInput: document.getElementById('messageInput'),
@@ -111,5 +113,13 @@ export const elements = {
     // Suggestions
     suggestBtn: document.getElementById('suggestBtn'),
     suggestionsOuter: document.getElementById('suggestionsOuter'),
-    suggestionsContainer: document.getElementById('suggestionsContainer')
+    suggestionsContainer: document.getElementById('suggestionsContainer'),
+
+    // Statistics
+    statsSummary: document.getElementById('statsSummary'),
+    statsActivityChart: document.getElementById('statsActivityChart'),
+    statsUsagePanels: document.getElementById('statsUsagePanels'),
+    statsCharacterList: document.getElementById('statsCharacterList'),
+    statsPromptList: document.getElementById('statsPromptList'),
+    statsTrackingNote: document.getElementById('statsTrackingNote')
 };

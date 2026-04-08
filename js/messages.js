@@ -18,6 +18,7 @@ import {
 import { generateImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
+import { recordGeneratedMedia } from './stats.js';
 
 function getActiveContextMessageIds() {
     return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
@@ -445,6 +446,12 @@ export async function regenerateImage(messageId) {
         message.imageUrl = imageUrl;
         message.videoUrl = null;
         addImageToGallery(imageUrl, 'regenerate', messageId);
+        recordGeneratedMedia({
+            provider: state.settings.imageProvider,
+            prompt: imagePrompt,
+            source: 'chat'
+        });
+        saveToLocalStorage();
     } catch (error) {
         console.error('Failed to regenerate image:', error);
         if (messageDiv) {

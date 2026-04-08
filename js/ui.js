@@ -3,17 +3,19 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { escapeHtml } from './utils.js';
 import { saveToLocalStorage } from './storage.js';
+import { renderStatisticsDashboard, trackViewVisit } from './stats.js';
 
 const VIEW_DESCRIPTIONS = {
     chat: 'Chat workspace',
     generator: 'Standalone generator',
-    gallery: 'Media gallery'
+    gallery: 'Media gallery',
+    stats: 'User statistics dashboard'
 };
 let currentChatRequestPreview = null;
 let currentEditingMessageId = null;
 
 function normalizeView(view) {
-    return ['chat', 'generator', 'gallery'].includes(view) ? view : 'chat';
+    return ['chat', 'generator', 'gallery', 'stats'].includes(view) ? view : 'chat';
 }
 
 function getViewHash(view) {
@@ -95,7 +97,8 @@ function setActiveNavButton(activeView) {
     const buttons = [
         [elements.navChatBtn, 'chat'],
         [elements.navGeneratorBtn, 'generator'],
-        [elements.navGalleryBtn, 'gallery']
+        [elements.navGalleryBtn, 'gallery'],
+        [elements.navStatsBtn, 'stats']
     ];
 
     buttons.forEach(([button, view]) => {
@@ -265,15 +268,17 @@ export function setCurrentView(view, options = {}) {
     const nextView = normalizeView(view);
     const shouldSyncHash = options.syncHash !== false;
     const shouldPersist = options.persist !== false;
+    const previousView = normalizeView(state.currentView);
 
     state.currentView = nextView;
 
-    elements.chatView.classList.toggle('hidden', nextView !== 'chat');
-    elements.generatorView.classList.toggle('hidden', nextView !== 'generator');
-    elements.galleryView.classList.toggle('hidden', nextView !== 'gallery');
-    elements.chatSettingsPane.classList.toggle('hidden', nextView !== 'chat');
-    elements.generatorSettingsPane.classList.toggle('hidden', nextView !== 'generator');
-    elements.currentCharacterDisplay.classList.toggle('hidden', nextView !== 'chat');
+    elements.chatView?.classList.toggle('hidden', nextView !== 'chat');
+    elements.generatorView?.classList.toggle('hidden', nextView !== 'generator');
+    elements.galleryView?.classList.toggle('hidden', nextView !== 'gallery');
+    elements.statsView?.classList.toggle('hidden', nextView !== 'stats');
+    elements.chatSettingsPane?.classList.toggle('hidden', nextView !== 'chat');
+    elements.generatorSettingsPane?.classList.toggle('hidden', nextView !== 'generator');
+    elements.currentCharacterDisplay?.classList.toggle('hidden', nextView !== 'chat');
     elements.currentViewDescription.textContent =
         VIEW_DESCRIPTIONS[nextView] || VIEW_DESCRIPTIONS.chat;
 
@@ -285,6 +290,14 @@ export function setCurrentView(view, options = {}) {
         elements.galleryCharacterFilter.value = state.galleryFilterCharacterId || 'all';
         elements.gallerySourceFilter.value = state.gallerySourceFilter || 'all';
         renderGallery();
+    }
+
+    if (nextView === 'stats') {
+        renderStatisticsDashboard();
+    }
+
+    if (nextView !== previousView) {
+        trackViewVisit(nextView);
     }
 
     if (shouldPersist) {

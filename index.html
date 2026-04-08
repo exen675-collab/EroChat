@@ -852,6 +852,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         <button id="navGalleryBtn" type="button" class="view-nav-btn">
                             Gallery
                         </button>
+                        <button id="navStatsBtn" type="button" class="view-nav-btn">
+                            Stats
+                        </button>
                     </nav>
 
                     <div class="app-header-right">
@@ -1489,6 +1492,75 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                     </div>
                     <div id="galleryGrid" class="p-4 overflow-y-auto flex-1 gallery-grid">
                         <!-- Gallery items -->
+                    </div>
+                </div>
+
+                <div id="statsView" class="hidden flex-1 min-h-0 overflow-y-auto">
+                    <div class="stats-shell">
+                        <section class="glass stats-hero-panel">
+                            <div>
+                                <p class="stats-eyebrow">User Statistics</p>
+                                <h2 class="stats-title">Track how you use chat, media, and tools.</h2>
+                            </div>
+                            <p id="statsTrackingNote" class="stats-hero-copy">
+                                This dashboard updates from your activity and saved workspace data.
+                            </p>
+                        </section>
+
+                        <section class="glass stats-panel">
+                            <div class="stats-panel-head">
+                                <span>Overview</span>
+                                <span class="text-xs text-gray-500"
+                                    >Per-user totals saved in your browser profile</span
+                                >
+                            </div>
+                            <div id="statsSummary" class="stats-summary-grid"></div>
+                        </section>
+
+                        <section class="glass stats-panel">
+                            <div class="stats-panel-head">
+                                <span>Activity Over Time</span>
+                                <span class="stats-legend">
+                                    <span class="stats-legend-chip stats-legend-chat">Messages</span>
+                                    <span class="stats-legend-chip stats-legend-replies">Replies</span>
+                                    <span class="stats-legend-chip stats-legend-images">Images</span>
+                                    <span class="stats-legend-chip stats-legend-generator">Runs</span>
+                                </span>
+                            </div>
+                            <div id="statsActivityChart" class="stats-activity-grid"></div>
+                        </section>
+
+                        <div class="stats-grid">
+                            <section class="glass stats-panel">
+                                <div class="stats-panel-head">
+                                    <span>Most Used Models &amp; Views</span>
+                                    <span class="text-xs text-gray-500"
+                                        >Shows what you lean on most often</span
+                                    >
+                                </div>
+                                <div id="statsUsagePanels" class="stats-usage-grid"></div>
+                            </section>
+
+                            <section class="glass stats-panel">
+                                <div class="stats-panel-head">
+                                    <span>Favorite Conversations</span>
+                                    <span class="text-xs text-gray-500"
+                                        >Ranked by saved message volume</span
+                                    >
+                                </div>
+                                <div id="statsCharacterList" class="stats-character-list"></div>
+                            </section>
+
+                            <section class="glass stats-panel stats-panel-wide">
+                                <div class="stats-panel-head">
+                                    <span>Frequently Used Prompts</span>
+                                    <span class="text-xs text-gray-500"
+                                        >Chat prompts and generator prompts you repeat</span
+                                    >
+                                </div>
+                                <div id="statsPromptList" class="stats-prompt-list"></div>
+                            </section>
+                        </div>
                     </div>
                 </div>
             </main>

@@ -1,5 +1,24 @@
 import { defaultGeneratorPrefs, defaultSettings } from './config.js';
 
+function createDefaultStatistics() {
+    return {
+        dailyActivity: {},
+        viewCounts: {
+            chat: 0,
+            generator: 0,
+            gallery: 0,
+            stats: 0
+        },
+        modelUsage: {
+            text: {},
+            image: {},
+            generator: {}
+        },
+        promptUsage: {},
+        lastUpdatedAt: null
+    };
+}
+
 // Application state
 export const state = {
     currentUser: null,
@@ -18,5 +37,8 @@ export const state = {
     isGenerating: false,
     currentCharacterId: null,
     characters: [],
-    settings: { ...defaultSettings }
+    settings: { ...defaultSettings },
+    statistics: createDefaultStatistics()
 };
+
+export { createDefaultStatistics };

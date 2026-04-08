@@ -120,6 +120,10 @@ export function setupEventListeners() {
         ui.setCurrentView('gallery');
         closeSettingsPanel();
     });
+    elements.navStatsBtn?.addEventListener('click', () => {
+        ui.setCurrentView('stats');
+        closeSettingsPanel();
+    });
 
     // Textarea auto-resize
     elements.messageInput.addEventListener('input', () => {

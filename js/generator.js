@@ -20,6 +20,7 @@ import {
 } from './prompt-helper.js';
 import { uploadFileForStorage } from './media.js';
 import { normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
+import { recordGeneratedMedia, recordGeneratorBatch } from './stats.js';
 
 let elements = null;
 let initialized = false;
@@ -470,6 +471,19 @@ async function processGeneratorQueue() {
                     assets: result.assets,
                     creditsCharged: result.creditsCharged || 0
                 });
+
+                const generatedImageCount = Array.isArray(result.assets)
+                    ? result.assets.filter((asset) => asset.mediaType === 'image').length
+                    : 0;
+                if (generatedImageCount > 0) {
+                    recordGeneratedMedia({
+                        provider: nextJob.provider,
+                        prompt: nextJob.prompt,
+                        source: 'generator',
+                        amount: generatedImageCount
+                    });
+                    saveToLocalStorage();
+                }
             } catch (error) {
                 await patchAndStoreJob(nextJob.id, {
                     status: 'failed',
@@ -487,6 +501,12 @@ async function handleSubmit() {
     const jobsToCreate = buildJobRequests();
     const payload = await createGeneratorJobs(jobsToCreate);
     upsertJobs(payload.jobs || []);
+    recordGeneratorBatch({
+        provider: state.generatorPrefs.provider,
+        prompt: state.generatorPrefs.prompt,
+        batchCount: jobsToCreate.length
+    });
+    saveToLocalStorage();
     renderAll();
     processGeneratorQueue();
 }

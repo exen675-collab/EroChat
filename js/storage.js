@@ -3,6 +3,7 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { renderCharactersList, updateCurrentCharacterUI } from './characters.js';
 import { renderMessages } from './messages.js';
+import { ensureStatisticsShape } from './stats.js';
 import {
     generateId,
     normalizeContextMessageCount,
@@ -115,7 +116,8 @@ function buildPersistedData() {
         galleryFilterCharacterId: state.galleryFilterCharacterId,
         gallerySourceFilter: state.gallerySourceFilter || 'all',
         currentView: state.currentView || 'chat',
-        generatorPrefs: state.generatorPrefs
+        generatorPrefs: state.generatorPrefs,
+        statistics: state.statistics
         // No longer saving top-level messages
     };
 }
@@ -268,6 +270,7 @@ export function loadFromLocalStorage() {
                     state.generatorPrefs.swarmSampler
                 );
             }
+            state.statistics = ensureStatisticsShape(parsed.statistics);
             // Temporarily store old top-level messages for migration
             if (parsed.messages && parsed.messages.length > 0) {
                 migratedMessages = parsed.messages;
@@ -322,6 +325,8 @@ export function loadFromLocalStorage() {
     if (!state.currentView) {
         state.currentView = 'chat';
     }
+
+    state.statistics = ensureStatisticsShape(state.statistics);
 
     updateSettingsUI();
     renderCharactersList();
