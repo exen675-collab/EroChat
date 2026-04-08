@@ -1,11 +1,5 @@
 import { state } from './state.js';
 import { generateComfyImages } from './api-comfyui.js';
-import {
-    editGrokImage,
-    generateGrokImages,
-    generateGrokVideo,
-    resumeGrokVideoStatus
-} from './api-grok.js';
 import { generateLocalImages } from './api-swarmui.js';
 import { persistImageForStorage, persistVideoForStorage } from './media.js';
 
@@ -98,7 +92,10 @@ async function persistGeneratedImages(results, request, metadataBuilder = () => 
 export async function executeGeneratorJob(job) {
     const request = job.requestJson || {};
 
-    if (job.mode === 'image_generate' && (job.provider === 'swarm' || job.provider === 'comfy')) {
+    if (job.mode === 'image_generate') {
+        if (job.provider !== 'comfy' && job.provider !== 'swarm') {
+            throw new Error(`Unsupported image provider: ${job.provider}`);
+        }
         const generateImages = job.provider === 'comfy' ? generateComfyImages : generateLocalImages;
         const results = await generateImages({
             prompt: job.prompt,
@@ -125,122 +122,6 @@ export async function executeGeneratorJob(job) {
         };
     }
 
-    if (job.mode === 'image_generate') {
-        const results = await generateGrokImages({
-            prompt: job.prompt,
-            batchCount: request.batchCount || 1,
-            width: request.width,
-            height: request.height,
-            aspectRatio: request.aspectRatio,
-            resolution: request.resolution
-        });
-
-        const assets = await persistGeneratedImages(results, request, (_, index) => ({
-            index
-        }));
-
-        return {
-            status: 'succeeded',
-            creditsCharged: state.creditCosts?.image || 0,
-            assets
-        };
-    }
-
-    if (job.mode === 'image_edit') {
-        const sourceUrls = Array.isArray(request.sourceUrls)
-            ? request.sourceUrls.filter(Boolean).slice(0, 3)
-            : [];
-        const results = await editGrokImage({
-            prompt: job.prompt,
-            image: sourceUrls[0] || null,
-            images: sourceUrls.length > 1 ? sourceUrls : null,
-            aspectRatio: request.aspectRatio,
-            resolution: request.resolution
-        });
-
-        const assets = await persistGeneratedImages(results, request, (_, index) => ({
-            index,
-            sourceUrls
-        }));
-
-        return {
-            status: 'succeeded',
-            creditsCharged: state.creditCosts?.image || 0,
-            assets
-        };
-    }
-
-    if (job.mode === 'video_generate') {
-        const sourceUrl = Array.isArray(request.sourceUrls) ? request.sourceUrls[0] : null;
-        const started = await generateGrokVideo({
-            prompt: job.prompt,
-            imageUrl: sourceUrl,
-            duration: request.duration,
-            aspectRatio: request.aspectRatio,
-            resolution: request.resolution
-        });
-
-        if (started.url) {
-            const storedUrl = await persistVideoForStorage(started.url);
-            return {
-                status: 'succeeded',
-                creditsCharged: state.creditCosts?.video || 0,
-                assets: [
-                    videoAssetPayload(storedUrl, request, {
-                        sourceUrl
-                    })
-                ]
-            };
-        }
-
-        return {
-            status: 'polling',
-            creditsCharged: state.creditCosts?.video || 0,
-            providerRequestId: started.requestId
-        };
-    }
-
     throw new Error(`Unsupported generator job mode: ${job.mode}`);
 }
 
-export async function pollVideoGeneratorJob(job) {
-    if (!job.providerRequestId) {
-        throw new Error('Missing video provider request ID.');
-    }
-
-    const status = await resumeGrokVideoStatus(job.providerRequestId);
-    if (status.url) {
-        const request = job.requestJson || {};
-        const storedUrl = await persistVideoForStorage(status.url);
-        return {
-            done: true,
-            failed: false,
-            status: 'succeeded',
-            creditsCharged: state.creditCosts?.video || 0,
-            assets: [
-                videoAssetPayload(storedUrl, request, {
-                    sourceUrl: Array.isArray(request.sourceUrls) ? request.sourceUrls[0] : null
-                })
-            ]
-        };
-    }
-
-    if (
-        status.status === 'failed' ||
-        status.status === 'error' ||
-        status.status === 'cancelled' ||
-        status.status === 'expired'
-    ) {
-        return {
-            done: true,
-            failed: true,
-            errorMessage: status.errorMessage || 'Video generation failed.'
-        };
-    }
-
-    return {
-        done: false,
-        failed: false,
-        providerRequestId: status.requestId || job.providerRequestId
-    };
-}

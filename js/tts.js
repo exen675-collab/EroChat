@@ -1,3 +1,7 @@
+// TTS DISABLED — depends on Grok API which has been removed (issue #16).
+// This file is kept intact for future reimplementation with an alternative TTS provider (issue #17).
+// Do not import this module until TTS support is restored.
+
 import { elements } from './dom.js';
 import { state } from './state.js';
 import {

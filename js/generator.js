@@ -11,8 +11,7 @@ import {
     fetchGeneratorJobs,
     createGeneratorJobs,
     updateGeneratorJob,
-    executeGeneratorJob,
-    pollVideoGeneratorJob
+    executeGeneratorJob
 } from './api-generator.js';
 import {
     PROMPT_TEMPLATE_GROUPS,
@@ -132,12 +131,12 @@ function getModeLabel(mode) {
 function getProviderLabel(provider) {
     if (provider === 'swarm') return 'SwarmUI';
     if (provider === 'comfy') return 'ComfyUI';
-    return 'Grok';
+    return provider || 'Unknown';
 }
 
 function applyPrefsToForm() {
     elements.generatorMode.value = state.generatorPrefs.mode || 'image_generate';
-    elements.generatorProvider.value = state.generatorPrefs.provider || 'grok';
+    elements.generatorProvider.value = state.generatorPrefs.provider || 'swarm';
     elements.generatorPrompt.value = state.generatorPrefs.prompt || '';
     elements.generatorNegativePrompt.value = state.generatorPrefs.negativePrompt || '';
     elements.generatorBatchCount.value = state.generatorPrefs.batchCount || 1;
@@ -315,7 +314,7 @@ function renderResults() {
 
 function syncFieldVisibility() {
     const mode = elements.generatorMode.value;
-    const provider = mode === 'image_generate' ? elements.generatorProvider.value : 'grok';
+    const provider = elements.generatorProvider.value;
     const isLocalImageProvider = provider === 'swarm' || provider === 'comfy';
 
     elements.generatorProvider.disabled = mode !== 'image_generate';
@@ -323,20 +322,13 @@ function syncFieldVisibility() {
         'hidden',
         !(mode === 'image_generate' && isLocalImageProvider)
     );
-    elements.generatorSourcePanel.classList.toggle(
-        'hidden',
-        !(mode === 'image_edit' || mode === 'video_generate')
-    );
-    elements.generatorGrokFields.classList.toggle(
-        'hidden',
-        !(mode === 'image_generate' && provider === 'grok')
-    );
+    elements.generatorSourcePanel.classList.toggle('hidden', true);
     elements.generatorSwarmFields.classList.toggle(
         'hidden',
         !(mode === 'image_generate' && isLocalImageProvider)
     );
-    elements.generatorEditFields.classList.toggle('hidden', mode !== 'image_edit');
-    elements.generatorVideoFields.classList.toggle('hidden', mode !== 'video_generate');
+    elements.generatorEditFields.classList.toggle('hidden', true);
+    elements.generatorVideoFields.classList.toggle('hidden', true);
 }
 
 function renderAll() {
@@ -388,89 +380,39 @@ function setHelperStatus(message, isError = false) {
 
 function buildJobRequests() {
     const mode = state.generatorPrefs.mode;
-    const provider = mode === 'image_generate' ? state.generatorPrefs.provider : 'grok';
+    const provider = mode === 'image_generate' ? state.generatorPrefs.provider : null;
     const batchCount = Math.max(1, Math.min(4, parseInt(state.generatorPrefs.batchCount, 10) || 1));
     const jobs = [];
     const batchId = `batch_${Date.now()}`;
 
-    if ((mode === 'image_edit' || mode === 'video_generate') && selectedSources.length === 0) {
-        throw new Error('Select or upload at least one source image first.');
+    if (mode !== 'image_generate') {
+        throw new Error(`Unsupported generator mode: ${mode}`);
+    }
+
+    if (provider !== 'swarm' && provider !== 'comfy') {
+        throw new Error(`Unsupported image provider: ${provider}`);
     }
 
     for (let index = 0; index < batchCount; index += 1) {
-        if (mode === 'image_generate' && (provider === 'swarm' || provider === 'comfy')) {
-            jobs.push({
-                batchId,
-                mode,
-                provider,
-                prompt: state.generatorPrefs.prompt,
-                negativePrompt: state.generatorPrefs.negativePrompt,
-                providerModel: provider === 'comfy' ? 'comfyui' : 'swarmui',
-                requestJson: {
-                    batchCount: 1,
-                    width: state.generatorPrefs.swarmWidth,
-                    height: state.generatorPrefs.swarmHeight,
-                    steps: state.generatorPrefs.swarmSteps,
-                    cfgScale: state.generatorPrefs.swarmCfgScale,
-                    sampler: normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
-                    seedMode: state.generatorPrefs.swarmSeedMode,
-                    baseSeed:
-                        state.generatorPrefs.swarmSeedMode === 'increment'
-                            ? state.generatorPrefs.swarmBaseSeed + index
-                            : state.generatorPrefs.swarmBaseSeed
-                }
-            });
-            continue;
-        }
-
-        if (mode === 'image_generate') {
-            jobs.push({
-                batchId,
-                mode,
-                provider,
-                prompt: state.generatorPrefs.prompt,
-                negativePrompt: '',
-                providerModel: 'grok-imagine-image',
-                requestJson: {
-                    batchCount: 1,
-                    aspectRatio: state.generatorPrefs.aspectRatio,
-                    resolution: state.generatorPrefs.imageResolution
-                }
-            });
-            continue;
-        }
-
-        if (mode === 'image_edit') {
-            jobs.push({
-                batchId,
-                mode,
-                provider: 'grok',
-                prompt: state.generatorPrefs.prompt,
-                negativePrompt: '',
-                sourceAssetIds: serializeSourceAssetIds(),
-                providerModel: 'grok-imagine-image',
-                requestJson: {
-                    sourceUrls: serializeSourceUrls(),
-                    aspectRatio: state.generatorPrefs.aspectRatio,
-                    resolution: state.generatorPrefs.editResolution
-                }
-            });
-            continue;
-        }
-
         jobs.push({
             batchId,
             mode,
-            provider: 'grok',
+            provider,
             prompt: state.generatorPrefs.prompt,
-            negativePrompt: '',
-            sourceAssetIds: serializeSourceAssetIds(),
-            providerModel: 'grok-imagine-video',
+            negativePrompt: state.generatorPrefs.negativePrompt,
+            providerModel: provider === 'comfy' ? 'comfyui' : 'swarmui',
             requestJson: {
-                sourceUrls: serializeSourceUrls(),
-                duration: state.generatorPrefs.videoDuration,
-                aspectRatio: state.generatorPrefs.videoAspectRatio,
-                resolution: state.generatorPrefs.videoResolution
+                batchCount: 1,
+                width: state.generatorPrefs.swarmWidth,
+                height: state.generatorPrefs.swarmHeight,
+                steps: state.generatorPrefs.swarmSteps,
+                cfgScale: state.generatorPrefs.swarmCfgScale,
+                sampler: normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
+                seedMode: state.generatorPrefs.swarmSeedMode,
+                baseSeed:
+                    state.generatorPrefs.swarmSeedMode === 'increment'
+                        ? state.generatorPrefs.swarmBaseSeed + index
+                        : state.generatorPrefs.swarmBaseSeed
             }
         });
     }
@@ -490,41 +432,8 @@ async function patchAndStoreJob(jobId, patch) {
     return payload;
 }
 
-async function resumePollingJob(job) {
-    try {
-        const polled = await pollVideoGeneratorJob(job);
-        if (polled.done && polled.failed) {
-            await patchAndStoreJob(job.id, {
-                status: 'failed',
-                errorMessage: polled.errorMessage,
-                creditsCharged: polled.creditsCharged || 0
-            });
-            return;
-        }
-
-        if (polled.done) {
-            await patchAndStoreJob(job.id, {
-                status: 'succeeded',
-                assets: polled.assets,
-                creditsCharged: polled.creditsCharged || 0
-            });
-            return;
-        }
-
-        setTimeout(
-            () =>
-                resumePollingJob({
-                    ...job,
-                    providerRequestId: polled.providerRequestId || job.providerRequestId
-                }),
-            3500
-        );
-    } catch (error) {
-        await patchAndStoreJob(job.id, {
-            status: 'failed',
-            errorMessage: error.message
-        });
-    }
+async function resumePollingJob() {
+    // Video polling removed — video generation depended on Grok API (issue #16)
 }
 
 async function processGeneratorQueue() {
@@ -656,13 +565,7 @@ async function retryAsset(assetId) {
 
 function bindEvents() {
     elements.generatorMode.addEventListener('change', () => {
-        if (elements.generatorMode.value !== 'image_generate') {
-            elements.generatorProvider.value = 'grok';
-        }
-        selectedSources = selectedSources.slice(
-            0,
-            elements.generatorMode.value === 'image_edit' ? 3 : 1
-        );
+        selectedSources = [];
         readPrefsFromForm();
     });
 
@@ -802,7 +705,7 @@ function bindEvents() {
         if (!preset) return;
 
         elements.generatorMode.value = preset.mode || 'image_generate';
-        elements.generatorProvider.value = preset.provider || 'grok';
+        elements.generatorProvider.value = preset.provider || 'swarm';
         elements.generatorPrompt.value = preset.prompt || '';
         elements.generatorNegativePrompt.value = preset.negativePrompt || '';
         readPrefsFromForm();

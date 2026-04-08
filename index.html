@@ -170,7 +170,6 @@
                                     >
                                         <option value="swarm">SwarmUI</option>
                                         <option value="comfy">ComfyUI</option>
-                                        <option value="premium">Our Service (Premium)</option>
                                     </select>
                                 </div>
 
@@ -300,7 +299,6 @@
                                             id="textProvider"
                                             class="w-full px-4 py-2 rounded-lg text-sm"
                                         >
-                                            <option value="premium">Our Service (Premium)</option>
                                             <option value="openrouter">
                                                 OpenRouter (Own API Key)
                                             </option>
@@ -407,74 +405,6 @@
                                         </svg>
                                         Load OpenRouter Models
                                     </button>
-                                </div>
-                            </div>
-
-                            <div class="p-4 rounded-xl glass">
-                                <h2
-                                    class="text-lg font-semibold text-cyan-400 mb-4 flex items-center gap-2"
-                                >
-                                    <svg
-                                        class="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                        ></path>
-                                    </svg>
-                                    Our Service (Premium)
-                                </h2>
-
-                                <p class="text-sm text-gray-400 leading-relaxed">
-                                    Premium uses a fixed model managed by the server. No model
-                                    selection is required.
-                                </p>
-                            </div>
-
-                            <div class="p-4 rounded-xl glass">
-                                <h2
-                                    class="text-lg font-semibold text-emerald-400 mb-4 flex items-center gap-2"
-                                >
-                                    <svg
-                                        class="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M9 19V6l12-2v13M9 19a2 2 0 11-4 0 2 2 0 014 0zm12-2a2 2 0 11-4 0 2 2 0 014 0zm-12-7l12-2"
-                                        ></path>
-                                    </svg>
-                                    Voice Read-Aloud
-                                </h2>
-
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-400 mb-2"
-                                            >Default Grok Voice</label
-                                        >
-                                        <select
-                                            id="ttsVoiceId"
-                                            class="w-full px-4 py-2 rounded-lg text-sm"
-                                        >
-                                            <option value="ara">Ara</option>
-                                            <option value="eve">Eve</option>
-                                            <option value="rex">Rex</option>
-                                            <option value="sal">Sal</option>
-                                            <option value="leo">Leo</option>
-                                        </select>
-                                        <p class="text-xs text-gray-500 mt-2">
-                                            Used when you click Play Voice on assistant messages.
-                                        </p>
-                                    </div>
                                 </div>
                             </div>
 
@@ -752,7 +682,7 @@ Prowadzisz z Karolem erotyczny slowburn roleplay. Twoim celem jest bardzo powoln
 
 NAJWAŻNIEJSZE INSTRUKCJE DOTYCZĄCE BLOKU OBRAZKA:
 - W każdej odpowiedzi, bez żadnego wyjątku, na samym końcu (po całym tekście roli) dodawaj dokładnie blok w tej formie.
-- Zawsze uzupełniaj blok bardzo szczegółowym promptem po angielsku zoptymalizowanym pod Grok Imagine (Flux).
+- Zawsze uzupełniaj blok bardzo szczegółowym promptem po angielsku zoptymalizowanym pod Flux.
 - Prompt ma być wysokiej jakości i koniecznie w stylu Anime
 - Opisz dokładnie aktualną scenę, wygląd Alicji, jej pozę, ubranie, wyraz twarzy, oświetlenie i nastrój.
 
@@ -803,8 +733,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 Standalone media creation
                             </h2>
                             <p class="text-sm text-gray-400 leading-relaxed">
-                                Build image batches, run Grok edits, and animate generated stills
-                                without entering the chat flow.
+                                Build image batches and generate with local providers.
                             </p>
                         </div>
 
@@ -813,10 +742,6 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 Provider Notes
                             </p>
                             <div class="space-y-3 text-sm text-gray-400">
-                                <p>
-                                    <strong class="text-gray-200">Grok:</strong> image creation,
-                                    edit workflows, prompt help, and video generation.
-                                </p>
                                 <p>
                                     <strong class="text-gray-200">SwarmUI:</strong> local image
                                     generation with negative prompts, seeds, CFG, samplers, and
@@ -840,8 +765,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 Prompt Helper
                             </p>
                             <p class="text-sm text-gray-400 leading-relaxed">
-                                Configure OpenRouter above if you want prompt refinement without
-                                consuming premium chat credits.
+                                Configure OpenRouter above if you want prompt refinement.
                             </p>
                         </div>
                     </div>
@@ -1110,8 +1034,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         </h2>
                                     </div>
                                     <p class="generator-copy">
-                                        Use Grok for premium image and video workflows, or SwarmUI
-                                        and ComfyUI for local still generation.
+                                        Use SwarmUI or ComfyUI for local image generation.
                                     </p>
                                 </div>
 
@@ -1120,15 +1043,12 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         <span>Mode</span>
                                         <select id="generatorMode">
                                             <option value="image_generate">Create Image</option>
-                                            <option value="image_edit">Edit / Variation</option>
-                                            <option value="video_generate">Video From Image</option>
                                         </select>
                                     </label>
 
                                     <label class="generator-field">
                                         <span>Provider</span>
                                         <select id="generatorProvider">
-                                            <option value="grok">Grok</option>
                                             <option value="swarm">SwarmUI</option>
                                             <option value="comfy">ComfyUI</option>
                                         </select>
@@ -1150,7 +1070,6 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         <span>Prompt Helper</span>
                                         <select id="generatorHelperProvider">
                                             <option value="off">Off</option>
-                                            <option value="premium">Premium Grok</option>
                                             <option value="openrouter">OpenRouter</option>
                                         </select>
                                     </label>
@@ -1254,30 +1173,6 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                                 Load Preset
                                             </button>
                                         </div>
-                                    </div>
-
-                                    <div
-                                        id="generatorGrokFields"
-                                        class="generator-provider-grid generator-field-full"
-                                    >
-                                        <label class="generator-field">
-                                            <span>Aspect Ratio</span>
-                                            <select id="generatorAspectRatio">
-                                                <option value="auto">Auto</option>
-                                                <option value="1:1">1:1</option>
-                                                <option value="16:9">16:9</option>
-                                                <option value="9:16">9:16</option>
-                                                <option value="4:3">4:3</option>
-                                                <option value="3:4">3:4</option>
-                                            </select>
-                                        </label>
-                                        <label class="generator-field">
-                                            <span>Resolution</span>
-                                            <select id="generatorImageResolution">
-                                                <option value="1k">1k</option>
-                                                <option value="2k">2k</option>
-                                            </select>
-                                        </label>
                                     </div>
 
                                     <div

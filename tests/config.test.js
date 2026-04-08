@@ -4,7 +4,7 @@ import { defaultCharacter, defaultGeneratorPrefs, defaultSettings } from '../js/
 
 describe('default config', () => {
     it('keeps the main app defaults stable', () => {
-        expect(defaultSettings.textProvider).toBe('premium');
+        expect(defaultSettings.textProvider).toBe('openrouter');
         expect(defaultSettings.imageProvider).toBe('swarm');
         expect(defaultSettings.enableImageGeneration).toBe(true);
         expect(defaultSettings.contextMessageCount).toBe(20);
@@ -12,7 +12,7 @@ describe('default config', () => {
 
     it('keeps generator defaults stable', () => {
         expect(defaultGeneratorPrefs.mode).toBe('image_generate');
-        expect(defaultGeneratorPrefs.provider).toBe('grok');
+        expect(defaultGeneratorPrefs.provider).toBe('swarm');
         expect(defaultGeneratorPrefs.batchCount).toBe(1);
         expect(defaultGeneratorPrefs.promptPresets).toEqual([]);
     });

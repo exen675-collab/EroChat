@@ -7,7 +7,6 @@ import {
     addAIMessageToUI,
     updateAIMessageImage,
     addImageToGallery,
-    generateVideoForMessage,
     refreshMessageContextIndicators,
     removeMessageFromContext
 } from './messages.js';
@@ -27,10 +26,8 @@ import { selectCharacter, deleteCharacter, editCharacter } from './characters.js
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchOpenRouterModels } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
-import { fetchCreditsSummary } from './api-grok.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
-import { initTts, toggleMessageTts } from './tts.js';
 import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
 
 export function updateRequestPreviewButtonState() {
@@ -298,12 +295,6 @@ async function init() {
     updateCurrentUserUI();
     syncAdminPanelVisibility();
 
-    try {
-        await fetchCreditsSummary(true);
-    } catch (error) {
-        console.warn('Failed to fetch credits summary:', error);
-    }
-
     if (state.currentUser.isAdmin) {
         try {
             await fetchAdminUsers(true);
@@ -314,13 +305,10 @@ async function init() {
 
     loadFromLocalStorage();
     await initGenerator();
-    await initTts();
 
     window.regenerateImage = regenerateImage;
-    window.generateVideoForMessage = generateVideoForMessage;
     window.removeMessageFromContext = removeMessageFromContext;
     window.editAssistantMessage = editAssistantMessage;
-    window.playMessageTts = toggleMessageTts;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;

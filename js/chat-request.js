@@ -1,4 +1,3 @@
-import { PREMIUM_CHAT_MODEL } from './api-grok.js';
 import { getContextMessages, normalizeContextMessageCount } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
@@ -39,7 +38,7 @@ export function buildChatApiMessages({
 }
 
 export function buildChatRequestPreview({
-    textProvider = 'premium',
+    textProvider = 'openrouter',
     draftMessage = '',
     systemPrompt = '',
     historyMessages = [],
@@ -50,41 +49,13 @@ export function buildChatRequestPreview({
     temperature = CHAT_REQUEST_DEFAULTS.temperature,
     maxTokens = CHAT_REQUEST_DEFAULTS.maxTokens
 }) {
-    const provider = textProvider === 'premium' ? 'premium' : 'openrouter';
+    const provider = 'openrouter';
     const messages = buildChatApiMessages({
         systemPrompt,
         historyMessages,
         draftMessage,
         contextMessageCount
     });
-
-    if (provider === 'premium') {
-        const body = {
-            model: PREMIUM_CHAT_MODEL,
-            messages,
-            temperature,
-            max_tokens: maxTokens
-        };
-
-        return {
-            provider,
-            method: 'POST',
-            url: '/api/premium/chat',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body,
-            displayText: formatChatRequestPreview({
-                provider,
-                method: 'POST',
-                url: '/api/premium/chat',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body
-            })
-        };
-    }
 
     const body = {
         model: openrouterModel,

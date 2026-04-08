@@ -31,7 +31,6 @@ describe('assistant message editing', () => {
             <select id="gallerySourceFilter"></select>
             <select id="galleryThumbnailCharacter"></select>
             <div id="galleryGrid"></div>
-            <select id="ttsVoiceId"></select>
             <div id="connectionStatus"><span></span><span></span></div>
         `;
 

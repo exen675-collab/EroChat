@@ -1,5 +1,4 @@
 import { elements } from './dom.js';
-import { sendGrokChatRequest } from './api-grok.js';
 import { sendOpenRouterChatRequest } from './api-openrouter.js';
 
 export const PROMPT_TEMPLATE_GROUPS = [
@@ -76,12 +75,6 @@ export async function runPromptHelperAction({
     }
 
     const messages = buildHelperMessages(action, trimmedPrompt, negativePrompt);
-    if (provider === 'premium') {
-        return sendGrokChatRequest(messages, {
-            temperature: 0.6,
-            maxTokens: 900
-        });
-    }
 
     if (!elements.openrouterKey.value || !elements.openrouterModel.value) {
         throw new Error(

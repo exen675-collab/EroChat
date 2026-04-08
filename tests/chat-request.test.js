@@ -11,29 +11,6 @@ describe('chat request preview builder', () => {
         document.body.innerHTML = '';
     });
 
-    it('builds premium chat requests with the current draft and bounded context', () => {
-        const preview = buildChatRequestPreview({
-            textProvider: 'premium',
-            draftMessage: 'Newest draft',
-            systemPrompt: 'Stay in character.',
-            historyMessages: [
-                { role: 'user', content: 'Old user' },
-                { role: 'assistant', content: 'Old assistant' },
-                { role: 'assistant', content: 'Keep this assistant reply' }
-            ],
-            contextMessageCount: 2
-        });
-
-        expect(preview.provider).toBe('premium');
-        expect(preview.url).toBe('/api/premium/chat');
-        expect(preview.body.model).toBe('grok-4-1-fast-reasoning');
-        expect(preview.body.messages).toEqual([
-            { role: 'system', content: 'Stay in character.' },
-            { role: 'assistant', content: 'Keep this assistant reply' },
-            { role: 'user', content: 'Newest draft' }
-        ]);
-    });
-
     it('builds openrouter chat requests with the expected browser headers', () => {
         const preview = buildChatRequestPreview({
             textProvider: 'openrouter',
@@ -117,9 +94,11 @@ describe('request preview modal helpers', () => {
     it('renders and copies the current request preview', async () => {
         const ui = await import('../js/ui.js');
         const preview = buildChatRequestPreview({
-            textProvider: 'premium',
+            textProvider: 'openrouter',
             draftMessage: 'Inspect me',
-            systemPrompt: 'System prompt'
+            systemPrompt: 'System prompt',
+            openrouterKey: 'sk-test',
+            openrouterModel: 'openai/gpt-4.1-mini'
         });
 
         ui.showChatRequestPreview(preview);
@@ -128,7 +107,7 @@ describe('request preview modal helpers', () => {
             false
         );
         expect(document.getElementById('requestPreviewEndpoint').textContent).toBe(
-            'POST /api/premium/chat'
+            'POST https://openrouter.ai/api/v1/chat/completions'
         );
         expect(document.getElementById('requestPreviewBody').textContent).toContain('Inspect me');
 

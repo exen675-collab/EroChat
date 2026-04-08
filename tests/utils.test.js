@@ -26,7 +26,6 @@ describe('utils helpers', () => {
 
     it('maps provider aliases and preserves known providers', () => {
         expect(normalizeImageProvider('local')).toBe('swarm');
-        expect(normalizeImageProvider('grok')).toBe('premium');
         expect(normalizeImageProvider('comfy')).toBe('comfy');
         expect(normalizeImageProvider('unknown')).toBe('swarm');
     });

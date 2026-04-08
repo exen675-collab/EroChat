@@ -50,7 +50,7 @@ export const elements = {
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
-    ttsVoiceId: document.getElementById('ttsVoiceId'),
+    ttsVoiceId: null,
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),
     comfyUrl: document.getElementById('comfyUrl'),

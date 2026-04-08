@@ -29,7 +29,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
 
 // Default settings
 export const defaultSettings = {
-    textProvider: 'premium',
+    textProvider: 'openrouter',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
     ttsVoiceId: 'ara',
@@ -50,7 +50,7 @@ export const defaultSettings = {
 
 export const defaultGeneratorPrefs = {
     mode: 'image_generate',
-    provider: 'grok',
+    provider: 'swarm',
     helperProvider: 'off',
     prompt: '',
     negativePrompt: '',

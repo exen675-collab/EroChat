@@ -1,6 +1,5 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
-import { sendGrokChatRequest } from './api-grok.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
@@ -147,17 +146,6 @@ export async function sendOpenRouterChatRequest(apiMessages) {
 
 // Send chat completion request to selected provider
 export async function sendChatRequest(apiMessages) {
-    const textProvider =
-        apiMessages &&
-        typeof apiMessages === 'object' &&
-        !Array.isArray(apiMessages) &&
-        apiMessages.provider
-            ? apiMessages.provider
-            : elements.textProvider.value || state.settings.textProvider || 'premium';
-
-    if (textProvider === 'premium') {
-        return sendGrokChatRequest(apiMessages);
-    }
     return sendOpenRouterChatRequest(apiMessages);
 }
 
@@ -249,53 +237,6 @@ async function generateCharacterSystemPromptOpenRouter({
     return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
-async function generateCharacterSystemPromptGrok({ name, description, background, userInfo }) {
-    const ROLEPLAY_TEMPLATE = `
-    # SYSTEM PROMPT - Roleplay Agent
-    ## Genre and Type
-    Erotic slowburn roleplay. Tension builds gradually through flirtation, teasing, accidental touches, and provocative subtext.
-
-    ## Perspective and Response Style
-    - Write only as {{agent_name}} (dialogue + actions + body language).
-    - Never write {{player_name}} thoughts/actions/dialogue.
-    - Format: *actions in italics*, "dialogue normal".
-    - Response length: 2-5 paragraphs.
-
-    ## Character details
-    Fill all placeholders from user-provided details.
-
-    ## Image Prompt Block
-    After every response append:
-    ---IMAGE_PROMPT START---
-    masterpiece, best_quality, ...
-    ---IMAGE_PROMPT END---
-    `;
-
-    const content = await sendGrokChatRequest(
-        [
-            {
-                role: 'system',
-                content:
-                    'You are a prompt editor. Fill all placeholders in the template with provided character data and return only the final system prompt.'
-            },
-            {
-                role: 'user',
-                content: `TEMPLATE:${ROLEPLAY_TEMPLATE}---CHARACTER DATA:- Agent name: ${name}- Description: ${description}- Background: ${background}- Player data: ${JSON.stringify(userInfo)}Fill the template with the data above.`
-            }
-        ],
-        {
-            temperature: 0.7,
-            maxTokens: 2200
-        }
-    );
-
-    return content.trim();
-}
-
 export async function generateCharacterSystemPrompt(payload) {
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    if (textProvider === 'premium') {
-        return generateCharacterSystemPromptGrok(payload);
-    }
     return generateCharacterSystemPromptOpenRouter(payload);
 }

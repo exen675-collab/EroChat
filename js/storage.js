@@ -8,7 +8,6 @@ import {
     normalizeContextMessageCount,
     normalizeImageProvider,
     normalizeSwarmSampler,
-    normalizeTtsVoiceId,
     syncSwarmSamplerSelect
 } from './utils.js';
 
@@ -243,7 +242,6 @@ export function loadFromLocalStorage() {
                 state.settings.contextMessageCount = normalizeContextMessageCount(
                     state.settings.contextMessageCount
                 );
-                state.settings.ttsVoiceId = normalizeTtsVoiceId(state.settings.ttsVoiceId);
                 updateSettingsUI();
             }
             if (parsed.characters) {
@@ -336,7 +334,6 @@ export function updateSettingsUI() {
     elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
-    elements.ttsVoiceId.value = normalizeTtsVoiceId(state.settings.ttsVoiceId);
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
     elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';

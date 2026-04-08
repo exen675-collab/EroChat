@@ -5,8 +5,7 @@ import { defaultCharacter } from './config.js';
 import {
     normalizeBaseUrl,
     normalizeContextMessageCount,
-    normalizeImageProvider,
-    normalizeTtsVoiceId
+    normalizeImageProvider
 } from './utils.js';
 import {
     openCharacterModal,
@@ -264,11 +263,6 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
-    elements.ttsVoiceId.addEventListener('change', () => {
-        state.settings.ttsVoiceId = normalizeTtsVoiceId(elements.ttsVoiceId.value);
-        saveToLocalStorage();
-    });
-
     elements.swarmModel.addEventListener('change', () => {
         state.settings.swarmModel = elements.swarmModel.value;
         saveToLocalStorage();
@@ -384,7 +378,6 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
-            ttsVoiceId: normalizeTtsVoiceId(elements.ttsVoiceId.value),
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
             comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),
