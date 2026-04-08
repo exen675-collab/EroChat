@@ -23,6 +23,7 @@ import { saveToLocalStorage } from './storage.js';
 import { renderMessages, saveEditedAssistantMessage } from './messages.js';
 import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
 import { importCharacterCardFile } from './character-import.js';
+import { clearSuggestions } from './suggestions.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -137,6 +138,15 @@ export function setupEventListeners() {
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
     elements.previewRequestBtn.addEventListener('click', openRequestPreview);
+    elements.suggestBtn?.addEventListener('click', () => {
+        import('./suggestions.js').then(({ fetchSuggestions, renderSuggestions }) => {
+            elements.suggestBtn.disabled = true;
+            fetchSuggestions()
+                .then(renderSuggestions)
+                .catch(() => {})
+                .finally(() => { elements.suggestBtn.disabled = false; });
+        });
+    });
 
     // Chat media lightbox
     elements.chatContainer.addEventListener('click', (e) => {
@@ -412,6 +422,7 @@ export function setupEventListeners() {
     elements.clearChatBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to clear the chat? This will remove all messages.')) {
             state.messages = [];
+            clearSuggestions();
             renderMessages();
             saveToLocalStorage();
         }
@@ -424,5 +435,16 @@ export function setupEventListeners() {
 
     elements.cfgScale.addEventListener('input', (e) => {
         elements.cfgValue.textContent = e.target.value;
+    });
+
+    // Writing suggestion chip clicks
+    elements.suggestionsContainer?.addEventListener('click', (e) => {
+        const chip = e.target.closest('.suggestion-chip');
+        if (!chip) return;
+        const suggestion = chip.getAttribute('data-suggestion');
+        if (!suggestion) return;
+        elements.messageInput.value = suggestion;
+        elements.messageInput.dispatchEvent(new Event('input'));
+        elements.messageInput.focus();
     });
 }

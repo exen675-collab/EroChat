@@ -29,6 +29,7 @@ import { fetchSwarmModels } from './api-swarmui.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
 import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
+import { fetchSuggestions, renderSuggestions, clearSuggestions } from './suggestions.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
@@ -162,6 +163,7 @@ export async function sendMessage() {
     elements.messageInput.value = '';
     elements.messageInput.style.height = 'auto';
     updateRequestPreviewButtonState();
+    clearSuggestions();
 
     const userMessageId = generateId();
     state.messages.push({ id: userMessageId, role: 'user', content });
@@ -195,6 +197,9 @@ export async function sendMessage() {
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
         saveToLocalStorage();
+
+        // Fetch writing suggestions in the background (non-blocking)
+        fetchSuggestions().then(renderSuggestions).catch(() => {});
 
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
             try {

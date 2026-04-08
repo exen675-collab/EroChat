@@ -106,5 +106,10 @@ export const elements = {
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
-    clearChatBtn: document.getElementById('clearChatBtn')
+    clearChatBtn: document.getElementById('clearChatBtn'),
+
+    // Suggestions
+    suggestBtn: document.getElementById('suggestBtn'),
+    suggestionsOuter: document.getElementById('suggestionsOuter'),
+    suggestionsContainer: document.getElementById('suggestionsContainer')
 };
