@@ -126,3 +126,96 @@ describe('assistant message editing', () => {
         expect(state.messages[0].editedAt).toBeUndefined();
     });
 });
+
+describe('removeMessageFromContext', () => {
+    let state;
+    let messages;
+
+    beforeEach(async () => {
+        vi.resetModules();
+        document.body.innerHTML = `
+            <div id="chatContainer"></div>
+            <div id="settingsPanel" class="-translate-x-full"></div>
+            <div id="advancedSettingsModal" class="hidden"></div>
+            <div id="requestPreviewModal" class="hidden"></div>
+            <div id="editMessageModal" class="hidden"></div>
+            <textarea id="editMessageTextarea"></textarea>
+            <button id="saveEditMessageBtn" type="button"></button>
+            <button id="cancelEditMessageBtn" type="button"></button>
+            <button id="closeEditMessageBtn" type="button"></button>
+            <div id="generatorView" class="hidden"></div>
+            <div id="galleryView" class="hidden"></div>
+            <div id="chatView"></div>
+            <div id="chatSettingsPane"></div>
+            <div id="generatorSettingsPane" class="hidden"></div>
+            <div id="currentCharacterDisplay"></div>
+            <div id="currentViewDescription"></div>
+            <button id="navChatBtn" type="button"></button>
+            <button id="navGeneratorBtn" type="button"></button>
+            <button id="navGalleryBtn" type="button"></button>
+            <select id="galleryCharacterFilter"></select>
+            <select id="gallerySourceFilter"></select>
+            <select id="galleryThumbnailCharacter"></select>
+            <div id="galleryGrid"></div>
+            <div id="connectionStatus"><span></span><span></span></div>
+        `;
+
+        ({ state } = await import('../js/state.js'));
+        messages = await import('../js/messages.js');
+
+        state.currentCharacterId = 'default';
+        state.characters = [
+            {
+                id: 'default',
+                name: 'Test Character',
+                avatar: 'A',
+                systemPrompt: '',
+                messages: []
+            }
+        ];
+        state.messages = [];
+        state.galleryImages = [];
+        state.generatorAssets = [];
+        state.settings.enableImageGeneration = false;
+        state.settings.contextMessageCount = 20;
+
+        vi.stubGlobal('localStorage', {
+            getItem: vi.fn(() => null),
+            setItem: vi.fn(),
+            removeItem: vi.fn()
+        });
+        vi.stubGlobal('confirm', vi.fn(() => true));
+    });
+
+    it('removes a message when the user confirms', () => {
+        state.messages = [
+            { id: 'msg-1', role: 'user', content: 'Hello' },
+            { id: 'msg-2', role: 'assistant', content: 'Hi there', imageUrl: null, videoUrl: null }
+        ];
+
+        messages.removeMessageFromContext('msg-1');
+
+        expect(state.messages).toHaveLength(1);
+        expect(state.messages[0].id).toBe('msg-2');
+    });
+
+    it('does not remove any message when the user cancels', () => {
+        vi.stubGlobal('confirm', vi.fn(() => false));
+        state.messages = [
+            { id: 'msg-1', role: 'user', content: 'Hello' },
+            { id: 'msg-2', role: 'assistant', content: 'Hi', imageUrl: null, videoUrl: null }
+        ];
+
+        messages.removeMessageFromContext('msg-1');
+
+        expect(state.messages).toHaveLength(2);
+    });
+
+    it('is a no-op when the message id does not exist', () => {
+        state.messages = [{ id: 'msg-1', role: 'user', content: 'Hello' }];
+
+        messages.removeMessageFromContext('no-such-id');
+
+        expect(state.messages).toHaveLength(1);
+    });
+});

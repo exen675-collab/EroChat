@@ -140,20 +140,20 @@ function applyPrefsToForm() {
     elements.generatorPrompt.value = state.generatorPrefs.prompt || '';
     elements.generatorNegativePrompt.value = state.generatorPrefs.negativePrompt || '';
     elements.generatorBatchCount.value = state.generatorPrefs.batchCount || 1;
-    elements.generatorAspectRatio.value = state.generatorPrefs.aspectRatio || 'auto';
-    elements.generatorEditAspectRatio.value = state.generatorPrefs.aspectRatio || 'auto';
-    elements.generatorImageResolution.value = state.generatorPrefs.imageResolution || '1k';
-    elements.generatorEditResolution.value = state.generatorPrefs.editResolution || '1k';
-    elements.generatorVideoDuration.value = state.generatorPrefs.videoDuration || 4;
-    elements.generatorVideoAspectRatio.value = state.generatorPrefs.videoAspectRatio || '16:9';
-    elements.generatorVideoResolution.value = state.generatorPrefs.videoResolution || '480p';
-    elements.generatorSwarmWidth.value = state.generatorPrefs.swarmWidth || 832;
-    elements.generatorSwarmHeight.value = state.generatorPrefs.swarmHeight || 1216;
-    elements.generatorSwarmSteps.value = state.generatorPrefs.swarmSteps || 25;
-    elements.generatorSwarmCfgScale.value = state.generatorPrefs.swarmCfgScale || 7;
+    if (elements.generatorAspectRatio) elements.generatorAspectRatio.value = state.generatorPrefs.aspectRatio || 'auto';
+    if (elements.generatorEditAspectRatio) elements.generatorEditAspectRatio.value = state.generatorPrefs.aspectRatio || 'auto';
+    if (elements.generatorImageResolution) elements.generatorImageResolution.value = state.generatorPrefs.imageResolution || '1k';
+    if (elements.generatorEditResolution) elements.generatorEditResolution.value = state.generatorPrefs.editResolution || '1k';
+    if (elements.generatorVideoDuration) elements.generatorVideoDuration.value = state.generatorPrefs.videoDuration || 4;
+    if (elements.generatorVideoAspectRatio) elements.generatorVideoAspectRatio.value = state.generatorPrefs.videoAspectRatio || '16:9';
+    if (elements.generatorVideoResolution) elements.generatorVideoResolution.value = state.generatorPrefs.videoResolution || '480p';
+    if (elements.generatorSwarmWidth) elements.generatorSwarmWidth.value = state.generatorPrefs.swarmWidth || 832;
+    if (elements.generatorSwarmHeight) elements.generatorSwarmHeight.value = state.generatorPrefs.swarmHeight || 1216;
+    if (elements.generatorSwarmSteps) elements.generatorSwarmSteps.value = state.generatorPrefs.swarmSteps || 25;
+    if (elements.generatorSwarmCfgScale) elements.generatorSwarmCfgScale.value = state.generatorPrefs.swarmCfgScale || 7;
     syncSwarmSamplerSelect(elements.generatorSwarmSampler, state.generatorPrefs.swarmSampler);
-    elements.generatorSwarmSeedMode.value = state.generatorPrefs.swarmSeedMode || 'random';
-    elements.generatorSwarmBaseSeed.value = state.generatorPrefs.swarmBaseSeed || 1;
+    if (elements.generatorSwarmSeedMode) elements.generatorSwarmSeedMode.value = state.generatorPrefs.swarmSeedMode || 'random';
+    if (elements.generatorSwarmBaseSeed) elements.generatorSwarmBaseSeed.value = state.generatorPrefs.swarmBaseSeed || 1;
     elements.generatorHelperProvider.value = state.generatorPrefs.helperProvider || 'off';
 }
 
@@ -589,7 +589,7 @@ function bindEvents() {
         elements.generatorSwarmBaseSeed,
         elements.generatorEditAspectRatio,
         elements.generatorHelperProvider
-    ].forEach((input) => {
+    ].filter(Boolean).forEach((input) => {
         input.addEventListener('input', readPrefsFromForm);
         input.addEventListener('change', readPrefsFromForm);
     });

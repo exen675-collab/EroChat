@@ -308,15 +308,15 @@ async function init() {
         }
     }
 
-    loadFromLocalStorage();
-    await initGenerator();
-
     window.regenerateImage = regenerateImage;
     window.removeMessageFromContext = removeMessageFromContext;
     window.editAssistantMessage = editAssistantMessage;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;
+
+    loadFromLocalStorage();
+    await initGenerator();
 
     syncViewFromHash();
     window.addEventListener('hashchange', syncViewFromHash);
