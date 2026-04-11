@@ -24,6 +24,7 @@ import { renderMessages, saveEditedAssistantMessage } from './messages.js';
 import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
+import { requestConfirmation, showToast } from './notifications.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -215,17 +216,23 @@ export function setupEventListeners() {
             const targetCharacterId = elements.galleryThumbnailCharacter.value;
 
             if (!targetCharacterId) {
-                alert('Please choose a character first.');
+                showToast('Please choose a character first.', {
+                    type: 'warning'
+                });
                 return;
             }
 
             const ok = applyCharacterThumbnail(targetCharacterId, imageUrl);
             if (!ok) {
-                alert('Failed to set thumbnail for selected character.');
+                showToast('Failed to set thumbnail for selected character.', {
+                    type: 'error'
+                });
                 return;
             }
 
-            alert('Thumbnail updated successfully!');
+            showToast('Thumbnail updated successfully.', {
+                type: 'success'
+            });
             return;
         }
 
@@ -350,12 +357,17 @@ export function setupEventListeners() {
             const result = await importCharacterCardFile(file);
             const warningText =
                 result.warnings.length > 0
-                    ? `\n\nWarnings:\n- ${result.warnings.join('\n- ')}`
+                    ? `\nWarnings: ${result.warnings.join(' • ')}`
                     : '';
-            alert(`Imported "${result.character.name}" successfully.${warningText}`);
+            showToast(`Imported "${result.character.name}" successfully.${warningText}`, {
+                type: 'success',
+                duration: result.warnings.length > 0 ? 8000 : 5000
+            });
         } catch (error) {
             console.error('Character import failed:', error);
-            alert(`Failed to import character card: ${error.message}`);
+            showToast(`Failed to import character card: ${error.message}`, {
+                type: 'error'
+            });
         } finally {
             elements.importCharacterBtn.disabled = false;
             elements.importCharacterBtn.innerHTML = originalLabel;
@@ -370,7 +382,9 @@ export function setupEventListeners() {
             await ui.copyCurrentChatRequestPreview();
         } catch (error) {
             console.error('Request preview copy failed:', error);
-            alert(`Failed to copy request: ${error.message}`);
+            showToast(`Failed to copy request: ${error.message}`, {
+                type: 'error'
+            });
         }
     });
     elements.saveEditMessageBtn.addEventListener('click', () => {
@@ -381,7 +395,9 @@ export function setupEventListeners() {
             );
             ui.closeEditMessageModal();
         } catch (error) {
-            alert(error.message);
+            showToast(error.message, {
+                type: 'error'
+            });
         }
     });
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
@@ -438,18 +454,32 @@ export function setupEventListeners() {
         }
 
         saveToLocalStorage();
-        alert('Settings saved!');
+        showToast('Settings saved.', {
+            type: 'success'
+        });
         ui.toggleAdvancedSettings(false);
     });
 
     // Clear chat
-    elements.clearChatBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to clear the chat? This will remove all messages.')) {
-            state.messages = [];
-            clearSuggestions();
-            renderMessages();
-            saveToLocalStorage();
+    elements.clearChatBtn.addEventListener('click', async () => {
+        const confirmed = await requestConfirmation(
+            'Clear the current chat history? This removes all saved messages.',
+            {
+                confirmLabel: 'Clear chat',
+                type: 'error'
+            }
+        );
+        if (!confirmed) {
+            return;
         }
+
+        state.messages = [];
+        clearSuggestions();
+        renderMessages();
+        saveToLocalStorage();
+        showToast('Chat cleared.', {
+            type: 'success'
+        });
     });
 
     // Range slider updates

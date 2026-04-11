@@ -81,6 +81,7 @@ export const elements = {
     cancelCharBtn: document.getElementById('cancelCharBtn'),
     saveCharBtn: document.getElementById('saveCharBtn'),
     modalTitle: document.getElementById('modalTitle'),
+    characterFormStatus: document.getElementById('characterFormStatus'),
     charName: document.getElementById('charName'),
     charAvatar: document.getElementById('charAvatar'),
     charSystemPrompt: document.getElementById('charSystemPrompt'),

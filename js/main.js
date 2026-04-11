@@ -31,6 +31,7 @@ import { initGenerator, refreshGeneratorView } from './generator.js';
 import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
 import { fetchSuggestions, renderSuggestions, clearSuggestions } from './suggestions.js';
 import { recordAssistantReply, recordGeneratedMedia, recordUserMessage } from './stats.js';
+import { installAlertNotificationOverrides, showToast } from './notifications.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
@@ -128,13 +129,21 @@ export async function sendMessage() {
     );
 
     if (textProvider !== 'premium' && !elements.openrouterKey.value) {
-        alert('Please enter your OpenRouter API key in settings.');
+        showToast('Please enter your OpenRouter API key in settings.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
         toggleAdvancedSettings(true);
         return;
     }
 
     if (textProvider !== 'premium' && !elements.openrouterModel.value) {
-        alert('Please select an OpenRouter model in settings.');
+        showToast('Please select an OpenRouter model in settings.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
         toggleAdvancedSettings(true);
         return;
     }
@@ -144,7 +153,11 @@ export async function sendMessage() {
         imageProvider === 'swarm' &&
         !elements.swarmModel.value
     ) {
-        alert('Please select a SwarmUI model in settings or disable image generation.');
+        showToast('Please select a SwarmUI model in settings or disable image generation.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
         toggleAdvancedSettings(true);
         return;
     }
@@ -154,7 +167,11 @@ export async function sendMessage() {
         imageProvider === 'comfy' &&
         !elements.comfyModel.value
     ) {
-        alert('Please select a ComfyUI checkpoint in settings or disable image generation.');
+        showToast('Please select a ComfyUI checkpoint in settings or disable image generation.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
         toggleAdvancedSettings(true);
         return;
     }
@@ -312,6 +329,7 @@ async function autoFetchModels() {
 
 // Initialize application
 async function init() {
+    installAlertNotificationOverrides();
     setupEventListeners();
     updateRequestPreviewButtonState();
 
