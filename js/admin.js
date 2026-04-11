@@ -161,7 +161,7 @@ export async function fetchAdminUsers(silent = false) {
                 actionLabel: 'Retry',
                 onAction: () => {
                     fetchAdminUsers(false).catch((retryError) => {
-                        console.debug('Admin users retry handled by existing error UI:', retryError);
+                        console.warn('Retry failed loading users:', retryError);
                     });
                 }
             });
