@@ -16,6 +16,8 @@ const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
 const LEGACY_MIGRATED_MARKER_KEY = 'erochat_data_legacy_migrated';
 const MAX_STORAGE_TRIM_ATTEMPTS = 200;
+export const BACKUP_FORMAT = 'erochat-backup';
+export const BACKUP_VERSION = 1;
 
 function getStorageKeyForCurrentUser() {
     if (state.currentUser && state.currentUser.id != null) {
@@ -124,6 +126,14 @@ function buildPersistedData() {
     };
 }
 
+function buildBackupData() {
+    return {
+        characters: state.characters,
+        currentCharacterId: state.currentCharacterId,
+        galleryImages: state.galleryImages
+    };
+}
+
 function removeOldestGalleryItem(preferDataUrls = false) {
     if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {
         return false;
@@ -228,6 +238,129 @@ export function saveToLocalStorage() {
     return false;
 }
 
+function finalizeHydratedState(migratedMessages = null, options = {}) {
+    // Ensure we have at least the default character
+    if (state.characters.length === 0) {
+        state.characters = [{ ...defaultCharacter }];
+    }
+
+    // Set default character if none selected
+    if (!state.currentCharacterId) {
+        state.currentCharacterId = 'default';
+    }
+
+    // Handle migration if needed
+    if (migratedMessages) {
+        const currentChar =
+            state.characters.find((c) => c.id === (state.currentCharacterId || 'default')) ||
+            state.characters.find((c) => c.id === 'default');
+        if (currentChar && (!currentChar.messages || currentChar.messages.length === 0)) {
+            currentChar.messages = migratedMessages;
+        }
+    }
+
+    // Populate active messages from current character
+    const character =
+        state.characters.find((c) => c.id === state.currentCharacterId) ||
+        state.characters.find((c) => c.id === 'default') ||
+        state.characters[0];
+
+    if (character) {
+        state.messages = character.messages || [];
+    }
+
+    if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {
+        state.galleryImages = migrateGalleryFromCharacterMessages();
+    }
+
+    if (!state.galleryFilterCharacterId) {
+        state.galleryFilterCharacterId = 'all';
+    }
+
+    if (!state.gallerySearchQuery) {
+        state.gallerySearchQuery = '';
+    }
+
+    if (!state.gallerySortOrder) {
+        state.gallerySortOrder = 'newest';
+    }
+
+    if (!state.gallerySourceFilter) {
+        state.gallerySourceFilter = 'all';
+    }
+
+    if (!state.currentView) {
+        state.currentView = 'chat';
+    }
+
+    state.statistics = ensureStatisticsShape(state.statistics);
+
+    if (options.render === false) {
+        return;
+    }
+
+    updateSettingsUI();
+    renderCharactersList();
+    updateCurrentCharacterUI();
+    renderMessages();
+}
+
+export function createBackupPayload(exportedAt = new Date().toISOString()) {
+    syncCurrentMessagesToCharacter();
+
+    return {
+        format: BACKUP_FORMAT,
+        version: BACKUP_VERSION,
+        exportedAt,
+        data: buildBackupData()
+    };
+}
+
+function extractBackupData(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new Error('Backup file must contain a JSON object.');
+    }
+
+    const candidate =
+        payload.format === BACKUP_FORMAT && payload.data && typeof payload.data === 'object'
+            ? payload.data
+            : payload;
+
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        throw new Error('Backup file is missing the expected backup data.');
+    }
+
+    const hasCharacters = Array.isArray(candidate.characters);
+    const hasGalleryImages = Array.isArray(candidate.galleryImages);
+
+    if (!hasCharacters && !hasGalleryImages) {
+        throw new Error('Backup file does not contain chats, characters, or gallery metadata.');
+    }
+
+    return {
+        characters: hasCharacters ? candidate.characters : [],
+        currentCharacterId:
+            typeof candidate.currentCharacterId === 'string' ? candidate.currentCharacterId : null,
+        galleryImages: hasGalleryImages ? candidate.galleryImages : []
+    };
+}
+
+export function restoreFromBackupPayload(payload, options = {}) {
+    const backupData = extractBackupData(payload);
+
+    state.characters = backupData.characters;
+    state.currentCharacterId = backupData.currentCharacterId;
+    state.galleryImages = backupData.galleryImages;
+
+    finalizeHydratedState(null, options);
+
+    if (options.persist !== false) {
+        saveToLocalStorage();
+    }
+
+    return backupData;
+}
+
 // Load state from localStorage
 export function loadFromLocalStorage() {
     const data = readStoredData();
@@ -288,66 +421,7 @@ export function loadFromLocalStorage() {
         }
     }
 
-    // Ensure we have at least the default character
-    if (state.characters.length === 0) {
-        state.characters = [{ ...defaultCharacter }];
-    }
-
-    // Set default character if none selected
-    if (!state.currentCharacterId) {
-        state.currentCharacterId = 'default';
-    }
-
-    // Handle migration if needed
-    if (migratedMessages) {
-        const currentChar =
-            state.characters.find((c) => c.id === (state.currentCharacterId || 'default')) ||
-            state.characters.find((c) => c.id === 'default');
-        if (currentChar && (!currentChar.messages || currentChar.messages.length === 0)) {
-            currentChar.messages = migratedMessages;
-        }
-    }
-
-    // Populate active messages from current character
-    const character =
-        state.characters.find((c) => c.id === state.currentCharacterId) ||
-        state.characters.find((c) => c.id === 'default') ||
-        state.characters[0];
-
-    if (character) {
-        state.messages = character.messages || [];
-    }
-
-    if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {
-        state.galleryImages = migrateGalleryFromCharacterMessages();
-    }
-
-    if (!state.galleryFilterCharacterId) {
-        state.galleryFilterCharacterId = 'all';
-    }
-
-    if (!state.gallerySearchQuery) {
-        state.gallerySearchQuery = '';
-    }
-
-    if (!state.gallerySortOrder) {
-        state.gallerySortOrder = 'newest';
-    }
-
-    if (!state.gallerySourceFilter) {
-        state.gallerySourceFilter = 'all';
-    }
-
-    if (!state.currentView) {
-        state.currentView = 'chat';
-    }
-
-    state.statistics = ensureStatisticsShape(state.statistics);
-
-    updateSettingsUI();
-    renderCharactersList();
-    updateCurrentCharacterUI();
-    renderMessages();
+    finalizeHydratedState(migratedMessages);
 }
 
 // Update settings UI from state

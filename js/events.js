@@ -19,7 +19,7 @@ import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
-import { saveToLocalStorage } from './storage.js';
+import { createBackupPayload, restoreFromBackupPayload, saveToLocalStorage } from './storage.js';
 import { renderMessages, saveEditedAssistantMessage } from './messages.js';
 import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
 import { importCharacterCardFile } from './character-import.js';
@@ -27,6 +27,11 @@ import { clearSuggestions } from './suggestions.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
+}
+
+function buildBackupFileName(exportedAt) {
+    const timestamp = String(exportedAt || new Date().toISOString()).replace(/[:.]/g, '-');
+    return `erochat-backup-${timestamp}.json`;
 }
 
 // Setup all event listeners
@@ -449,6 +454,82 @@ export function setupEventListeners() {
             clearSuggestions();
             renderMessages();
             saveToLocalStorage();
+        }
+    });
+
+    elements.exportBackupBtn?.addEventListener('click', () => {
+        try {
+            const payload = createBackupPayload();
+            const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                type: 'application/json'
+            });
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = buildBackupFileName(payload.exportedAt);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+            alert('Backup exported successfully.');
+        } catch (error) {
+            console.error('Backup export failed:', error);
+            alert(`Failed to export backup: ${error.message}`);
+        }
+    });
+
+    elements.importBackupBtn?.addEventListener('click', () => {
+        if (!elements.backupImportInput) return;
+        elements.backupImportInput.value = '';
+        elements.backupImportInput.click();
+    });
+
+    elements.backupImportInput?.addEventListener('change', async (event) => {
+        const [file] = Array.from(event.target.files || []);
+        event.target.value = '';
+
+        if (!file) {
+            return;
+        }
+
+        if (
+            !confirm(
+                'Importing a backup will replace your current chats, characters, and gallery metadata. Continue?'
+            )
+        ) {
+            return;
+        }
+
+        const originalLabel = elements.importBackupBtn?.innerHTML || 'Import Backup';
+        if (elements.importBackupBtn) {
+            elements.importBackupBtn.disabled = true;
+            elements.importBackupBtn.innerHTML = 'Importing...';
+        }
+
+        try {
+            const text = await file.text();
+            const payload = JSON.parse(text);
+            restoreFromBackupPayload(payload);
+            ui.renderGalleryCharacterFilter();
+            ui.renderGalleryThumbnailCharacterSelect();
+            ui.renderGallery();
+            ui.setCurrentView(state.currentView || 'chat', { persist: false });
+
+            const chatCount = state.characters.reduce((total, character) => {
+                const messages = Array.isArray(character.messages) ? character.messages.length : 0;
+                return total + messages;
+            }, 0);
+            alert(
+                `Backup imported successfully.\n\nCharacters: ${state.characters.length}\nMessages: ${chatCount}\nGallery items: ${state.galleryImages.length}`
+            );
+        } catch (error) {
+            console.error('Backup import failed:', error);
+            alert(`Failed to import backup: ${error.message}`);
+        } finally {
+            if (elements.importBackupBtn) {
+                elements.importBackupBtn.disabled = false;
+                elements.importBackupBtn.innerHTML = originalLabel;
+            }
         }
     });
 
