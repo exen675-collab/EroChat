@@ -48,9 +48,18 @@ describe('notifications helpers', () => {
     });
 
     it('replaces blocking alerts with toasts', async () => {
+        const originalAlert = vi.fn();
+        window.alert = originalAlert;
         const { installAlertNotificationOverrides } = await import('../js/notifications.js');
 
         installAlertNotificationOverrides();
+
+        expect(typeof window.__erochatOriginalAlert).toBe('function');
+        expect(window.alert).not.toBe(originalAlert);
+
+        window.__erochatOriginalAlert('Preserved alert');
+        expect(originalAlert).toHaveBeenCalledWith('Preserved alert');
+
         window.alert('Settings saved.');
 
         expect(document.getElementById('appToastViewport')?.textContent).toContain('Settings saved.');
