@@ -78,6 +78,23 @@ describe('assistant message editing', () => {
         );
     });
 
+    it('renders user message actions below the bubble inside the content column', async () => {
+        messages.addUserMessageToUI('User content', 'user-1');
+
+        const userActions = document.querySelector('#user-1 .message-actions');
+        const userContentColumn = userActions?.parentElement;
+
+        expect(userActions).not.toBeNull();
+        expect(userActions?.className).toContain('flex-col');
+        expect(userActions?.className).toContain('items-end');
+        expect(userActions?.querySelector('.message-context-badge')).not.toBeNull();
+        expect(userActions?.querySelector('.remove-message-btn')?.textContent).toContain(
+            'Remove Message'
+        );
+        expect(userContentColumn?.className).toContain('flex-col');
+        expect(userContentColumn?.contains(userActions)).toBe(true);
+    });
+
     it('opens the modal with raw assistant content and saves edited content with metadata', async () => {
         state.messages = [
             {

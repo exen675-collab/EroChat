@@ -77,7 +77,8 @@ function getMessageActionsMarkup(messageId, options = {}) {
         isEdited = false
     } = options;
 
-    const alignmentClass = align === 'right' ? 'justify-end' : 'justify-between';
+    const layoutClass = align === 'right' ? 'flex-col items-end' : 'items-center justify-between';
+    const spacingClass = align === 'right' ? '' : 'ml-12 pl-1';
     const actionButtons = [];
 
     if (showEdit) {
@@ -113,14 +114,14 @@ function getMessageActionsMarkup(messageId, options = {}) {
     actionButtons.push(getRemoveMessageButtonMarkup(messageId));
 
     return `
-        <div class="message-actions flex flex-wrap items-center gap-2 mt-2 ${align === 'right' ? 'mr-12 pr-1' : 'ml-12 pl-1'} ${alignmentClass}">
+        <div class="message-actions flex flex-wrap gap-2 mt-2 ${spacingClass} ${layoutClass}">
             ${
                 align === 'right'
                     ? `
+                ${getContextBadgeMarkup(messageId)}
                 <div class="flex flex-wrap items-center gap-2">
                     ${actionButtons.join('')}
                 </div>
-                ${getContextBadgeMarkup(messageId)}
             `
                     : `
                 <div class="flex flex-wrap items-center gap-2">
@@ -214,13 +215,13 @@ export function addUserMessageToUI(content, id = null) {
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                 <span class="text-xl">😈</span>
             </div>
-            <div class="flex-1">
+            <div class="flex-1 flex flex-col items-end">
                 <div class="bg-gradient-to-r from-purple-900/80 to-blue-900/80 border border-purple-700/50 rounded-2xl rounded-tr-none px-5 py-4">
                     <p class="text-gray-100 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(content), 'user')}</p>
                 </div>
+                ${getMessageActionsMarkup(messageId, { align: 'right' })}
             </div>
         </div>
-        ${getMessageActionsMarkup(messageId, { align: 'right' })}
     `;
 
     elements.chatContainer.appendChild(messageDiv);
