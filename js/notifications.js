@@ -106,7 +106,7 @@ export function showToast(message, options = {}) {
     dismissBtn.className =
         'flex-shrink-0 rounded-lg p-1 text-current/70 hover:bg-white/10 hover:text-current transition-colors';
     dismissBtn.setAttribute('aria-label', 'Dismiss notification');
-    dismissBtn.innerHTML = '&times;';
+    dismissBtn.textContent = '×';
 
     header.appendChild(body);
     header.appendChild(dismissBtn);
