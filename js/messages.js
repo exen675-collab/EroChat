@@ -77,7 +77,8 @@ function getMessageActionsMarkup(messageId, options = {}) {
         isEdited = false
     } = options;
 
-    const alignmentClass = align === 'right' ? 'flex-col items-end' : 'justify-between';
+    const layoutClass = align === 'right' ? 'flex-col items-end' : 'items-center justify-between';
+    const spacingClass = align === 'right' ? '' : 'ml-12 pl-1';
     const actionButtons = [];
 
     if (showEdit) {
@@ -113,7 +114,7 @@ function getMessageActionsMarkup(messageId, options = {}) {
     actionButtons.push(getRemoveMessageButtonMarkup(messageId));
 
     return `
-        <div class="message-actions flex flex-wrap gap-2 mt-2 ${align === 'right' ? '' : 'items-center ml-12 pl-1'} ${alignmentClass}">
+        <div class="message-actions flex flex-wrap gap-2 mt-2 ${spacingClass} ${layoutClass}">
             ${
                 align === 'right'
                     ? `
