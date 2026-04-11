@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
+import { showToast } from './notifications.js';
 
 function isAdminUser() {
     return Boolean(state.currentUser?.isAdmin);
@@ -155,7 +156,15 @@ export async function fetchAdminUsers(silent = false) {
         console.error('Failed to fetch admin users:', error);
         setAdminStatus(`Failed to load users: ${error.message}`, true);
         if (!silent) {
-            alert(`Failed to load users: ${error.message}`);
+            showToast(`Failed to load users: ${error.message}`, {
+                type: 'error',
+                actionLabel: 'Retry',
+                onAction: () => {
+                    fetchAdminUsers(false).catch((retryError) => {
+                        console.warn('Retry failed loading users:', retryError);
+                    });
+                }
+            });
         }
         throw error;
     } finally {
@@ -208,19 +217,19 @@ export async function handleAdminUsersListClick(event) {
 
     const userId = Number.parseInt(button.dataset.userId, 10);
     if (!Number.isFinite(userId) || userId <= 0) {
-        alert('Invalid user selected.');
+        setAdminStatus('Invalid user selected.', true);
         return;
     }
 
     const input = elements.adminUsersList.querySelector(`input[data-user-id="${userId}"]`);
     if (!input) {
-        alert('Could not find credits input for selected user.');
+        setAdminStatus('Could not find credits input for selected user.', true);
         return;
     }
 
     const credits = Number(input.value);
     if (!Number.isInteger(credits) || credits < 0) {
-        alert('Credits must be a whole number that is 0 or higher.');
+        setAdminStatus('Credits must be a whole number that is 0 or higher.', true);
         input.focus();
         return;
     }
@@ -233,7 +242,17 @@ export async function handleAdminUsersListClick(event) {
         await updateUserCredits(userId, credits);
     } catch (error) {
         console.error('Failed to update user credits:', error);
-        alert(`Failed to update credits: ${error.message}`);
+        setAdminStatus(`Failed to update credits: ${error.message}`, true);
+        showToast(`Failed to update credits: ${error.message}`, {
+            type: 'error',
+            actionLabel: 'Retry',
+            onAction: () => {
+                handleAdminUsersListClick({
+                    target: button,
+                    currentTarget: elements.adminUsersList
+                });
+            }
+        });
     } finally {
         if (button.isConnected) {
             button.disabled = false;

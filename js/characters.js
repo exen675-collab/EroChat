@@ -5,9 +5,47 @@ import { saveToLocalStorage } from './storage.js';
 import { escapeHtml, normalizeImageProvider } from './utils.js';
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
 import { persistImageForStorage } from './media.js';
+import { requestConfirmation, showToast } from './notifications.js';
 
 // Track if we're editing an existing character
 let editingCharacterId = null;
+
+function setCharacterFormStatus(message, isError = false, options = {}) {
+    if (!elements.characterFormStatus) {
+        return;
+    }
+
+    if (!message) {
+        elements.characterFormStatus.hidden = true;
+        elements.characterFormStatus.textContent = '';
+        elements.characterFormStatus.className = 'hidden mb-4 rounded-xl border px-4 py-3 text-sm';
+        return;
+    }
+
+    const { actionLabel, onAction } = options;
+    elements.characterFormStatus.hidden = false;
+    elements.characterFormStatus.className = `mb-4 rounded-xl border px-4 py-3 text-sm ${isError ? 'border-red-700/60 bg-red-950/40 text-red-200' : 'border-emerald-700/50 bg-emerald-950/30 text-emerald-200'}`;
+    elements.characterFormStatus.innerHTML = '';
+
+    const copy = document.createElement('div');
+    copy.className = 'flex items-center justify-between gap-3';
+
+    const text = document.createElement('span');
+    text.textContent = message;
+    copy.appendChild(text);
+
+    if (actionLabel && typeof onAction === 'function') {
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.textContent = actionLabel;
+        actionBtn.className =
+            'px-3 py-1.5 rounded-lg border border-white/10 text-xs font-semibold text-white/90 hover:bg-white/10 transition-colors';
+        actionBtn.addEventListener('click', onAction);
+        copy.appendChild(actionBtn);
+    }
+
+    elements.characterFormStatus.appendChild(copy);
+}
 
 // Get current character
 export function getCurrentCharacter() {
@@ -156,18 +194,26 @@ export function updateCurrentCharacterUI() {
 }
 
 // Delete a character
-export function deleteCharacter(charId) {
-    if (confirm('Are you sure you want to delete this character?')) {
-        state.characters = state.characters.filter((c) => c.id !== charId);
+export async function deleteCharacter(charId) {
+    const confirmed = await requestConfirmation('Delete this character?', {
+        confirmLabel: 'Delete',
+        type: 'error'
+    });
+    if (!confirmed) return;
 
-        // If we deleted the current character, switch to default
-        if (state.currentCharacterId === charId) {
-            selectCharacter('default');
-        } else {
-            renderCharactersList();
-            saveToLocalStorage();
-        }
+    state.characters = state.characters.filter((c) => c.id !== charId);
+
+    // If we deleted the current character, switch to default
+    if (state.currentCharacterId === charId) {
+        selectCharacter('default');
+    } else {
+        renderCharactersList();
+        saveToLocalStorage();
     }
+
+    showToast('Character deleted.', {
+        type: 'success'
+    });
 }
 
 // Edit a character
@@ -178,6 +224,7 @@ export function editCharacter(charId) {
 // Open character modal (for create or edit)
 export function openCharacterModal(characterId = null) {
     editingCharacterId = characterId;
+    setCharacterFormStatus('');
 
     if (characterId) {
         const character = state.characters.find((c) => c.id === characterId);
@@ -235,6 +282,7 @@ function resetThumbnailPreview() {
 export function closeCharacterModal() {
     elements.characterModal.classList.add('hidden');
     editingCharacterId = null;
+    setCharacterFormStatus('');
 }
 
 // Generate system prompt on demand
@@ -245,7 +293,7 @@ export async function generateSystemPromptOnDemand() {
     const userInfo = elements.charUserInfo.value.trim();
 
     if (!name || !description || !userInfo) {
-        alert('Please fill in Name, Description, and User Info first.');
+        setCharacterFormStatus('Please fill in Name, Description, and User Info first.', true);
         return;
     }
 
@@ -254,7 +302,17 @@ export async function generateSystemPromptOnDemand() {
         textProvider !== 'premium' &&
         (!elements.openrouterKey.value || !elements.openrouterModel.value)
     ) {
-        alert('Please enter your OpenRouter API key and select a model in settings.');
+        setCharacterFormStatus(
+            'Please enter your OpenRouter API key and select a model in settings.',
+            true,
+            {
+                actionLabel: 'Open settings',
+                onAction: () =>
+                    import('./ui.js').then((ui) => {
+                        ui.toggleAdvancedSettings(true);
+                    })
+            }
+        );
         return;
     }
 
@@ -277,13 +335,27 @@ export async function generateSystemPromptOnDemand() {
 
         if (systemPrompt) {
             elements.charSystemPrompt.value = systemPrompt;
-            alert('System prompt generated successfully! You can now review and edit it.');
+            setCharacterFormStatus(
+                'System prompt generated successfully. Review it before saving.',
+                false
+            );
+            showToast('System prompt generated successfully.', {
+                type: 'success'
+            });
         } else {
             throw new Error('Model returned an empty prompt.');
         }
     } catch (error) {
         console.error('Prompt generation error:', error);
-        alert('Failed to generate prompt: ' + error.message);
+        setCharacterFormStatus(`Failed to generate prompt: ${error.message}`, true, {
+            actionLabel: 'Retry',
+            onAction: () => {
+                generateSystemPromptOnDemand();
+            }
+        });
+        showToast(`Failed to generate prompt: ${error.message}`, {
+            type: 'error'
+        });
     } finally {
         elements.generatePromptBtn.disabled = false;
         elements.generatePromptBtn.innerHTML = originalBtnContent;
@@ -302,23 +374,27 @@ export async function saveCharacter() {
     const hasUsableSystemPrompt = Boolean(systemPrompt);
 
     if (!name) {
-        alert('Please enter a character name.');
+        setCharacterFormStatus('Please enter a character name.', true);
+        elements.charName.focus();
         return;
     }
 
     if (!description && !hasUsableSystemPrompt) {
-        alert('Please enter a description / personality.');
+        setCharacterFormStatus('Please enter a description / personality.', true);
+        elements.charDescription.focus();
         return;
     }
 
     if (!userInfo && !hasUsableSystemPrompt) {
-        alert('Please enter user info and description.');
+        setCharacterFormStatus('Please enter user info and description.', true);
+        elements.charUserInfo.focus();
         return;
     }
 
     if (!systemPrompt) {
         if (editingCharacterId) {
-            alert('Please enter a system prompt.');
+            setCharacterFormStatus('Please enter a system prompt.', true);
+            elements.charSystemPrompt.focus();
             return;
         }
 
@@ -328,8 +404,16 @@ export async function saveCharacter() {
             textProvider !== 'premium' &&
             (!elements.openrouterKey.value || !elements.openrouterModel.value)
         ) {
-            alert(
-                'Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.'
+            setCharacterFormStatus(
+                'Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.',
+                true,
+                {
+                    actionLabel: 'Open settings',
+                    onAction: () =>
+                        import('./ui.js').then((ui) => {
+                            ui.toggleAdvancedSettings(true);
+                        })
+                }
             );
             return;
         }
@@ -353,7 +437,15 @@ export async function saveCharacter() {
             elements.charSystemPrompt.value = systemPrompt;
         } catch (error) {
             console.error('System prompt generation error:', error);
-            alert('Failed to generate system prompt: ' + error.message);
+            setCharacterFormStatus(`Failed to generate system prompt: ${error.message}`, true, {
+                actionLabel: 'Retry',
+                onAction: () => {
+                    saveCharacter();
+                }
+            });
+            showToast(`Failed to generate system prompt: ${error.message}`, {
+                type: 'error'
+            });
             elements.saveCharBtn.disabled = false;
             elements.saveCharBtn.innerHTML = originalSaveLabel;
             return;
@@ -409,6 +501,9 @@ export async function saveCharacter() {
 
     renderCharactersList();
     saveToLocalStorage();
+    showToast(editingCharacterId ? 'Character updated.' : 'Character created.', {
+        type: 'success'
+    });
     closeCharacterModal();
 }
 
@@ -421,7 +516,8 @@ export async function generateThumbnail() {
     const name = elements.charName.value.trim();
 
     if (!description) {
-        alert('Please enter a character appearance for image generation.');
+        setCharacterFormStatus('Please enter a character appearance for image generation.', true);
+        elements.charAppearance.focus();
         return;
     }
 
@@ -429,12 +525,12 @@ export async function generateThumbnail() {
         elements.imageProvider.value || state.settings.imageProvider || 'swarm'
     );
     if (imageProvider === 'swarm' && !elements.swarmModel.value) {
-        alert('Please select a SwarmUI model first.');
+        setCharacterFormStatus('Please select a SwarmUI model first.', true);
         return;
     }
 
     if (imageProvider === 'comfy' && !elements.comfyModel.value) {
-        alert('Please select a ComfyUI checkpoint first.');
+        setCharacterFormStatus('Please select a ComfyUI checkpoint first.', true);
         return;
     }
 
@@ -460,6 +556,7 @@ export async function generateThumbnail() {
 
         if (thumbnailUrl) {
             currentThumbnail = thumbnailUrl;
+            setCharacterFormStatus('Thumbnail generated. Save the character to keep it.', false);
 
             // Update preview
             elements.thumbnailPreview.innerHTML = `
@@ -478,7 +575,19 @@ export async function generateThumbnail() {
         }
     } catch (error) {
         console.error('Thumbnail generation error:', error);
-        alert('Failed to generate thumbnail. Check your image provider settings.');
+        setCharacterFormStatus(
+            'Failed to generate thumbnail. Check your image provider settings.',
+            true,
+            {
+                actionLabel: 'Retry',
+                onAction: () => {
+                    generateThumbnail();
+                }
+            }
+        );
+        showToast('Failed to generate thumbnail. Check your image provider settings.', {
+            type: 'error'
+        });
     } finally {
         // Reset button
         elements.generateThumbnailBtn.disabled = false;

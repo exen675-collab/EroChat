@@ -19,6 +19,7 @@ import { generateImage } from './api-image.js';
 import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
 import { recordGeneratedMedia } from './stats.js';
+import { requestConfirmation, showToast } from './notifications.js';
 
 function getActiveContextMessageIds() {
     return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
@@ -427,7 +428,9 @@ export async function regenerateImage(messageId) {
         /---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/
     );
     if (!promptMatch) {
-        alert('No image prompt found in this message.');
+        showToast('No image prompt found in this message.', {
+            type: 'warning'
+        });
         return;
     }
 
@@ -487,16 +490,25 @@ export async function regenerateImage(messageId) {
     }
 }
 
-export function removeMessageFromContext(messageId) {
+export async function removeMessageFromContext(messageId) {
     const message = state.messages.find((item) => item.id === messageId);
     if (!message) return;
 
-    const confirmed = window.confirm('Remove this message from chat history and future context?');
+    const confirmed = await requestConfirmation(
+        'Remove this message from chat history and future context?',
+        {
+            confirmLabel: 'Remove',
+            type: 'warning'
+        }
+    );
     if (!confirmed) return;
 
     state.messages = state.messages.filter((item) => item.id !== messageId);
     saveToLocalStorage();
     renderMessages();
+    showToast('Message removed from context.', {
+        type: 'success'
+    });
 }
 
 export function editAssistantMessage(messageId) {

@@ -201,29 +201,41 @@ describe('removeMessageFromContext', () => {
             setItem: vi.fn(),
             removeItem: vi.fn()
         });
-        vi.stubGlobal('confirm', vi.fn(() => true));
     });
 
-    it('removes a message when the user confirms', () => {
+    it('removes a message when the user confirms', async () => {
         state.messages = [
             { id: 'msg-1', role: 'user', content: 'Hello' },
             { id: 'msg-2', role: 'assistant', content: 'Hi there', imageUrl: null, videoUrl: null }
         ];
 
-        messages.removeMessageFromContext('msg-1');
+        const removal = messages.removeMessageFromContext('msg-1');
+        const confirmButton = Array.from(document.querySelectorAll('button')).find(
+            (button) => button.textContent === 'Remove'
+        );
+
+        expect(confirmButton).not.toBeUndefined();
+        confirmButton.click();
+        await removal;
 
         expect(state.messages).toHaveLength(1);
         expect(state.messages[0].id).toBe('msg-2');
     });
 
-    it('does not remove any message when the user cancels', () => {
-        vi.stubGlobal('confirm', vi.fn(() => false));
+    it('does not remove any message when the user cancels', async () => {
         state.messages = [
             { id: 'msg-1', role: 'user', content: 'Hello' },
             { id: 'msg-2', role: 'assistant', content: 'Hi', imageUrl: null, videoUrl: null }
         ];
 
-        messages.removeMessageFromContext('msg-1');
+        const removal = messages.removeMessageFromContext('msg-1');
+        const cancelButton = Array.from(document.querySelectorAll('button')).find(
+            (button) => button.textContent === 'Cancel'
+        );
+
+        expect(cancelButton).not.toBeUndefined();
+        cancelButton.click();
+        await removal;
 
         expect(state.messages).toHaveLength(2);
     });
