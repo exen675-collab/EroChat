@@ -160,7 +160,9 @@ export async function fetchAdminUsers(silent = false) {
                 type: 'error',
                 actionLabel: 'Retry',
                 onAction: () => {
-                    fetchAdminUsers(false).catch(() => {});
+                    fetchAdminUsers(false).catch((retryError) => {
+                        console.debug('Admin users retry handled by existing error UI:', retryError);
+                    });
                 }
             });
         }
@@ -248,7 +250,7 @@ export async function handleAdminUsersListClick(event) {
                 handleAdminUsersListClick({
                     target: button,
                     currentTarget: elements.adminUsersList
-                }).catch(() => {});
+                });
             }
         });
     } finally {

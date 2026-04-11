@@ -350,7 +350,7 @@ export async function generateSystemPromptOnDemand() {
         setCharacterFormStatus(`Failed to generate prompt: ${error.message}`, true, {
             actionLabel: 'Retry',
             onAction: () => {
-                generateSystemPromptOnDemand().catch(() => {});
+                generateSystemPromptOnDemand();
             }
         });
         showToast(`Failed to generate prompt: ${error.message}`, {
@@ -440,7 +440,7 @@ export async function saveCharacter() {
             setCharacterFormStatus(`Failed to generate system prompt: ${error.message}`, true, {
                 actionLabel: 'Retry',
                 onAction: () => {
-                    saveCharacter().catch(() => {});
+                    saveCharacter();
                 }
             });
             showToast(`Failed to generate system prompt: ${error.message}`, {
@@ -581,7 +581,7 @@ export async function generateThumbnail() {
             {
                 actionLabel: 'Retry',
                 onAction: () => {
-                    generateThumbnail().catch(() => {});
+                    generateThumbnail();
                 }
             }
         );
