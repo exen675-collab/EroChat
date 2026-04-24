@@ -29,7 +29,7 @@ import { fetchSwarmModels } from './api-swarmui.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
 import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.js';
-import { fetchSuggestions, renderSuggestions, clearSuggestions } from './suggestions.js';
+import { clearSuggestions } from './suggestions.js';
 import { recordAssistantReply, recordGeneratedMedia, recordUserMessage } from './stats.js';
 import { installAlertNotificationOverrides, showToast } from './notifications.js';
 
@@ -224,9 +224,6 @@ export async function sendMessage() {
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
         saveToLocalStorage();
-
-        // Fetch writing suggestions in the background (non-blocking)
-        fetchSuggestions().then(renderSuggestions).catch(() => {});
 
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
             try {
