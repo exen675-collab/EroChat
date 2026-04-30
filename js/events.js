@@ -2,11 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import * as ui from './ui.js';
 import { defaultCharacter } from './config.js';
-import {
-    normalizeBaseUrl,
-    normalizeContextMessageCount,
-    normalizeImageProvider
-} from './utils.js';
+import { normalizeBaseUrl, normalizeContextMessageCount, normalizeImageProvider } from './utils.js';
 import {
     openCharacterModal,
     closeCharacterModal,
@@ -149,7 +145,9 @@ export function setupEventListeners() {
             fetchSuggestions()
                 .then(renderSuggestions)
                 .catch(() => {})
-                .finally(() => { elements.suggestBtn.disabled = false; });
+                .finally(() => {
+                    elements.suggestBtn.disabled = false;
+                });
         });
     });
 
@@ -299,6 +297,17 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.openrouterReasoningEnabled.addEventListener('change', () => {
+        state.settings.openrouterReasoningEnabled = elements.openrouterReasoningEnabled.checked;
+        elements.openrouterReasoningEffort.disabled = !elements.openrouterReasoningEnabled.checked;
+        saveToLocalStorage();
+    });
+
+    elements.openrouterReasoningEffort.addEventListener('change', () => {
+        state.settings.openrouterReasoningEffort = elements.openrouterReasoningEffort.value;
+        saveToLocalStorage();
+    });
+
     elements.textProvider.addEventListener('change', () => {
         state.settings.textProvider = elements.textProvider.value;
         saveToLocalStorage();
@@ -356,9 +365,7 @@ export function setupEventListeners() {
         try {
             const result = await importCharacterCardFile(file);
             const warningText =
-                result.warnings.length > 0
-                    ? `\nWarnings: ${result.warnings.join(' • ')}`
-                    : '';
+                result.warnings.length > 0 ? `\nWarnings: ${result.warnings.join(' • ')}` : '';
             showToast(`Imported "${result.character.name}" successfully.${warningText}`, {
                 type: 'success',
                 duration: result.warnings.length > 0 ? 8000 : 5000
@@ -428,6 +435,8 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
+            openrouterReasoningEnabled: elements.openrouterReasoningEnabled.checked,
+            openrouterReasoningEffort: elements.openrouterReasoningEffort.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),
             swarmModel: elements.swarmModel.value,
             comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),

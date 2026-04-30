@@ -386,6 +386,37 @@
                                         </select>
                                     </div>
 
+                                    <div
+                                        class="space-y-3 rounded-lg border border-white/10 bg-black/20 p-3"
+                                    >
+                                        <label
+                                            class="flex items-center justify-between gap-3 text-sm font-medium text-gray-300"
+                                        >
+                                            <span>Reasoning</span>
+                                            <input
+                                                type="checkbox"
+                                                id="openrouterReasoningEnabled"
+                                                class="w-4 h-4 rounded"
+                                            />
+                                        </label>
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-500 mb-2"
+                                                >Effort</label
+                                            >
+                                            <select
+                                                id="openrouterReasoningEffort"
+                                                class="w-full px-4 py-2 rounded-lg text-sm"
+                                            >
+                                                <option value="minimal">Minimal</option>
+                                                <option value="low">Low</option>
+                                                <option value="medium">Medium</option>
+                                                <option value="high">High</option>
+                                                <option value="xhigh">Extra high</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <button
                                         id="fetchOpenRouterModelsBtn"
                                         class="w-full py-2 btn-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-2"
@@ -852,9 +883,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         <button id="navGalleryBtn" type="button" class="view-nav-btn">
                             Gallery
                         </button>
-                        <button id="navStatsBtn" type="button" class="view-nav-btn">
-                            Stats
-                        </button>
+                        <button id="navStatsBtn" type="button" class="view-nav-btn">Stats</button>
                     </nav>
 
                     <div class="app-header-right">
@@ -972,7 +1001,10 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
 
                     <!-- Writing Suggestions -->
                     <div id="suggestionsOuter" class="hidden px-4 pb-2">
-                        <div id="suggestionsContainer" class="max-w-4xl mx-auto flex flex-wrap gap-2"></div>
+                        <div
+                            id="suggestionsContainer"
+                            class="max-w-4xl mx-auto flex flex-wrap gap-2"
+                        ></div>
                     </div>
 
                     <!-- Input Area -->
@@ -1515,7 +1547,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         <section class="glass stats-hero-panel">
                             <div>
                                 <p class="stats-eyebrow">User Statistics</p>
-                                <h2 class="stats-title">Track how you use chat, media, and tools.</h2>
+                                <h2 class="stats-title">
+                                    Track how you use chat, media, and tools.
+                                </h2>
                             </div>
                             <p id="statsTrackingNote" class="stats-hero-copy">
                                 This dashboard updates from your activity and saved workspace data.
@@ -1536,10 +1570,18 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                             <div class="stats-panel-head">
                                 <span>Activity Over Time</span>
                                 <span class="stats-legend">
-                                    <span class="stats-legend-chip stats-legend-chat">Messages</span>
-                                    <span class="stats-legend-chip stats-legend-replies">Replies</span>
-                                    <span class="stats-legend-chip stats-legend-images">Images</span>
-                                    <span class="stats-legend-chip stats-legend-generator">Runs</span>
+                                    <span class="stats-legend-chip stats-legend-chat"
+                                        >Messages</span
+                                    >
+                                    <span class="stats-legend-chip stats-legend-replies"
+                                        >Replies</span
+                                    >
+                                    <span class="stats-legend-chip stats-legend-images"
+                                        >Images</span
+                                    >
+                                    <span class="stats-legend-chip stats-legend-generator"
+                                        >Runs</span
+                                    >
                                 </span>
                             </div>
                             <div id="statsActivityChart" class="stats-activity-grid"></div>
@@ -1593,7 +1635,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
             class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4"
         >
             <div class="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-                <div class="p-6 border-b border-purple-900/30 flex items-start justify-between gap-4">
+                <div
+                    class="p-6 border-b border-purple-900/30 flex items-start justify-between gap-4"
+                >
                     <div>
                         <p class="text-xs uppercase tracking-[0.32em] text-cyan-300/80">
                             API Request Preview
@@ -1606,12 +1650,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         class="p-2 hover:bg-white/10 rounded-lg transition-colors"
                         aria-label="Close request preview"
                     >
-                        <svg
-                            class="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
@@ -1644,15 +1683,14 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                     <div class="request-preview-section">
                         <div class="request-preview-section-head">
                             <span>Body</span>
-                            <button
-                                id="copyRequestPreviewBtn"
-                                type="button"
-                                class="generator-chip"
-                            >
+                            <button id="copyRequestPreviewBtn" type="button" class="generator-chip">
                                 Copy request
                             </button>
                         </div>
-                        <pre id="requestPreviewBody" class="request-preview-code"><code>{}</code></pre>
+                        <pre
+                            id="requestPreviewBody"
+                            class="request-preview-code"
+                        ><code>{}</code></pre>
                     </div>
                 </div>
             </div>
@@ -1663,7 +1701,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
             class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4"
         >
             <div class="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-                <div class="p-6 border-b border-purple-900/30 flex items-start justify-between gap-4">
+                <div
+                    class="p-6 border-b border-purple-900/30 flex items-start justify-between gap-4"
+                >
                     <div>
                         <p class="text-xs uppercase tracking-[0.32em] text-cyan-300/80">
                             Assistant Message
@@ -1676,12 +1716,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         class="p-2 hover:bg-white/10 rounded-lg transition-colors"
                         aria-label="Close message editor"
                     >
-                        <svg
-                            class="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"

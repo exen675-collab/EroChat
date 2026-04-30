@@ -54,6 +54,8 @@ export const elements = {
     openrouterKey: document.getElementById('openrouterKey'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
+    openrouterReasoningEnabled: document.getElementById('openrouterReasoningEnabled'),
+    openrouterReasoningEffort: document.getElementById('openrouterReasoningEffort'),
     ttsVoiceId: null,
     swarmUrl: document.getElementById('swarmUrl'),
     swarmModel: document.getElementById('swarmModel'),

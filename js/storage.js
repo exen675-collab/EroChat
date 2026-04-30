@@ -355,6 +355,10 @@ export function updateSettingsUI() {
     elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
+    elements.openrouterReasoningEnabled.checked =
+        state.settings.openrouterReasoningEnabled === true;
+    elements.openrouterReasoningEffort.value = state.settings.openrouterReasoningEffort || 'medium';
+    elements.openrouterReasoningEffort.disabled = !elements.openrouterReasoningEnabled.checked;
     elements.swarmUrl.value = state.settings.swarmUrl;
     elements.swarmModel.value = state.settings.swarmModel;
     elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';

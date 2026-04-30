@@ -36,9 +36,42 @@ describe('chat request preview builder', () => {
             temperature: 0.9,
             max_tokens: 2000
         });
+        expect(preview.body.reasoning).toBeUndefined();
         expect(preview.body.messages.at(-1)).toEqual({
             role: 'user',
             content: 'Hello there'
+        });
+    });
+
+    it('adds OpenRouter reasoning when enabled', () => {
+        const preview = buildChatRequestPreview({
+            draftMessage: 'Think this through',
+            systemPrompt: 'System prompt',
+            openrouterKey: 'sk-test',
+            openrouterModel: 'openai/gpt-5',
+            openrouterReasoningEnabled: true,
+            openrouterReasoningEffort: 'high'
+        });
+
+        expect(preview.body.reasoning).toEqual({
+            effort: 'high',
+            exclude: true
+        });
+    });
+
+    it('falls back to medium for invalid OpenRouter reasoning effort', () => {
+        const preview = buildChatRequestPreview({
+            draftMessage: 'Think this through',
+            systemPrompt: 'System prompt',
+            openrouterKey: 'sk-test',
+            openrouterModel: 'openai/gpt-5',
+            openrouterReasoningEnabled: true,
+            openrouterReasoningEffort: 'turbo'
+        });
+
+        expect(preview.body.reasoning).toEqual({
+            effort: 'medium',
+            exclude: true
         });
     });
 

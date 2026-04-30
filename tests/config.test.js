@@ -8,6 +8,8 @@ describe('default config', () => {
         expect(defaultSettings.imageProvider).toBe('swarm');
         expect(defaultSettings.enableImageGeneration).toBe(true);
         expect(defaultSettings.contextMessageCount).toBe(20);
+        expect(defaultSettings.openrouterReasoningEnabled).toBe(false);
+        expect(defaultSettings.openrouterReasoningEffort).toBe('medium');
     });
 
     it('keeps generator defaults stable', () => {

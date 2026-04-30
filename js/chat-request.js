@@ -2,8 +2,17 @@ import { getContextMessages, normalizeContextMessageCount } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
     temperature: 0.9,
-    maxTokens: 2000
+    maxTokens: 2000,
+    reasoningEffort: 'medium'
 });
+
+export const OPENROUTER_REASONING_EFFORTS = Object.freeze([
+    'minimal',
+    'low',
+    'medium',
+    'high',
+    'xhigh'
+]);
 
 export function canPreviewChatRequest(draftMessage, isGenerating = false) {
     return !isGenerating && String(draftMessage || '').trim().length > 0;
@@ -47,7 +56,9 @@ export function buildChatRequestPreview({
     openrouterModel = '',
     currentUrl = '',
     temperature = CHAT_REQUEST_DEFAULTS.temperature,
-    maxTokens = CHAT_REQUEST_DEFAULTS.maxTokens
+    maxTokens = CHAT_REQUEST_DEFAULTS.maxTokens,
+    openrouterReasoningEnabled = false,
+    openrouterReasoningEffort = CHAT_REQUEST_DEFAULTS.reasoningEffort
 }) {
     const provider = 'openrouter';
     const messages = buildChatApiMessages({
@@ -63,6 +74,16 @@ export function buildChatRequestPreview({
         temperature,
         max_tokens: maxTokens
     };
+
+    if (openrouterReasoningEnabled) {
+        body.reasoning = {
+            effort: OPENROUTER_REASONING_EFFORTS.includes(openrouterReasoningEffort)
+                ? openrouterReasoningEffort
+                : CHAT_REQUEST_DEFAULTS.reasoningEffort,
+            exclude: true
+        };
+    }
+
     const headers = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${openrouterKey}`,

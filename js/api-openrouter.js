@@ -1,5 +1,6 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
+import { CHAT_REQUEST_DEFAULTS, OPENROUTER_REASONING_EFFORTS } from './chat-request.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
@@ -125,7 +126,19 @@ export async function sendOpenRouterChatRequest(apiMessages) {
                       model: elements.openrouterModel.value,
                       messages: apiMessages,
                       temperature: 0.9,
-                      max_tokens: 2000
+                      max_tokens: 2000,
+                      ...(elements.openrouterReasoningEnabled?.checked
+                          ? {
+                                reasoning: {
+                                    effort: OPENROUTER_REASONING_EFFORTS.includes(
+                                        elements.openrouterReasoningEffort?.value
+                                    )
+                                        ? elements.openrouterReasoningEffort.value
+                                        : CHAT_REQUEST_DEFAULTS.reasoningEffort,
+                                    exclude: true
+                                }
+                            }
+                          : {})
                   }
               };
 

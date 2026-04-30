@@ -53,6 +53,8 @@ export function buildCurrentChatRequestPreview(draftMessage = elements.messageIn
         contextMessageCount: state.settings.contextMessageCount,
         openrouterKey: elements.openrouterKey.value,
         openrouterModel: elements.openrouterModel.value,
+        openrouterReasoningEnabled: elements.openrouterReasoningEnabled.checked,
+        openrouterReasoningEffort: elements.openrouterReasoningEffort.value,
         currentUrl: window.location.href
     });
 }
