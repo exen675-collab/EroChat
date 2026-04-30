@@ -127,11 +127,7 @@ function getMessageActionsMarkup(messageId, options = {}) {
                     : `
                 <div class="flex flex-wrap items-center gap-2">
                     ${getContextBadgeMarkup(messageId)}
-                    ${
-                        isEdited
-                            ? '<span class="message-edited-badge">Edited</span>'
-                            : ''
-                    }
+                    ${isEdited ? '<span class="message-edited-badge">Edited</span>' : ''}
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     ${actionButtons.join('')}
@@ -183,7 +179,7 @@ export function renderMessages() {
                             Every response I give can be automatically visualized using your selected image provider.
                         </p>
                         <p class="text-gray-400 text-sm mt-3">
-                            Open Workspace for quick controls, or Settings for advanced configuration.
+                            Choose a character from the Characters tab, or open Settings for advanced configuration.
                         </p>
                     </div>
                 </div>
@@ -378,10 +374,11 @@ export function addImageToGallery(imageUrl, source = 'chat', messageId = null, m
         messageId,
         prompt: typeof metadata.prompt === 'string' ? metadata.prompt : '',
         provider: typeof metadata.provider === 'string' ? metadata.provider : '',
-        providerModel:
-            typeof metadata.providerModel === 'string' ? metadata.providerModel : '',
+        providerModel: typeof metadata.providerModel === 'string' ? metadata.providerModel : '',
         metadata:
-            metadata.metadata && typeof metadata.metadata === 'object' && !Array.isArray(metadata.metadata)
+            metadata.metadata &&
+            typeof metadata.metadata === 'object' &&
+            !Array.isArray(metadata.metadata)
                 ? metadata.metadata
                 : {},
         createdAt:
@@ -462,7 +459,9 @@ export async function regenerateImage(messageId) {
         message.videoUrl = null;
         const provider = state.settings.imageProvider;
         const providerModel =
-            provider === 'comfy' ? state.settings.comfyModel || '' : state.settings.swarmModel || '';
+            provider === 'comfy'
+                ? state.settings.comfyModel || ''
+                : state.settings.swarmModel || '';
         addImageToGallery(imageUrl, 'regenerate', messageId, {
             prompt: imagePrompt,
             provider,

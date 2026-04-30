@@ -8,7 +8,7 @@ import { renderStatisticsDashboard, trackViewVisit } from './stats.js';
 import { renderCharactersWorkspace } from './characters.js';
 
 const VIEW_DESCRIPTIONS = {
-    chat: 'Chat workspace',
+    chat: 'Chat',
     characters: 'Character library',
     generator: 'Standalone generator',
     gallery: 'Media gallery',
@@ -104,7 +104,9 @@ function setActiveNavButton(activeView) {
 }
 
 function isWorkspaceOpen() {
-    return !elements.settingsPanel.classList.contains('-translate-x-full');
+    return Boolean(
+        elements.settingsPanel && !elements.settingsPanel.classList.contains('-translate-x-full')
+    );
 }
 
 function isAdvancedSettingsOpen() {
@@ -155,7 +157,7 @@ export function toggleSidebar(forceOpen = null) {
             : elements.settingsPanel.classList.contains('-translate-x-full');
 
     elements.settingsPanel.classList.toggle('-translate-x-full', !shouldOpen);
-    elements.overlay.classList.toggle('hidden', !shouldOpen);
+    elements.overlay?.classList.toggle('hidden', !shouldOpen);
     syncBodyOverlayState();
 }
 

@@ -91,9 +91,9 @@ export function setupEventListeners() {
     };
 
     // Sidebar toggle
-    elements.toggleSettings.addEventListener('click', () => ui.toggleSidebar());
-    elements.overlay.addEventListener('click', () => ui.toggleSidebar(false));
-    elements.closeSettingsBtn.addEventListener('click', () => ui.toggleSidebar(false));
+    elements.toggleSettings?.addEventListener('click', () => ui.toggleSidebar());
+    elements.overlay?.addEventListener('click', () => ui.toggleSidebar(false));
+    elements.closeSettingsBtn?.addEventListener('click', () => ui.toggleSidebar(false));
     elements.openAdvancedSettingsBtn.addEventListener('click', () =>
         ui.toggleAdvancedSettings(true)
     );

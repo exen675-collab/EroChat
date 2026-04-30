@@ -10,7 +10,7 @@
 
     <body class="overflow-hidden">
         <div class="flex app-shell">
-            <!-- Workspace Popout -->
+            <!-- Legacy settings container -->
             <aside
                 id="settingsPanel"
                 class="fixed inset-y-0 left-0 z-50 w-full max-w-[28rem] overflow-y-auto transform -translate-x-full"
@@ -20,7 +20,7 @@
                         <h1
                             class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent"
                         >
-                            Workspace
+                            Quick Controls
                         </h1>
                         <button
                             id="closeSettingsBtn"
@@ -195,7 +195,7 @@
 
                                 <p class="text-xs text-gray-500">
                                     Advanced provider setup, model selection, image tuning, and the
-                                    system prompt are in the Settings popout.
+                                    system prompt are in Settings.
                                 </p>
 
                                 <button
@@ -758,7 +758,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                     <div id="generatorSettingsPane" class="hidden space-y-6">
                         <div class="mb-6 p-4 rounded-xl glass">
                             <p class="text-xs uppercase tracking-[0.2em] text-cyan-300 mb-3">
-                                Generator Workspace
+                                Generator
                             </p>
                             <h2 class="text-lg font-semibold text-gray-100 mb-2">
                                 Standalone media creation
@@ -809,25 +809,6 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                 <header class="glass border-b border-purple-900/30 px-6 py-4 app-header">
                     <div class="app-header-left">
                         <button
-                            id="toggleSettings"
-                            class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2"
-                        >
-                            <svg
-                                class="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                ></path>
-                            </svg>
-                            <span>Workspace</span>
-                        </button>
-                        <button
                             id="openAdvancedSettingsBtn"
                             class="px-3 py-2 rounded-lg btn-secondary text-sm font-medium flex items-center gap-2"
                         >
@@ -867,13 +848,11 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         >Default Character</span
                                     >
                                 </div>
-                                <span id="currentViewDescription" class="text-gray-500"
-                                    >Chat workspace</span
-                                >
+                                <span id="currentViewDescription" class="text-gray-500">Chat</span>
                             </div>
                         </div>
                     </div>
-                    <nav class="view-nav" aria-label="Workspace navigation">
+                    <nav class="view-nav" aria-label="Main navigation">
                         <button id="navChatBtn" type="button" class="view-nav-btn is-active">
                             Chat
                         </button>
@@ -951,7 +930,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                             your selected image provider.
                                         </p>
                                         <p class="text-gray-400 text-sm mt-3">
-                                            Open Workspace for characters and quick controls, or
+                                            Choose a character from the Characters tab, or open
                                             Settings for advanced configuration.
                                         </p>
                                     </div>
@@ -1596,7 +1575,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 </h2>
                             </div>
                             <p id="statsTrackingNote" class="stats-hero-copy">
-                                This dashboard updates from your activity and saved workspace data.
+                                This dashboard updates from your activity and saved browser data.
                             </p>
                         </section>
 

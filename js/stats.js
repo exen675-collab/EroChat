@@ -419,7 +419,7 @@ function renderUsagePanels() {
             items: getTopEntries(statistics.modelUsage.generator)
         },
         {
-            title: 'Workspace views',
+            title: 'App views',
             items: getTopEntries(statistics.viewCounts)
         }
     ];
