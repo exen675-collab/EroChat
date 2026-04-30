@@ -676,6 +676,11 @@ app.use(
 );
 
 app.get('/', (req, res) => {
+    if (req.session?.userId) {
+        res.redirect('/app/');
+        return;
+    }
+
     res.clearCookie('erochat.sid');
     res.clearCookie('connect.sid');
     res.sendFile(path.join(ROOT_DIR, 'login.html'));
