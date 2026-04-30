@@ -5,9 +5,11 @@ import { escapeHtml } from './utils.js';
 import { saveToLocalStorage } from './storage.js';
 import { filterAndSortGalleryItems } from './gallery-search.js';
 import { renderStatisticsDashboard, trackViewVisit } from './stats.js';
+import { renderCharactersWorkspace } from './characters.js';
 
 const VIEW_DESCRIPTIONS = {
     chat: 'Chat workspace',
+    characters: 'Character library',
     generator: 'Standalone generator',
     gallery: 'Media gallery',
     stats: 'User statistics dashboard'
@@ -16,7 +18,7 @@ let currentChatRequestPreview = null;
 let currentEditingMessageId = null;
 
 function normalizeView(view) {
-    return ['chat', 'generator', 'gallery', 'stats'].includes(view) ? view : 'chat';
+    return ['chat', 'characters', 'generator', 'gallery', 'stats'].includes(view) ? view : 'chat';
 }
 
 function getViewHash(view) {
@@ -89,6 +91,7 @@ function getFilteredGalleryItems() {
 function setActiveNavButton(activeView) {
     const buttons = [
         [elements.navChatBtn, 'chat'],
+        [elements.navCharactersBtn, 'characters'],
         [elements.navGeneratorBtn, 'generator'],
         [elements.navGalleryBtn, 'gallery'],
         [elements.navStatsBtn, 'stats']
@@ -112,7 +115,9 @@ function isAdvancedSettingsOpen() {
 }
 
 function isRequestPreviewOpen() {
-    return elements.requestPreviewModal && !elements.requestPreviewModal.classList.contains('hidden');
+    return (
+        elements.requestPreviewModal && !elements.requestPreviewModal.classList.contains('hidden')
+    );
 }
 
 function isEditMessageModalOpen() {
@@ -266,6 +271,7 @@ export function setCurrentView(view, options = {}) {
     state.currentView = nextView;
 
     elements.chatView?.classList.toggle('hidden', nextView !== 'chat');
+    elements.charactersView?.classList.toggle('hidden', nextView !== 'characters');
     elements.generatorView?.classList.toggle('hidden', nextView !== 'generator');
     elements.galleryView?.classList.toggle('hidden', nextView !== 'gallery');
     elements.statsView?.classList.toggle('hidden', nextView !== 'stats');
@@ -276,6 +282,10 @@ export function setCurrentView(view, options = {}) {
         VIEW_DESCRIPTIONS[nextView] || VIEW_DESCRIPTIONS.chat;
 
     setActiveNavButton(nextView);
+
+    if (nextView === 'characters') {
+        renderCharactersWorkspace();
+    }
 
     if (nextView === 'gallery') {
         renderGalleryCharacterFilter();

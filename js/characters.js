@@ -82,16 +82,17 @@ export function getCharacterThumbnailUrl(character) {
     return character.thumbnail || getDefaultGeneratedCharacterThumbnail(character.id);
 }
 
+function getAllCharacters() {
+    const storedDefault = state.characters.find((c) => c.id === 'default');
+    const defaultEntry = storedDefault || { ...defaultCharacter };
+    return [defaultEntry, ...state.characters.filter((c) => c.id !== 'default' && !c.isDefault)];
+}
+
 // Render characters list in sidebar
 export function renderCharactersList() {
     elements.charactersList.innerHTML = '';
 
-    const storedDefault = state.characters.find((c) => c.id === 'default');
-    const defaultEntry = storedDefault || { ...defaultCharacter };
-    const allCharacters = [
-        defaultEntry,
-        ...state.characters.filter((c) => c.id !== 'default' && !c.isDefault)
-    ];
+    const allCharacters = getAllCharacters();
 
     allCharacters.forEach((char) => {
         const isActive = state.currentCharacterId === char.id;
@@ -137,6 +138,86 @@ export function renderCharactersList() {
         `;
         elements.charactersList.appendChild(charDiv);
     });
+
+    renderCharactersWorkspace();
+}
+
+export function renderCharactersWorkspace() {
+    if (!elements.charactersViewGrid) return;
+
+    const allCharacters = getAllCharacters();
+
+    if (allCharacters.length === 0) {
+        elements.charactersViewGrid.innerHTML = `
+            <div class="characters-empty glass">
+                <p class="text-lg text-gray-200">No characters yet</p>
+                <p class="text-sm text-gray-500">Create or import a character to start chatting.</p>
+            </div>
+        `;
+        return;
+    }
+
+    elements.charactersViewGrid.innerHTML = '';
+
+    allCharacters.forEach((char) => {
+        const isActive = state.currentCharacterId === char.id;
+        const thumbnailUrl = getCharacterThumbnailUrl(char);
+        const messages =
+            char.id === state.currentCharacterId
+                ? state.messages
+                : Array.isArray(char.messages)
+                  ? char.messages
+                  : [];
+        const messageCount = messages.length;
+        const description =
+            char.description ||
+            char.background ||
+            char.appearance ||
+            'Ready for a new conversation.';
+
+        const thumbnailHtml = thumbnailUrl
+            ? `<img src="${escapeHtml(thumbnailUrl)}" alt="${escapeHtml(char.name)}" class="characters-card-image">`
+            : `<div class="characters-card-avatar">${char.avatar}</div>`;
+
+        const card = document.createElement('article');
+        card.className = `characters-card glass ${isActive ? 'is-active' : ''}`;
+        card.innerHTML = `
+            <button type="button" class="characters-card-select" data-character-id="${escapeHtml(char.id)}">
+                <div class="characters-card-media">
+                    ${thumbnailHtml}
+                </div>
+                <div class="characters-card-body">
+                    <div class="characters-card-title-row">
+                        <h3>${escapeHtml(char.name)}</h3>
+                        ${isActive ? '<span class="characters-active-pill">Active</span>' : ''}
+                    </div>
+                    <p class="characters-card-description">${escapeHtml(description)}</p>
+                    <div class="characters-card-meta">
+                        <span>${char.isDefault ? 'Default' : 'Custom'}</span>
+                        <span>${messageCount} messages</span>
+                    </div>
+                </div>
+            </button>
+            <div class="characters-card-actions">
+                <button type="button" class="btn-primary characters-chat-btn" data-character-id="${escapeHtml(char.id)}">
+                    Chat
+                </button>
+                ${
+                    !char.isDefault
+                        ? `
+                    <button type="button" class="btn-secondary characters-edit-btn" data-character-id="${escapeHtml(char.id)}">
+                        Edit
+                    </button>
+                    <button type="button" class="characters-delete-btn" data-character-id="${escapeHtml(char.id)}">
+                        Delete
+                    </button>
+                `
+                        : ''
+                }
+            </div>
+        `;
+        elements.charactersViewGrid.appendChild(card);
+    });
 }
 
 // Set character thumbnail from gallery image
@@ -158,6 +239,7 @@ export function setCharacterThumbnail(characterId, imageUrl) {
     }
 
     renderCharactersList();
+    renderCharactersWorkspace();
     updateCurrentCharacterUI();
     saveToLocalStorage();
     return true;
@@ -188,6 +270,7 @@ export function selectCharacter(charId) {
     state.settings.systemPrompt = character.systemPrompt;
 
     renderCharactersList();
+    renderCharactersWorkspace();
     updateCurrentCharacterUI();
 
     // Import and call renderMessages to refresh the chat view
@@ -229,6 +312,7 @@ export async function deleteCharacter(charId) {
         selectCharacter('default');
     } else {
         renderCharactersList();
+        renderCharactersWorkspace();
         saveToLocalStorage();
     }
 
@@ -521,6 +605,7 @@ export async function saveCharacter() {
     currentThumbnail = null;
 
     renderCharactersList();
+    renderCharactersWorkspace();
     saveToLocalStorage();
     showToast(editingCharacterId ? 'Character updated.' : 'Character created.', {
         type: 'success'

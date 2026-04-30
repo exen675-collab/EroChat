@@ -2,8 +2,14 @@ import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { state } from './state.js';
 
-const TRACKED_VIEWS = ['chat', 'generator', 'gallery', 'stats'];
-const DAILY_ACTIVITY_KEYS = ['messagesSent', 'assistantReplies', 'imagesGenerated', 'generatorRuns', 'viewSwitches'];
+const TRACKED_VIEWS = ['chat', 'characters', 'generator', 'gallery', 'stats'];
+const DAILY_ACTIVITY_KEYS = [
+    'messagesSent',
+    'assistantReplies',
+    'imagesGenerated',
+    'generatorRuns',
+    'viewSwitches'
+];
 const MAX_PROMPT_ENTRIES = 24;
 const ACTIVITY_DAY_COUNT = 7;
 const QUICK_ACCESS_MOST_USED_COUNT = 5;
@@ -117,7 +123,9 @@ function finalizeStatisticsUpdate(createdAt = null) {
 }
 
 function formatProviderLabel(provider, fallback) {
-    const normalized = String(provider || '').trim().toLowerCase();
+    const normalized = String(provider || '')
+        .trim()
+        .toLowerCase();
     if (normalized === 'swarm') return 'SwarmUI';
     if (normalized === 'comfy') return 'ComfyUI';
     if (normalized === 'premium') return 'Premium';
@@ -153,9 +161,11 @@ function getTotalsFromState() {
         userMessages: messages.filter((message) => message.role === 'user').length,
         assistantReplies: messages.filter((message) => message.role === 'assistant').length,
         chatImages: state.galleryImages.filter((item) => item.imageUrl).length,
-        generatorImages: state.generatorAssets.filter((asset) => asset.mediaType === 'image').length,
+        generatorImages: state.generatorAssets.filter((asset) => asset.mediaType === 'image')
+            .length,
         generatorRuns: state.generatorJobs.length,
-        activeCharacters: getTrackedCharacters().filter((character) => character.id !== 'default').length || 1
+        activeCharacters:
+            getTrackedCharacters().filter((character) => character.id !== 'default').length || 1
     };
 }
 
@@ -164,7 +174,9 @@ function getTopCharacters(limit = 5) {
         .map((character) => {
             const messages = Array.isArray(character.messages) ? character.messages : [];
             const userMessages = messages.filter((message) => message.role === 'user').length;
-            const assistantReplies = messages.filter((message) => message.role === 'assistant').length;
+            const assistantReplies = messages.filter(
+                (message) => message.role === 'assistant'
+            ).length;
             return {
                 id: character.id,
                 name: character.name || 'Unknown character',
@@ -306,7 +318,9 @@ export function touchOpenRouterRecentModel(model, createdAt = null) {
     const statistics = getStatistics();
     statistics.recentModels.openrouter = [
         normalized,
-        ...normalizeStringList(statistics.recentModels.openrouter).filter((item) => item !== normalized)
+        ...normalizeStringList(statistics.recentModels.openrouter).filter(
+            (item) => item !== normalized
+        )
     ].slice(0, QUICK_ACCESS_RECENT_COUNT);
     statistics.lastUpdatedAt = normalizeIsoDate(createdAt);
 }
@@ -499,6 +513,7 @@ export function ensureStatisticsShape(statistics = state.statistics) {
         dailyActivity: normalizeMap(current.dailyActivity),
         viewCounts: {
             chat: 0,
+            characters: 0,
             generator: 0,
             gallery: 0,
             stats: 0,
@@ -628,8 +643,9 @@ export function renderStatisticsDashboard() {
 
     if (elements.statsTrackingNote) {
         const statistics = getStatistics();
-        elements.statsTrackingNote.textContent = Object.keys(statistics.dailyActivity).length > 0
-            ? 'Totals include saved history. Trend charts get more accurate as new activity is recorded.'
-            : 'This dashboard starts learning from new activity. Historical totals are still shown where they can be derived.';
+        elements.statsTrackingNote.textContent =
+            Object.keys(statistics.dailyActivity).length > 0
+                ? 'Totals include saved history. Trend charts get more accurate as new activity is recorded.'
+                : 'This dashboard starts learning from new activity. Historical totals are still shown where they can be derived.';
     }
 }

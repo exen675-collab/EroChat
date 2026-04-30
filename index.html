@@ -877,6 +877,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                         <button id="navChatBtn" type="button" class="view-nav-btn is-active">
                             Chat
                         </button>
+                        <button id="navCharactersBtn" type="button" class="view-nav-btn">
+                            Characters
+                        </button>
                         <button id="navGeneratorBtn" type="button" class="view-nav-btn">
                             Generator
                         </button>
@@ -1083,6 +1086,44 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 </svg>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <div id="charactersView" class="hidden flex-1 min-h-0 overflow-y-auto">
+                    <div class="characters-shell">
+                        <section class="glass characters-hero-panel">
+                            <div>
+                                <p class="characters-eyebrow">Character Library</p>
+                                <h2 class="characters-title">Choose who to chat with.</h2>
+                                <p class="characters-copy">
+                                    Pick a character to load their conversation and continue in
+                                    chat.
+                                </p>
+                            </div>
+                            <div class="characters-actions">
+                                <button
+                                    id="charactersViewImportBtn"
+                                    type="button"
+                                    class="btn-secondary px-4 py-2 rounded-lg font-medium"
+                                >
+                                    Import Card
+                                </button>
+                                <button
+                                    id="charactersViewAddBtn"
+                                    type="button"
+                                    class="btn-primary px-4 py-2 rounded-lg font-medium"
+                                >
+                                    Add Character
+                                </button>
+                            </div>
+                        </section>
+                        <section
+                            id="charactersViewGrid"
+                            class="characters-grid"
+                            aria-label="Available characters"
+                        >
+                            <!-- Characters will be rendered here -->
+                        </section>
                     </div>
                 </div>
 

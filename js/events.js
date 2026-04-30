@@ -9,7 +9,10 @@ import {
     saveCharacter,
     generateThumbnail,
     generateSystemPromptOnDemand,
-    renderCharactersList
+    renderCharactersList,
+    selectCharacter,
+    editCharacter,
+    deleteCharacter
 } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
@@ -112,6 +115,10 @@ export function setupEventListeners() {
     // View navigation
     elements.navChatBtn.addEventListener('click', () => {
         ui.setCurrentView('chat');
+        closeSettingsPanel();
+    });
+    elements.navCharactersBtn?.addEventListener('click', () => {
+        ui.setCurrentView('characters');
         closeSettingsPanel();
     });
     elements.navGeneratorBtn.addEventListener('click', () => {
@@ -356,9 +363,33 @@ export function setupEventListeners() {
 
     // Character modal events
     elements.addCharacterBtn.addEventListener('click', () => openCharacterModal());
+    elements.charactersViewAddBtn?.addEventListener('click', () => openCharacterModal());
     elements.importCharacterBtn.addEventListener('click', () => {
         elements.characterImportInput.value = '';
         elements.characterImportInput.click();
+    });
+    elements.charactersViewImportBtn?.addEventListener('click', () => {
+        elements.characterImportInput.value = '';
+        elements.characterImportInput.click();
+    });
+    elements.charactersViewGrid?.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.characters-edit-btn');
+        if (editBtn) {
+            editCharacter(editBtn.getAttribute('data-character-id'));
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.characters-delete-btn');
+        if (deleteBtn) {
+            deleteCharacter(deleteBtn.getAttribute('data-character-id'));
+            return;
+        }
+
+        const selectBtn = e.target.closest('.characters-card-select, .characters-chat-btn');
+        if (selectBtn) {
+            selectCharacter(selectBtn.getAttribute('data-character-id'));
+            ui.setCurrentView('chat');
+        }
     });
     elements.characterImportInput.addEventListener('change', async (event) => {
         const [file] = Array.from(event.target.files || []);

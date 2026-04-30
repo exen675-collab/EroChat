@@ -73,7 +73,9 @@ function normalizeViewFromHash(hashValue) {
         .replace(/^#/, '')
         .trim()
         .toLowerCase();
-    return ['chat', 'generator', 'gallery', 'stats'].includes(normalized) ? normalized : null;
+    return ['chat', 'characters', 'generator', 'gallery', 'stats'].includes(normalized)
+        ? normalized
+        : null;
 }
 
 function syncViewFromHash() {

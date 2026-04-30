@@ -5,6 +5,7 @@ function createDefaultStatistics() {
         dailyActivity: {},
         viewCounts: {
             chat: 0,
+            characters: 0,
             generator: 0,
             gallery: 0,
             stats: 0
