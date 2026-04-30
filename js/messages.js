@@ -25,19 +25,17 @@ function getActiveContextMessageIds() {
     return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
 }
 
-function getContextBadgeMarkup(messageId) {
-    const isInContext = getActiveContextMessageIds().has(messageId);
-    const badgeClass = isInContext
-        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-        : 'border-gray-700/60 bg-black/20 text-gray-500';
-    const badgeText = isInContext ? 'In context' : 'Outside context';
-
+function getContextDividerMarkup() {
     return `
-        <span class="message-context-badge inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${badgeClass}"
-            data-message-id="${messageId}" data-in-context="${isInContext ? 'true' : 'false'}">
-            <span class="w-1.5 h-1.5 rounded-full ${isInContext ? 'bg-emerald-400' : 'bg-gray-500'}"></span>
-            ${badgeText}
-        </span>
+        <div class="message-context-divider" role="separator" aria-label="Messages below are in context">
+            <span class="message-context-divider-line"></span>
+            <span class="message-context-divider-label">
+                <span class="message-context-divider-dot"></span>
+                In context
+            </span>
+            <span class="message-context-divider-note">Messages above are outside context</span>
+            <span class="message-context-divider-line"></span>
+        </div>
     `;
 }
 
@@ -119,14 +117,12 @@ function getMessageActionsMarkup(messageId, options = {}) {
             ${
                 align === 'right'
                     ? `
-                ${getContextBadgeMarkup(messageId)}
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center justify-end gap-2">
                     ${actionButtons.join('')}
                 </div>
             `
                     : `
                 <div class="flex flex-wrap items-center gap-2">
-                    ${getContextBadgeMarkup(messageId)}
                     ${isEdited ? '<span class="message-edited-badge">Edited</span>' : ''}
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -140,21 +136,33 @@ function getMessageActionsMarkup(messageId, options = {}) {
 
 export function refreshMessageContextIndicators() {
     const contextMessageIds = getActiveContextMessageIds();
+    const messageElements = Array.from(
+        elements.chatContainer.querySelectorAll('.message-ai[id], .message-user[id]')
+    );
 
-    elements.chatContainer.querySelectorAll('.message-context-badge').forEach((badge) => {
-        const messageId = badge.getAttribute('data-message-id');
-        const isInContext = contextMessageIds.has(messageId);
-        badge.setAttribute('data-in-context', isInContext ? 'true' : 'false');
-        badge.className = `message-context-badge inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${
-            isInContext
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                : 'border-gray-700/60 bg-black/20 text-gray-500'
-        }`;
-        badge.innerHTML = `
-            <span class="w-1.5 h-1.5 rounded-full ${isInContext ? 'bg-emerald-400' : 'bg-gray-500'}"></span>
-            ${isInContext ? 'In context' : 'Outside context'}
-        `;
+    elements.chatContainer.querySelectorAll('.message-context-divider').forEach((divider) => {
+        divider.remove();
     });
+
+    messageElements.forEach((messageElement) => {
+        const isInContext = contextMessageIds.has(messageElement.id);
+        messageElement.dataset.inContext = isInContext ? 'true' : 'false';
+        messageElement.classList.toggle('message-in-context', isInContext);
+        messageElement.classList.toggle('message-outside-context', !isInContext);
+    });
+
+    const firstInContextIndex = messageElements.findIndex((messageElement) =>
+        contextMessageIds.has(messageElement.id)
+    );
+    const hasOutsideContextBefore =
+        firstInContextIndex > 0 &&
+        messageElements
+            .slice(0, firstInContextIndex)
+            .some((messageElement) => !contextMessageIds.has(messageElement.id));
+
+    if (hasOutsideContextBefore) {
+        messageElements[firstInContextIndex].insertAdjacentHTML('beforebegin', getContextDividerMarkup());
+    }
 }
 
 // Render all messages
@@ -197,6 +205,7 @@ export function renderMessages() {
         }
     });
 
+    refreshMessageContextIndicators();
     scrollToBottom();
 }
 
