@@ -245,17 +245,17 @@ export function addAIMessageToUI(
     let imageSection = '';
     if (videoUrl) {
         imageSection = `
-            <div class="w-full lg:w-1/3 flex-shrink-0">
-                <div class="image-container h-full">
-                    <video src="${videoUrl}" autoplay loop muted playsinline class="chat-video-preview w-full h-full object-cover rounded-xl shadow-2xl cursor-zoom-in" style="max-height: 400px;"></video>
+            <div class="chat-media-wrap">
+                <div class="image-container chat-media-frame">
+                    <video src="${videoUrl}" autoplay loop muted playsinline class="chat-video-preview chat-media-preview fade-in cursor-zoom-in"></video>
                 </div>
             </div>
         `;
     } else if (imageUrl) {
         imageSection = `
-            <div class="w-full lg:w-1/3 flex-shrink-0">
-                <div class="image-container h-full">
-                    <img src="${imageUrl}" alt="Generated" class="chat-image-preview w-full h-full object-cover rounded-xl shadow-2xl cursor-zoom-in" style="max-height: 400px;">
+            <div class="chat-media-wrap">
+                <div class="image-container chat-media-frame">
+                    <img src="${imageUrl}" alt="Generated" class="chat-image-preview chat-media-preview cursor-zoom-in">
                 </div>
             </div>
         `;
@@ -265,8 +265,8 @@ export function addAIMessageToUI(
     ) {
         // Image is being generated
         imageSection = `
-            <div class="w-full lg:w-1/3 flex-shrink-0">
-                <div class="image-container bg-gray-900/50 rounded-xl p-8 flex items-center justify-center h-full" style="min-height: 300px;">
+            <div class="chat-media-wrap">
+                <div class="image-container chat-media-frame bg-gray-900/50 rounded-xl p-8 flex items-center justify-center">
                     <div class="text-center">
                         <div class="spinner mx-auto mb-3"></div>
                         <p class="text-gray-400 text-sm">Generating image...</p>
@@ -287,8 +287,8 @@ export function addAIMessageToUI(
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center flex-shrink-0">
                 <span class="text-xl">${character.avatar}</span>
             </div>
-            <div class="flex-1 flex gap-4 ${hasImage ? 'flex-col lg:flex-row' : 'flex-col'}">
-                <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'w-full lg:w-2/3' : 'w-full'}">
+            <div class="flex-1 flex gap-3 min-w-0 ${hasImage ? 'chat-message-with-media flex-col lg:flex-row' : 'flex-col'}">
+                <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'chat-media-message' : 'w-full'}">
                     <p class="text-gray-300 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(displayContent), 'ai')}</p>
                 </div>
                 ${imageSection}
@@ -315,8 +315,9 @@ export function updateAIMessageImage(messageId, imageUrl) {
     if (messageDiv) {
         const imageContainer = messageDiv.querySelector('.image-container');
         if (imageContainer) {
+            imageContainer.classList.add('chat-media-frame');
             imageContainer.innerHTML = `
-                <img src="${imageUrl}" alt="Generated" class="chat-image-preview w-full h-full object-cover rounded-xl shadow-2xl fade-in cursor-zoom-in" style="max-height: 400px;">
+                <img src="${imageUrl}" alt="Generated" class="chat-image-preview chat-media-preview fade-in cursor-zoom-in">
             `;
         }
 
@@ -348,8 +349,9 @@ export function updateAIMessageVideo(messageId, videoUrl) {
 
     const imageContainer = messageDiv.querySelector('.image-container');
     if (imageContainer) {
+        imageContainer.classList.add('chat-media-frame');
         imageContainer.innerHTML = `
-            <video src="${videoUrl}" autoplay loop muted playsinline class="chat-video-preview w-full h-full object-cover rounded-xl shadow-2xl fade-in cursor-zoom-in" style="max-height: 400px;"></video>
+            <video src="${videoUrl}" autoplay loop muted playsinline class="chat-video-preview chat-media-preview fade-in cursor-zoom-in"></video>
         `;
     }
 

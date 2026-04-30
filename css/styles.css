@@ -202,6 +202,41 @@ select:focus {
     transform: scale(1.02);
 }
 
+.chat-media-message {
+    min-width: 0;
+}
+
+.chat-media-wrap {
+    width: min(100%, 50rem);
+    flex: 0.9 1 0;
+    min-width: 0;
+}
+
+.chat-media-frame {
+    display: flex;
+    min-height: 18rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-media-preview {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: min(72vh, 46rem);
+    border-radius: 0.75rem;
+    object-fit: contain;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
+}
+
+.chat-message-with-media {
+    align-items: flex-start;
+}
+
+.chat-message-with-media .chat-media-message {
+    flex: 1.25 1 0;
+}
+
 .modal-overlay {
     background: rgba(3, 4, 10, 0.72);
     backdrop-filter: blur(4px);
