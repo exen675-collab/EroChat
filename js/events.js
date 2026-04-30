@@ -12,7 +12,7 @@ import {
     renderCharactersList,
     selectCharacter,
     editCharacter,
-    deleteCharacter
+    deleteEditingCharacter
 } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
@@ -379,12 +379,6 @@ export function setupEventListeners() {
             return;
         }
 
-        const deleteBtn = e.target.closest('.characters-delete-btn');
-        if (deleteBtn) {
-            deleteCharacter(deleteBtn.getAttribute('data-character-id'));
-            return;
-        }
-
         const selectBtn = e.target.closest('.characters-card-select, .characters-chat-btn');
         if (selectBtn) {
             selectCharacter(selectBtn.getAttribute('data-character-id'));
@@ -449,6 +443,7 @@ export function setupEventListeners() {
         }
     });
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
+    elements.deleteCharBtn?.addEventListener('click', deleteEditingCharacter);
     elements.saveCharBtn.addEventListener('click', saveCharacter);
     elements.generateThumbnailBtn.addEventListener('click', generateThumbnail);
     elements.generatePromptBtn.addEventListener('click', generateSystemPromptOnDemand);
