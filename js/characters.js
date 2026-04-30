@@ -62,6 +62,26 @@ export function getCurrentCharacter() {
     };
 }
 
+function getCreatedAtTime(item) {
+    const parsed = Date.parse(item?.createdAt || '');
+    return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+export function getDefaultGeneratedCharacterThumbnail(characterId) {
+    if (!characterId || !Array.isArray(state.galleryImages)) return null;
+
+    const firstGeneratedImage = state.galleryImages
+        .filter((item) => item?.characterId === characterId && item.imageUrl)
+        .sort((a, b) => getCreatedAtTime(a) - getCreatedAtTime(b))[0];
+
+    return firstGeneratedImage?.imageUrl || null;
+}
+
+export function getCharacterThumbnailUrl(character) {
+    if (!character) return null;
+    return character.thumbnail || getDefaultGeneratedCharacterThumbnail(character.id);
+}
+
 // Render characters list in sidebar
 export function renderCharactersList() {
     elements.charactersList.innerHTML = '';
@@ -75,13 +95,14 @@ export function renderCharactersList() {
 
     allCharacters.forEach((char) => {
         const isActive = state.currentCharacterId === char.id;
+        const thumbnailUrl = getCharacterThumbnailUrl(char);
         const charDiv = document.createElement('div');
         charDiv.className = `character-card p-3 rounded-lg border border-purple-900/30 flex items-center justify-between ${isActive ? 'active' : ''}`;
 
         // Create thumbnail or avatar display
-        const thumbnailHtml = char.thumbnail
+        const thumbnailHtml = thumbnailUrl
             ? `<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-900/30 to-pink-900/30">
-                <img src="${char.thumbnail}" alt="${escapeHtml(char.name)}" class="w-full h-full object-cover">
+                <img src="${escapeHtml(thumbnailUrl)}" alt="${escapeHtml(char.name)}" class="w-full h-full object-cover">
                </div>`
             : `<div class="w-16 h-16 rounded-lg flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                 <span class="text-3xl">${char.avatar}</span>
