@@ -421,6 +421,27 @@ body.settings-open {
     min-height: 48px;
 }
 
+.chat-input-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(13rem, 18rem) minmax(26rem, 1fr) auto auto auto;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.quick-model-select {
+    width: 100%;
+    min-width: 0;
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    font-size: 0.875rem;
+}
+
+.chat-input-row #messageInput {
+    width: 100%;
+    min-width: 26rem;
+}
+
 #openGalleryBtn {
     display: none !important;
 }
@@ -1183,6 +1204,14 @@ body.settings-open {
     .advanced-settings-grid {
         grid-template-columns: 1fr;
     }
+
+    .chat-input-row {
+        grid-template-columns: minmax(11rem, 14rem) minmax(18rem, 1fr) auto auto auto;
+    }
+
+    .chat-input-row #messageInput {
+        min-width: 18rem;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1261,6 +1290,19 @@ body.settings-open {
 
     main > .glass.border-t .max-w-4xl {
         gap: 0.5rem;
+    }
+
+    .chat-input-row {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-model-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .chat-input-row #messageInput {
+        min-width: 0;
     }
 
     #messageInput {

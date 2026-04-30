@@ -1,9 +1,61 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
 import { CHAT_REQUEST_DEFAULTS, OPENROUTER_REASONING_EFFORTS } from './chat-request.js';
+import { getOpenRouterQuickAccessModels } from './stats.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
+
+function getFetchedModelLabel(modelId) {
+    const model = fetchedModels.find((item) => item.id === modelId);
+    return model ? `${model.name} (${model.id})` : modelId;
+}
+
+function ensureModelOption(select, modelId) {
+    if (!select || !modelId || Array.from(select.options).some((option) => option.value === modelId)) {
+        return;
+    }
+
+    const option = document.createElement('option');
+    option.value = modelId;
+    option.textContent = getFetchedModelLabel(modelId);
+    select.appendChild(option);
+}
+
+export function renderOpenRouterQuickModelSelect() {
+    if (!elements.openrouterQuickModel) return;
+
+    const models = getOpenRouterQuickAccessModels();
+    const currentModel = elements.openrouterModel.value || state.settings.openrouterModel || '';
+
+    elements.openrouterQuickModel.innerHTML =
+        '<option value="">Quick access: most used + recent...</option>';
+    models.forEach((model) => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = getFetchedModelLabel(model);
+        elements.openrouterQuickModel.appendChild(option);
+    });
+
+    elements.openrouterQuickModel.disabled = models.length === 0;
+    elements.openrouterQuickModel.value = models.includes(currentModel) ? currentModel : '';
+}
+
+export function selectOpenRouterModel(modelId) {
+    const normalized = String(modelId || '').trim();
+    if (!normalized) return;
+
+    ensureModelOption(elements.openrouterModel, normalized);
+    elements.openrouterModel.value = normalized;
+    state.settings.openrouterModel = normalized;
+
+    if (elements.openrouterQuickModel) {
+        ensureModelOption(elements.openrouterQuickModel, normalized);
+        elements.openrouterQuickModel.value = normalized;
+    }
+
+    elements.openrouterModel.dispatchEvent(new Event('change'));
+}
 
 // Filter and populate models based on search query
 function filterAndPopulateModels(searchQuery = '', preferredModelId = null) {
@@ -32,6 +84,9 @@ function filterAndPopulateModels(searchQuery = '', preferredModelId = null) {
 
     if (previousValue && filteredModels.some((model) => model.id === previousValue)) {
         elements.openrouterModel.value = previousValue;
+    } else if (previousValue) {
+        ensureModelOption(elements.openrouterModel, previousValue);
+        elements.openrouterModel.value = previousValue;
     }
 
     // Update select label to show filter results
@@ -42,6 +97,8 @@ function filterAndPopulateModels(searchQuery = '', preferredModelId = null) {
     } else {
         elements.openrouterModel.options[0].textContent = 'Select a model...';
     }
+
+    renderOpenRouterQuickModelSelect();
 }
 
 // Setup search input event listener

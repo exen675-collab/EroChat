@@ -13,7 +13,12 @@ import {
 } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchSwarmModels } from './api-swarmui.js';
-import { fetchOpenRouterModels, setupModelSearch } from './api-openrouter.js';
+import {
+    fetchOpenRouterModels,
+    renderOpenRouterQuickModelSelect,
+    selectOpenRouterModel,
+    setupModelSearch
+} from './api-openrouter.js';
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages, saveEditedAssistantMessage } from './messages.js';
@@ -292,8 +297,13 @@ export function setupEventListeners() {
     setupModelSearch();
 
     // Persist model selections immediately when changed
+    elements.openrouterQuickModel?.addEventListener('change', () => {
+        selectOpenRouterModel(elements.openrouterQuickModel.value);
+    });
+
     elements.openrouterModel.addEventListener('change', () => {
         state.settings.openrouterModel = elements.openrouterModel.value;
+        renderOpenRouterQuickModelSelect();
         saveToLocalStorage();
     });
 

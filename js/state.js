@@ -14,6 +14,9 @@ function createDefaultStatistics() {
             image: {},
             generator: {}
         },
+        recentModels: {
+            openrouter: []
+        },
         promptUsage: {},
         lastUpdatedAt: null
     };

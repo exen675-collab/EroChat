@@ -1009,7 +1009,10 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
 
                     <!-- Input Area -->
                     <div class="glass border-t border-purple-900/30 p-4">
-                        <div class="max-w-4xl mx-auto flex gap-3">
+                        <div class="chat-input-row">
+                            <select id="openrouterQuickModel" class="quick-model-select" disabled>
+                                <option value="">Quick models...</option>
+                            </select>
                             <textarea
                                 id="messageInput"
                                 rows="1"
@@ -1018,12 +1021,11 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 style="min-height: 48px; max-height: 150px"
                             ></textarea>
                             <button
-                                id="previewRequestBtn"
+                                id="sendBtn"
                                 type="button"
-                                class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
-                                title="Preview the API request for this message"
+                                class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2"
                             >
-                                <span>Request</span>
+                                <span>Send</span>
                                 <svg
                                     class="w-5 h-5"
                                     fill="none"
@@ -1034,7 +1036,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         stroke-width="2"
-                                        d="M9 17l-5-5 5-5m6 10l5-5-5-5"
+                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                                     ></path>
                                 </svg>
                             </button>
@@ -1060,11 +1062,12 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                 </svg>
                             </button>
                             <button
-                                id="sendBtn"
+                                id="previewRequestBtn"
                                 type="button"
-                                class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2"
+                                class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
+                                title="Preview the API request for this message"
                             >
-                                <span>Send</span>
+                                <span>Request</span>
                                 <svg
                                     class="w-5 h-5"
                                     fill="none"
@@ -1075,7 +1078,7 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         stroke-width="2"
-                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                                        d="M9 17l-5-5 5-5m6 10l5-5-5-5"
                                     ></path>
                                 </svg>
                             </button>

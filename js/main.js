@@ -24,7 +24,7 @@ import { setupEventListeners } from './events.js';
 import { editAssistantMessage, regenerateImage } from './messages.js';
 import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
-import { fetchOpenRouterModels } from './api-openrouter.js';
+import { fetchOpenRouterModels, renderOpenRouterQuickModelSelect } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
 import { initGenerator, refreshGeneratorView } from './generator.js';
@@ -223,6 +223,7 @@ export async function sendMessage() {
             model: elements.openrouterModel.value || state.settings.openrouterModel || '',
             createdAt: aiCreatedAt
         });
+        renderOpenRouterQuickModelSelect();
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
         saveToLocalStorage();
@@ -357,6 +358,7 @@ async function init() {
     window.editCharacter = editCharacter;
 
     loadFromLocalStorage();
+    renderOpenRouterQuickModelSelect();
     await initGenerator();
 
     syncViewFromHash();

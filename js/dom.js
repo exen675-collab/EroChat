@@ -52,6 +52,7 @@ export const elements = {
     // Settings inputs
     textProvider: document.getElementById('textProvider'),
     openrouterKey: document.getElementById('openrouterKey'),
+    openrouterQuickModel: document.getElementById('openrouterQuickModel'),
     openrouterModel: document.getElementById('openrouterModel'),
     openrouterModelSearch: document.getElementById('openrouterModelSearch'),
     openrouterReasoningEnabled: document.getElementById('openrouterReasoningEnabled'),

@@ -116,4 +116,27 @@ describe('statistics dashboard', () => {
         expect(document.getElementById('statsPromptList').textContent).toContain('hello there');
         expect(document.getElementById('statsTrackingNote').textContent).toContain('Totals include');
     });
+
+    it('builds OpenRouter quick access from top and recent models without duplicates', () => {
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/a' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/a' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/b' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/b' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/c' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/d' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/e' });
+        stats.recordAssistantReply({ textProvider: 'openrouter', model: 'model/f' });
+
+        const quickModels = stats.getOpenRouterQuickAccessModels();
+
+        expect(quickModels).toEqual([
+            'model/a',
+            'model/b',
+            'model/c',
+            'model/d',
+            'model/e',
+            'model/f'
+        ]);
+        expect(state.statistics.recentModels.openrouter).toEqual(['model/f', 'model/e', 'model/d']);
+    });
 });

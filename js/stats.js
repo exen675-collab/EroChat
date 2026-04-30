@@ -6,6 +6,8 @@ const TRACKED_VIEWS = ['chat', 'generator', 'gallery', 'stats'];
 const DAILY_ACTIVITY_KEYS = ['messagesSent', 'assistantReplies', 'imagesGenerated', 'generatorRuns', 'viewSwitches'];
 const MAX_PROMPT_ENTRIES = 24;
 const ACTIVITY_DAY_COUNT = 7;
+const QUICK_ACCESS_MOST_USED_COUNT = 5;
+const QUICK_ACCESS_RECENT_COUNT = 3;
 
 function normalizeMap(value) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -46,6 +48,18 @@ function incrementCount(map, label, amount = 1) {
     const normalizedLabel = String(label || '').trim();
     if (!normalizedLabel) return;
     map[normalizedLabel] = (map[normalizedLabel] || 0) + amount;
+}
+
+function normalizeStringList(value) {
+    return Array.isArray(value)
+        ? value.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+}
+
+function parseOpenRouterModelLabel(label) {
+    const normalized = String(label || '').trim();
+    const match = normalized.match(/^OpenRouter\s+(?:Â·|·)\s+(.+)$/);
+    return match ? match[1].trim() : '';
 }
 
 function normalizePromptText(prompt) {
@@ -254,6 +268,49 @@ function getTopEntries(map, limit = 5) {
         .slice(0, limit);
 }
 
+function getTopOpenRouterModels(limit = QUICK_ACCESS_MOST_USED_COUNT) {
+    return Object.entries(normalizeMap(getStatistics().modelUsage.text))
+        .map(([label, count]) => ({
+            model: parseOpenRouterModelLabel(label),
+            count
+        }))
+        .filter((item) => item.model)
+        .sort((left, right) => right.count - left.count || left.model.localeCompare(right.model))
+        .slice(0, limit)
+        .map((item) => item.model);
+}
+
+export function getOpenRouterQuickAccessModels() {
+    const statistics = getStatistics();
+    const seen = new Set();
+    const models = [];
+    const addModel = (model) => {
+        const normalized = String(model || '').trim();
+        if (!normalized || seen.has(normalized)) return;
+        seen.add(normalized);
+        models.push(normalized);
+    };
+
+    getTopOpenRouterModels().forEach(addModel);
+    normalizeStringList(statistics.recentModels.openrouter)
+        .slice(0, QUICK_ACCESS_RECENT_COUNT)
+        .forEach(addModel);
+
+    return models.slice(0, QUICK_ACCESS_MOST_USED_COUNT + QUICK_ACCESS_RECENT_COUNT);
+}
+
+export function touchOpenRouterRecentModel(model, createdAt = null) {
+    const normalized = String(model || '').trim();
+    if (!normalized) return;
+
+    const statistics = getStatistics();
+    statistics.recentModels.openrouter = [
+        normalized,
+        ...normalizeStringList(statistics.recentModels.openrouter).filter((item) => item !== normalized)
+    ].slice(0, QUICK_ACCESS_RECENT_COUNT);
+    statistics.lastUpdatedAt = normalizeIsoDate(createdAt);
+}
+
 function renderSummaryCards() {
     if (!elements.statsSummary) return;
 
@@ -452,6 +509,9 @@ export function ensureStatisticsShape(statistics = state.statistics) {
             image: normalizeMap(current.modelUsage?.image),
             generator: normalizeMap(current.modelUsage?.generator)
         },
+        recentModels: {
+            openrouter: normalizeStringList(current.recentModels?.openrouter)
+        },
         promptUsage: normalizeMap(current.promptUsage),
         lastUpdatedAt: current.lastUpdatedAt || null
     };
@@ -508,6 +568,9 @@ export function recordAssistantReply({ textProvider = '', model = '', createdAt 
 
     getDailyBucket(getDayKey(createdAt)).assistantReplies += 1;
     incrementCount(statistics.modelUsage.text, label, 1);
+    if (textProvider === 'openrouter') {
+        touchOpenRouterRecentModel(model, createdAt);
+    }
     finalizeStatisticsUpdate(createdAt);
 }
 
