@@ -100,17 +100,19 @@ describe('chat request preview builder', () => {
         ]);
     });
 
-    it('adds accepted memory snapshots and strips image prompt blocks from model context', () => {
+    it('adds accepted memory snapshots while preserving raw chat message content', () => {
+        const rawAssistantContent = `Visible reply
+
+---IMAGE_PROMPT START---
+hidden image prompt
+---IMAGE_PROMPT END---`;
+
         const messages = buildChatApiMessages({
             systemPrompt: 'System',
             historyMessages: [
                 {
                     role: 'assistant',
-                    content: `Visible reply
-
----IMAGE_PROMPT START---
-hidden image prompt
----IMAGE_PROMPT END---`
+                    content: rawAssistantContent
                 }
             ],
             memorySnapshots: [{ finalText: 'They agreed to meet at sunset.' }]
@@ -122,7 +124,7 @@ hidden image prompt
         });
         expect(messages[2]).toEqual({
             role: 'assistant',
-            content: 'Visible reply'
+            content: rawAssistantContent
         });
     });
 });

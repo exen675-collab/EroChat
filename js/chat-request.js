@@ -1,8 +1,4 @@
-import {
-    getContextMessages,
-    normalizeContextMessageCount,
-    stripImagePromptBlocks
-} from './utils.js';
+import { getContextMessages, normalizeContextMessageCount } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
     temperature: 0.9,
@@ -51,16 +47,15 @@ export function buildChatApiMessages({
               .filter((message) => message && typeof message.content === 'string' && message.role)
               .map((message) => ({
                   role: message.role,
-                  content: stripImagePromptBlocks(message.content).trim()
+                  content: message.content
               }))
               .filter((message) => message.content)
         : [];
 
-    const cleanDraftMessage = stripImagePromptBlocks(draftMessage).trim();
-    if (cleanDraftMessage) {
+    if (String(draftMessage || '').trim()) {
         nextMessages.push({
             role: 'user',
-            content: cleanDraftMessage
+            content: String(draftMessage).trim()
         });
     }
 
