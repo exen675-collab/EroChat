@@ -340,16 +340,7 @@ export function renderMemoryPanel() {
     } else if (pressure.isBlocked) {
         elements.memoryPanel.innerHTML = summary + getDecisionMarkup(pressure);
     } else {
-        elements.memoryPanel.innerHTML = `
-            ${summary}
-            <details class="chat-memory-panel chat-memory-collapsible">
-                <summary>
-                    <span class="chat-memory-kicker">Chat memory</span>
-                    <span class="chat-memory-collapsible-title">Accepted snapshots are included with future model calls.</span>
-                </summary>
-                ${getMemorySnapshotListMarkup()}
-            </details>
-        `;
+        elements.memoryPanel.innerHTML = summary;
     }
 
     updateMemoryBlockingControls();
