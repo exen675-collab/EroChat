@@ -23,6 +23,7 @@ export const elements = {
     navStatsBtn: document.getElementById('navStatsBtn'),
     currentViewDescription: document.getElementById('currentViewDescription'),
     chatContainer: document.getElementById('chatContainer'),
+    memoryPanel: document.getElementById('memoryPanel'),
     messageInput: document.getElementById('messageInput'),
     previewRequestBtn: document.getElementById('previewRequestBtn'),
     sendBtn: document.getElementById('sendBtn'),

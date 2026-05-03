@@ -99,6 +99,32 @@ describe('chat request preview builder', () => {
             { role: 'user', content: 'Three' }
         ]);
     });
+
+    it('adds accepted memory snapshots and strips image prompt blocks from model context', () => {
+        const messages = buildChatApiMessages({
+            systemPrompt: 'System',
+            historyMessages: [
+                {
+                    role: 'assistant',
+                    content: `Visible reply
+
+---IMAGE_PROMPT START---
+hidden image prompt
+---IMAGE_PROMPT END---`
+                }
+            ],
+            memorySnapshots: [{ finalText: 'They agreed to meet at sunset.' }]
+        });
+
+        expect(messages[1]).toEqual({
+            role: 'system',
+            content: 'Accepted memory snapshots for this chat:\n\n1. They agreed to meet at sunset.'
+        });
+        expect(messages[2]).toEqual({
+            role: 'assistant',
+            content: 'Visible reply'
+        });
+    });
 });
 
 describe('request preview modal helpers', () => {

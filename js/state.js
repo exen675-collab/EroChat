@@ -41,6 +41,7 @@ export const state = {
     generatorPrefs: { ...defaultGeneratorPrefs },
     sessionId: null,
     isGenerating: false,
+    memoryCompressionDraft: null,
     currentCharacterId: null,
     characters: [],
     settings: { ...defaultSettings },

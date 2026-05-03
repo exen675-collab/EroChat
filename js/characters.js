@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
-import { escapeHtml, normalizeImageProvider } from './utils.js';
+import { escapeHtml, normalizeContextMessageCount, normalizeImageProvider } from './utils.js';
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
 import { persistImageForStorage } from './media.js';
 import { requestConfirmation, showToast } from './notifications.js';
@@ -224,7 +224,9 @@ export function setCharacterThumbnail(characterId, imageUrl) {
         state.characters.unshift({
             ...defaultCharacter,
             thumbnail: imageUrl,
-            messages: [...state.messages]
+            messages: [...state.messages],
+            contextMessageCount: state.settings.contextMessageCount,
+            memorySnapshots: []
         });
     } else {
         return false;
@@ -260,13 +262,20 @@ export function selectCharacter(charId) {
     // Update system prompt in settings
     elements.systemPrompt.value = character.systemPrompt;
     state.settings.systemPrompt = character.systemPrompt;
+    state.settings.contextMessageCount = normalizeContextMessageCount(
+        character.contextMessageCount ?? state.settings.contextMessageCount
+    );
+    elements.contextMessageCount.value = state.settings.contextMessageCount;
 
     renderCharactersList();
     renderCharactersWorkspace();
     updateCurrentCharacterUI();
 
     // Import and call renderMessages to refresh the chat view
-    import('./messages.js').then((m) => m.renderMessages());
+    import('./messages.js').then((m) => {
+        m.renderMessages();
+        import('./memory.js').then((memory) => memory.renderMemoryPanel());
+    });
 
     saveToLocalStorage();
 
@@ -599,7 +608,9 @@ export async function saveCharacter() {
             userInfo,
             appearance,
             isDefault: false,
-            messages: []
+            messages: [],
+            contextMessageCount: state.settings.contextMessageCount,
+            memorySnapshots: []
         };
         // Add thumbnail if one was generated
         if (currentThumbnail) {

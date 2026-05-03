@@ -29,6 +29,7 @@ import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import { requestConfirmation, showToast } from './notifications.js';
+import { handleMemoryPanelClick, renderMemoryPanel, setCurrentChatContextLimit } from './memory.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -176,6 +177,7 @@ export function setupEventListeners() {
             openLightboxVideo(video.getAttribute('src'));
         }
     });
+    elements.memoryPanel?.addEventListener('click', handleMemoryPanelClick);
 
     elements.logoutBtn.addEventListener('click', async () => {
         try {
@@ -356,9 +358,10 @@ export function setupEventListeners() {
             state.settings.contextMessageCount
         );
         elements.contextMessageCount.value = nextValue;
-        state.settings.contextMessageCount = nextValue;
+        setCurrentChatContextLimit(nextValue);
         saveToLocalStorage();
         renderMessages();
+        renderMemoryPanel();
     });
 
     // Character modal events
@@ -467,6 +470,11 @@ export function setupEventListeners() {
 
     // Save settings
     elements.saveSettingsBtn.addEventListener('click', () => {
+        const nextContextMessageCount = normalizeContextMessageCount(
+            elements.contextMessageCount.value,
+            state.settings.contextMessageCount
+        );
+
         state.settings = {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
@@ -479,10 +487,7 @@ export function setupEventListeners() {
             comfyModel: elements.comfyModel.value,
             imageProvider: normalizeImageProvider(elements.imageProvider.value),
             enableImageGeneration: elements.enableImageGeneration.checked,
-            contextMessageCount: normalizeContextMessageCount(
-                elements.contextMessageCount.value,
-                state.settings.contextMessageCount
-            ),
+            contextMessageCount: nextContextMessageCount,
             imgWidth: parseInt(elements.imgWidth.value, 10),
             imgHeight: parseInt(elements.imgHeight.value, 10),
             steps: parseInt(elements.steps.value, 10),
@@ -490,6 +495,7 @@ export function setupEventListeners() {
             sampler: elements.sampler.value,
             systemPrompt: elements.systemPrompt.value
         };
+        setCurrentChatContextLimit(nextContextMessageCount);
 
         if (state.currentCharacterId !== 'default') {
             const charIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
@@ -519,8 +525,14 @@ export function setupEventListeners() {
         }
 
         state.messages = [];
+        state.memoryCompressionDraft = null;
+        const currentCharacter = state.characters.find((c) => c.id === state.currentCharacterId);
+        if (currentCharacter) {
+            currentCharacter.memorySnapshots = [];
+        }
         clearSuggestions();
         renderMessages();
+        renderMemoryPanel();
         saveToLocalStorage();
         showToast('Chat cleared.', {
             type: 'success'

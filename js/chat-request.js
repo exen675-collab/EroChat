@@ -1,4 +1,8 @@
-import { getContextMessages, normalizeContextMessageCount } from './utils.js';
+import {
+    getContextMessages,
+    normalizeContextMessageCount,
+    stripImagePromptBlocks
+} from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
     temperature: 0.9,
@@ -14,6 +18,23 @@ export const OPENROUTER_REASONING_EFFORTS = Object.freeze([
     'xhigh'
 ]);
 
+export function buildMemoryContextMessage(memorySnapshots = []) {
+    const accepted = Array.isArray(memorySnapshots)
+        ? memorySnapshots.filter((snapshot) => snapshot?.finalText)
+        : [];
+
+    if (accepted.length === 0) {
+        return null;
+    }
+
+    return {
+        role: 'system',
+        content: `Accepted memory snapshots for this chat:\n\n${accepted
+            .map((snapshot, index) => `${index + 1}. ${snapshot.finalText}`)
+            .join('\n\n')}`
+    };
+}
+
 export function canPreviewChatRequest(draftMessage, isGenerating = false) {
     return !isGenerating && String(draftMessage || '').trim().length > 0;
 }
@@ -22,35 +43,41 @@ export function buildChatApiMessages({
     systemPrompt,
     historyMessages = [],
     draftMessage = '',
-    contextMessageCount = 20
+    contextMessageCount = 20,
+    memorySnapshots = []
 }) {
     const nextMessages = Array.isArray(historyMessages)
         ? historyMessages
               .filter((message) => message && typeof message.content === 'string' && message.role)
               .map((message) => ({
                   role: message.role,
-                  content: message.content
+                  content: stripImagePromptBlocks(message.content).trim()
               }))
+              .filter((message) => message.content)
         : [];
 
-    if (String(draftMessage || '').trim()) {
+    const cleanDraftMessage = stripImagePromptBlocks(draftMessage).trim();
+    if (cleanDraftMessage) {
         nextMessages.push({
             role: 'user',
-            content: String(draftMessage).trim()
+            content: cleanDraftMessage
         });
     }
 
+    const memoryContextMessage = buildMemoryContextMessage(memorySnapshots);
+
     return [
         { role: 'system', content: String(systemPrompt || '') },
+        ...(memoryContextMessage ? [memoryContextMessage] : []),
         ...getContextMessages(nextMessages, normalizeContextMessageCount(contextMessageCount))
     ];
 }
 
 export function buildChatRequestPreview({
-    textProvider = 'openrouter',
     draftMessage = '',
     systemPrompt = '',
     historyMessages = [],
+    memorySnapshots = [],
     contextMessageCount = 20,
     openrouterKey = '',
     openrouterModel = '',
@@ -65,7 +92,8 @@ export function buildChatRequestPreview({
         systemPrompt,
         historyMessages,
         draftMessage,
-        contextMessageCount
+        contextMessageCount,
+        memorySnapshots
     });
 
     const body = {

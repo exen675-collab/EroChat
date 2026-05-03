@@ -196,7 +196,8 @@ export function normalizeContextMessageCount(value, fallback = 20) {
         return fallback;
     }
 
-    return Math.min(100, Math.max(1, parsed));
+    const bounded = Math.min(100, Math.max(20, parsed));
+    return Math.ceil(bounded / 20) * 20;
 }
 
 export function normalizeTtsVoiceId(
@@ -219,9 +220,15 @@ export function normalizeTtsVoiceId(
     return allowedVoiceIds.includes(normalized) ? normalized : fallback;
 }
 
+export function getActiveRawMessages(messages) {
+    return Array.isArray(messages)
+        ? messages.filter((message) => message && message.archivedFromModelContext !== true)
+        : [];
+}
+
 export function getContextMessages(messages, contextMessageCount = 20) {
     const normalizedCount = normalizeContextMessageCount(contextMessageCount);
-    return Array.isArray(messages) ? messages.slice(-normalizedCount) : [];
+    return getActiveRawMessages(messages).slice(-normalizedCount);
 }
 
 export function getContextMessageIdSet(messages, contextMessageCount = 20) {

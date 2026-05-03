@@ -357,9 +357,133 @@ select:focus {
     opacity: 0.62;
 }
 
+.message-archived-context {
+    opacity: 0.48;
+}
+
 .message-in-context,
 .message-outside-context {
     transition: opacity 160ms ease;
+}
+
+.chat-memory-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.chat-memory-summary span,
+.chat-memory-kicker {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.44);
+    padding: 0.25rem 0.65rem;
+}
+
+.chat-memory-panel {
+    display: grid;
+    gap: 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 0.75rem;
+    background: rgba(15, 23, 42, 0.72);
+    padding: 1rem;
+}
+
+.chat-memory-panel.is-blocking {
+    border-color: rgba(244, 114, 182, 0.48);
+    background: rgba(76, 29, 49, 0.55);
+}
+
+.chat-memory-panel h3 {
+    margin: 0.4rem 0 0.25rem;
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.chat-memory-panel p {
+    color: #cbd5e1;
+    font-size: 0.85rem;
+}
+
+.chat-memory-kicker {
+    display: inline-flex;
+    width: fit-content;
+    color: #a7f3d0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.chat-memory-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.chat-memory-actions button {
+    border-radius: 0.65rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.chat-memory-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.chat-memory-field span {
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.chat-memory-field textarea,
+.chat-memory-field input {
+    width: 100%;
+    border-radius: 0.65rem;
+    padding: 0.75rem;
+    color: #f8fafc;
+}
+
+.chat-memory-field textarea {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+.chat-memory-error {
+    color: #fecaca !important;
+}
+
+.chat-memory-empty {
+    color: #64748b !important;
+}
+
+.chat-memory-snapshots {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.chat-memory-snapshot {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 0.65rem;
+    padding: 0.65rem 0.75rem;
+}
+
+.chat-memory-snapshot summary {
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.chat-memory-snapshot p {
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
 }
 
 .suggestion-chip {

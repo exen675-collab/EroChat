@@ -32,11 +32,20 @@ import { buildChatRequestPreview, canPreviewChatRequest } from './chat-request.j
 import { clearSuggestions } from './suggestions.js';
 import { recordAssistantReply, recordGeneratedMedia, recordUserMessage } from './stats.js';
 import { installAlertNotificationOverrides, showToast } from './notifications.js';
+import {
+    getCurrentChatContextLimit,
+    getCurrentMemorySnapshots,
+    getMemoryPressureState,
+    renderMemoryPanel,
+    updateMemoryBlockingControls
+} from './memory.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
 
-    const shouldEnable = canPreviewChatRequest(elements.messageInput.value, state.isGenerating);
+    const shouldEnable =
+        canPreviewChatRequest(elements.messageInput.value, state.isGenerating) &&
+        !getMemoryPressureState().isBlocked;
     elements.previewRequestBtn.disabled = !shouldEnable;
     elements.previewRequestBtn.classList.toggle('opacity-60', !shouldEnable);
     elements.previewRequestBtn.classList.toggle('cursor-not-allowed', !shouldEnable);
@@ -50,7 +59,8 @@ export function buildCurrentChatRequestPreview(draftMessage = elements.messageIn
         draftMessage,
         systemPrompt: character?.systemPrompt || '',
         historyMessages: state.messages,
-        contextMessageCount: state.settings.contextMessageCount,
+        contextMessageCount: getCurrentChatContextLimit(),
+        memorySnapshots: getCurrentMemorySnapshots(),
         openrouterKey: elements.openrouterKey.value,
         openrouterModel: elements.openrouterModel.value,
         openrouterReasoningEnabled: elements.openrouterReasoningEnabled.checked,
@@ -127,6 +137,14 @@ export async function sendMessage() {
     const content = elements.messageInput.value.trim();
     if (!content || state.isGenerating) return;
 
+    if (getMemoryPressureState().isBlocked) {
+        renderMemoryPanel();
+        showToast('Review memory or increase the context limit before sending more messages.', {
+            type: 'warning'
+        });
+        return;
+    }
+
     const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
     const imageProvider = normalizeImageProvider(
         elements.imageProvider.value || state.settings.imageProvider || 'swarm'
@@ -193,6 +211,7 @@ export async function sendMessage() {
     recordUserMessage({ content, createdAt });
     addUserMessageToUI(content, userMessageId);
     refreshMessageContextIndicators();
+    renderMemoryPanel();
     saveToLocalStorage();
 
     elements.typingIndicator.classList.remove('hidden');
@@ -228,6 +247,7 @@ export async function sendMessage() {
         renderOpenRouterQuickModelSelect();
         addAIMessageToUI(aiResponse, null, aiMessageId);
         refreshMessageContextIndicators();
+        renderMemoryPanel();
         saveToLocalStorage();
 
         if (state.settings.enableImageGeneration !== false && imagePrompt) {
@@ -293,8 +313,7 @@ export async function sendMessage() {
         scrollToBottom();
     } finally {
         state.isGenerating = false;
-        elements.sendBtn.disabled = false;
-        elements.sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        updateMemoryBlockingControls();
         updateRequestPreviewButtonState();
     }
 }
@@ -360,6 +379,7 @@ async function init() {
     window.editCharacter = editCharacter;
 
     loadFromLocalStorage();
+    renderMemoryPanel();
     renderOpenRouterQuickModelSelect();
     await initGenerator();
 

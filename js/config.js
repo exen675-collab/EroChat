@@ -24,7 +24,9 @@ Zacznij roleplay pierwszą wiadomością jako Alicja (przyjazna, lekko napięta 
 ---IMAGE_PROMPT START---
 ---IMAGE_PROMPT END---`,
     isDefault: true,
-    messages: []
+    messages: [],
+    contextMessageCount: 20,
+    memorySnapshots: []
 };
 
 // Default settings

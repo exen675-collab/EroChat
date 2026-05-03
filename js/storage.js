@@ -99,10 +99,23 @@ function syncCurrentMessagesToCharacter() {
     const currentCharIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
     if (currentCharIndex !== -1) {
         state.characters[currentCharIndex].messages = [...state.messages];
+        state.characters[currentCharIndex].contextMessageCount = normalizeContextMessageCount(
+            state.characters[currentCharIndex].contextMessageCount ??
+                state.settings.contextMessageCount
+        );
+        if (!Array.isArray(state.characters[currentCharIndex].memorySnapshots)) {
+            state.characters[currentCharIndex].memorySnapshots = [];
+        }
     } else if (state.currentCharacterId === 'default') {
         const defaultInList = state.characters.find((c) => c.id === 'default');
         if (defaultInList) {
             defaultInList.messages = [...state.messages];
+            defaultInList.contextMessageCount = normalizeContextMessageCount(
+                defaultInList.contextMessageCount ?? state.settings.contextMessageCount
+            );
+            if (!Array.isArray(defaultInList.memorySnapshots)) {
+                defaultInList.memorySnapshots = [];
+            }
         }
     }
 }
@@ -249,7 +262,16 @@ export function loadFromLocalStorage() {
                 updateSettingsUI();
             }
             if (parsed.characters) {
-                state.characters = parsed.characters;
+                state.characters = parsed.characters.map((character) => ({
+                    ...character,
+                    messages: Array.isArray(character.messages) ? character.messages : [],
+                    memorySnapshots: Array.isArray(character.memorySnapshots)
+                        ? character.memorySnapshots
+                        : [],
+                    contextMessageCount: normalizeContextMessageCount(
+                        character.contextMessageCount ?? state.settings.contextMessageCount
+                    )
+                }));
             }
             if (parsed.currentCharacterId) {
                 state.currentCharacterId = parsed.currentCharacterId;
@@ -316,6 +338,9 @@ export function loadFromLocalStorage() {
 
     if (character) {
         state.messages = character.messages || [];
+        state.settings.contextMessageCount = normalizeContextMessageCount(
+            character.contextMessageCount ?? state.settings.contextMessageCount
+        );
     }
 
     if (!Array.isArray(state.galleryImages) || state.galleryImages.length === 0) {

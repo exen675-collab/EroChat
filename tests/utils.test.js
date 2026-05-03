@@ -33,7 +33,8 @@ describe('utils helpers', () => {
     it('normalizes sampler aliases and bounds context message count', () => {
         expect(normalizeSwarmSampler('Euler A')).toBe('euler_ancestral');
         expect(normalizeContextMessageCount('250')).toBe(100);
-        expect(normalizeContextMessageCount('0')).toBe(1);
+        expect(normalizeContextMessageCount('0')).toBe(20);
+        expect(normalizeContextMessageCount('21')).toBe(40);
         expect(normalizeContextMessageCount('nope')).toBe(20);
     });
 
@@ -77,7 +78,19 @@ prompt
     });
 
     it('returns only the latest message ids inside the context window', () => {
-        const ids = getContextMessageIdSet([{ id: 'm1' }, { id: 'm2' }, { id: 'm3' }], 2);
+        const ids = getContextMessageIdSet(
+            Array.from({ length: 21 }, (_, index) => ({ id: `m${index + 1}` })),
+            20
+        );
+
+        expect(Array.from(ids)).toEqual(Array.from({ length: 20 }, (_, index) => `m${index + 2}`));
+    });
+
+    it('excludes archived raw messages from the active context window', () => {
+        const ids = getContextMessageIdSet(
+            [{ id: 'm1', archivedFromModelContext: true }, { id: 'm2' }, { id: 'm3' }],
+            20
+        );
 
         expect(Array.from(ids)).toEqual(['m2', 'm3']);
     });

@@ -96,16 +96,16 @@ describe('assistant message editing', () => {
     });
 
     it('renders one context boundary and dims messages outside the context window', async () => {
-        state.settings.contextMessageCount = 2;
+        state.settings.contextMessageCount = 20;
         state.messages = [
             { id: 'user-1', role: 'user', content: 'Older user content' },
-            {
-                id: 'assistant-1',
+            ...Array.from({ length: 19 }, (_, index) => ({
+                id: `assistant-${index + 1}`,
                 role: 'assistant',
-                content: 'Recent assistant content',
+                content: `Recent assistant content ${index + 1}`,
                 imageUrl: null,
                 videoUrl: null
-            },
+            })),
             { id: 'user-2', role: 'user', content: 'Recent user content' }
         ];
 
@@ -116,12 +116,12 @@ describe('assistant message editing', () => {
         expect(document.querySelectorAll('.message-context-divider')).toHaveLength(1);
         expect(divider?.textContent).toContain('In context');
         expect(divider?.textContent).toContain('Messages above are outside context');
-        expect(document.querySelector('#user-1')?.classList.contains('message-outside-context')).toBe(
-            true
-        );
-        expect(document.querySelector('#assistant-1')?.classList.contains('message-in-context')).toBe(
-            true
-        );
+        expect(
+            document.querySelector('#user-1')?.classList.contains('message-outside-context')
+        ).toBe(true);
+        expect(
+            document.querySelector('#assistant-1')?.classList.contains('message-in-context')
+        ).toBe(true);
         expect(document.querySelector('#user-2')?.classList.contains('message-in-context')).toBe(
             true
         );

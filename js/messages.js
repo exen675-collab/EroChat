@@ -146,9 +146,13 @@ export function refreshMessageContextIndicators() {
 
     messageElements.forEach((messageElement) => {
         const isInContext = contextMessageIds.has(messageElement.id);
+        const message = state.messages.find((item) => item.id === messageElement.id);
+        const isArchived = message?.archivedFromModelContext === true;
         messageElement.dataset.inContext = isInContext ? 'true' : 'false';
+        messageElement.dataset.archivedContext = isArchived ? 'true' : 'false';
         messageElement.classList.toggle('message-in-context', isInContext);
         messageElement.classList.toggle('message-outside-context', !isInContext);
+        messageElement.classList.toggle('message-archived-context', isArchived);
     });
 
     const firstInContextIndex = messageElements.findIndex((messageElement) =>
