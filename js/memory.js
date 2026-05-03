@@ -342,13 +342,13 @@ export function renderMemoryPanel() {
     } else {
         elements.memoryPanel.innerHTML = `
             ${summary}
-            <div class="chat-memory-panel">
-                <div>
-                    <p class="chat-memory-kicker">Chat memory</p>
-                    <h3>Accepted snapshots are included with future model calls.</h3>
-                </div>
+            <details class="chat-memory-panel chat-memory-collapsible">
+                <summary>
+                    <span class="chat-memory-kicker">Chat memory</span>
+                    <span class="chat-memory-collapsible-title">Accepted snapshots are included with future model calls.</span>
+                </summary>
                 ${getMemorySnapshotListMarkup()}
-            </div>
+            </details>
         `;
     }
 
