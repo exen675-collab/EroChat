@@ -1,17 +1,22 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 const sharedRules = {
-    'no-console': 'off'
+    'no-console': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-require-imports': 'off'
 };
 
-export default [
+export default tseslint.config(
     {
-        ignores: ['coverage/**', 'data/**', 'node_modules/**']
+        ignores: ['coverage/**', 'data/**', 'dist/**', 'node_modules/**']
     },
     js.configs.recommended,
+    ...tseslint.configs.recommended,
     {
-        files: ['server.js'],
+        files: ['src/server.ts', 'src/character-card-import.ts'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'commonjs',
@@ -20,19 +25,25 @@ export default [
                 fetch: 'readonly'
             }
         },
-        rules: sharedRules
+        rules: {
+            ...sharedRules,
+            'no-unused-vars': 'off'
+        }
     },
     {
-        files: ['js/**/*.js'],
+        files: ['src/client/**/*.ts'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
             globals: globals.browser
         },
-        rules: sharedRules
+        rules: {
+            ...sharedRules,
+            'no-unused-vars': 'off'
+        }
     },
     {
-        files: ['tests/**/*.js', 'eslint.config.mjs', 'vitest.config.mjs'],
+        files: ['tests/**/*.ts', 'eslint.config.mjs', 'vitest.config.mjs'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
@@ -41,6 +52,9 @@ export default [
                 ...globals.browser
             }
         },
-        rules: sharedRules
+        rules: {
+            ...sharedRules,
+            'no-unused-vars': 'off'
+        }
     }
-];
+);
