@@ -4,8 +4,18 @@
         "module": "ES2022",
         "moduleResolution": "Bundler",
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
         "allowImportingTsExtensions": true,
         "types": ["node", "vitest", "jsdom"]
     },
-    "include": ["src/**/*.ts", "tests/**/*.ts", "eslint.config.mjs", "vitest.config.mjs"]
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.ts",
+        "tests/**/*.tsx",
+        "eslint.config.mjs",
+        "vitest.config.mjs",
+        "vite.config.ts",
+        "tailwind.config.ts"
+    ]
 }

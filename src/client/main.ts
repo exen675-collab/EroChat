@@ -350,6 +350,8 @@ async function autoFetchModels() {
     }
 }
 
+let initPromise = null;
+
 // Initialize application
 async function init() {
     installAlertNotificationOverrides();
@@ -393,8 +395,9 @@ async function init() {
     autoFetchModels();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
+export function initEroChatClient() {
+    if (!initPromise) {
+        initPromise = init();
+    }
+    return initPromise;
 }

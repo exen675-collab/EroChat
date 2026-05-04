@@ -17,6 +17,7 @@ const SQLiteStore = SQLiteStoreFactory(session);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
+const CLIENT_DIST_DIR = path.join(ROOT_DIR, 'dist', 'client');
 const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 const PORT = Number(process.env.PORT || 20121);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
@@ -203,6 +204,14 @@ function generateMediaFileId() {
 
 function buildMediaUrl(fileName) {
     return `/app/media/${encodeURIComponent(fileName)}`;
+}
+
+function clientHtmlPath(fileName) {
+    const builtPath = path.join(CLIENT_DIST_DIR, fileName);
+    if (fs.existsSync(builtPath)) {
+        return builtPath;
+    }
+    return path.join(ROOT_DIR, fileName);
 }
 
 async function storeMediaBuffer(buffer, mimeType, maxBytes = MAX_UPLOADED_MEDIA_BYTES) {
@@ -662,7 +671,7 @@ app.get('/', (req, res) => {
 
     res.clearCookie('erochat.sid');
     res.clearCookie('connect.sid');
-    res.sendFile(path.join(ROOT_DIR, 'login.html'));
+    res.sendFile(clientHtmlPath('login.html'));
 });
 
 app.get(['/login', '/signin'], (req, res) => {
@@ -1340,9 +1349,10 @@ app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
 });
 
 app.get(['/app', '/app/'], requireAuth, (req, res) => {
-    res.sendFile(path.join(ROOT_DIR, 'index.html'));
+    res.sendFile(clientHtmlPath('index.html'));
 });
 
+app.use('/assets', express.static(path.join(CLIENT_DIST_DIR, 'assets')));
 app.use('/app/css', requireAuth, express.static(path.join(ROOT_DIR, 'css')));
 app.use('/app/js', requireAuth, express.static(path.join(ROOT_DIR, 'dist', 'client')));
 app.use('/app/media', requireAuth, express.static(MEDIA_DIR));

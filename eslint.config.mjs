@@ -31,7 +31,7 @@ export default tseslint.config(
         }
     },
     {
-        files: ['src/client/**/*.ts'],
+        files: ['src/client/**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',

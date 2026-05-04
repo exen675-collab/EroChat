@@ -5,7 +5,10 @@
         "moduleResolution": "Bundler",
         "rootDir": "src/client",
         "outDir": "dist/client",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"]
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
+        "allowImportingTsExtensions": true,
+        "noEmit": true
     },
-    "include": ["src/client/**/*.ts"]
+    "include": ["src/client/**/*.ts", "src/client/**/*.tsx"]
 }
