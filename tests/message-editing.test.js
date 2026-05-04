@@ -95,7 +95,7 @@ describe('assistant message editing', () => {
         expect(userContentColumn?.contains(userActions)).toBe(true);
     });
 
-    it('renders one context boundary and dims messages outside the context window', async () => {
+    it('keeps every active raw message visually in context regardless of the limit', async () => {
         state.settings.contextMessageCount = 20;
         state.messages = [
             { id: 'user-1', role: 'user', content: 'Older user content' },
@@ -111,6 +111,33 @@ describe('assistant message editing', () => {
 
         messages.renderMessages();
 
+        expect(document.querySelectorAll('.message-context-divider')).toHaveLength(0);
+        expect(document.querySelector('#user-1')?.classList.contains('message-in-context')).toBe(
+            true
+        );
+        expect(
+            document.querySelector('#assistant-1')?.classList.contains('message-in-context')
+        ).toBe(true);
+        expect(document.querySelector('#user-2')?.classList.contains('message-in-context')).toBe(
+            true
+        );
+    });
+
+    it('renders one context boundary before active raw messages when older messages are archived', async () => {
+        state.settings.contextMessageCount = 20;
+        state.messages = [
+            {
+                id: 'user-1',
+                role: 'user',
+                content: 'Archived user content',
+                archivedFromModelContext: true
+            },
+            { id: 'assistant-1', role: 'assistant', content: 'Active assistant content' },
+            { id: 'user-2', role: 'user', content: 'Active user content' }
+        ];
+
+        messages.renderMessages();
+
         const divider = document.querySelector('.message-context-divider');
 
         expect(document.querySelectorAll('.message-context-divider')).toHaveLength(1);
@@ -118,6 +145,9 @@ describe('assistant message editing', () => {
         expect(divider?.textContent).toContain('Messages above are outside context');
         expect(
             document.querySelector('#user-1')?.classList.contains('message-outside-context')
+        ).toBe(true);
+        expect(
+            document.querySelector('#user-1')?.classList.contains('message-archived-context')
         ).toBe(true);
         expect(
             document.querySelector('#assistant-1')?.classList.contains('message-in-context')

@@ -100,6 +100,48 @@ describe('chat request preview builder', () => {
         ]);
     });
 
+    it('sends every active raw message regardless of the memory compression limit', () => {
+        const historyMessages = Array.from({ length: 25 }, (_, index) => ({
+            role: index % 2 === 0 ? 'user' : 'assistant',
+            content: `Message ${index + 1}`
+        }));
+
+        const messages = buildChatApiMessages({
+            systemPrompt: 'System',
+            historyMessages,
+            contextMessageCount: 20
+        });
+
+        expect(messages).toHaveLength(26);
+        expect(messages.slice(1)).toEqual(
+            historyMessages.map((message) => ({
+                role: message.role,
+                content: message.content
+            }))
+        );
+    });
+
+    it('excludes archived raw messages after they are compressed into memory', () => {
+        const messages = buildChatApiMessages({
+            systemPrompt: 'System',
+            historyMessages: [
+                { role: 'user', content: 'Archived', archivedFromModelContext: true },
+                { role: 'assistant', content: 'Still active' }
+            ],
+            memorySnapshots: [{ finalText: 'Earlier events were summarized.' }]
+        });
+
+        expect(messages).toEqual([
+            { role: 'system', content: 'System' },
+            {
+                role: 'system',
+                content:
+                    'Accepted memory snapshots for this chat:\n\n1. Earlier events were summarized.'
+            },
+            { role: 'assistant', content: 'Still active' }
+        ]);
+    });
+
     it('adds accepted memory snapshots while preserving raw chat message content', () => {
         const rawAssistantContent = `Visible reply
 

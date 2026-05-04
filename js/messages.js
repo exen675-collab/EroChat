@@ -6,7 +6,7 @@ import {
     escapeHtml,
     formatMessage,
     getAssistantVisibleText,
-    getContextMessageIdSet
+    getActiveRawMessages
 } from './utils.js';
 import {
     scrollToBottom,
@@ -22,7 +22,11 @@ import { recordGeneratedMedia } from './stats.js';
 import { requestConfirmation, showToast } from './notifications.js';
 
 function getActiveContextMessageIds() {
-    return getContextMessageIdSet(state.messages, state.settings.contextMessageCount);
+    return new Set(
+        getActiveRawMessages(state.messages)
+            .map((message) => message?.id)
+            .filter(Boolean)
+    );
 }
 
 function getContextDividerMarkup() {
@@ -165,7 +169,10 @@ export function refreshMessageContextIndicators() {
             .some((messageElement) => !contextMessageIds.has(messageElement.id));
 
     if (hasOutsideContextBefore) {
-        messageElements[firstInContextIndex].insertAdjacentHTML('beforebegin', getContextDividerMarkup());
+        messageElements[firstInContextIndex].insertAdjacentHTML(
+            'beforebegin',
+            getContextDividerMarkup()
+        );
     }
 }
 

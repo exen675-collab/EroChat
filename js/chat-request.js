@@ -1,4 +1,4 @@
-import { getContextMessages, normalizeContextMessageCount } from './utils.js';
+import { getActiveRawMessages } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
     temperature: 0.9,
@@ -42,15 +42,15 @@ export function buildChatApiMessages({
     contextMessageCount = 20,
     memorySnapshots = []
 }) {
-    const nextMessages = Array.isArray(historyMessages)
-        ? historyMessages
-              .filter((message) => message && typeof message.content === 'string' && message.role)
-              .map((message) => ({
-                  role: message.role,
-                  content: message.content
-              }))
-              .filter((message) => message.content)
-        : [];
+    void contextMessageCount;
+
+    const nextMessages = getActiveRawMessages(historyMessages)
+        .filter((message) => message && typeof message.content === 'string' && message.role)
+        .map((message) => ({
+            role: message.role,
+            content: message.content
+        }))
+        .filter((message) => message.content);
 
     if (String(draftMessage || '').trim()) {
         nextMessages.push({
@@ -64,7 +64,7 @@ export function buildChatApiMessages({
     return [
         { role: 'system', content: String(systemPrompt || '') },
         ...(memoryContextMessage ? [memoryContextMessage] : []),
-        ...getContextMessages(nextMessages, normalizeContextMessageCount(contextMessageCount))
+        ...nextMessages
     ];
 }
 
