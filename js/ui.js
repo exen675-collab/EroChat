@@ -1,7 +1,7 @@
 import { elements } from './dom.js';
 import { state } from './state.js';
 import { defaultCharacter } from './config.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, normalizeMessageInputHeight } from './utils.js';
 import { saveToLocalStorage } from './storage.js';
 import { filterAndSortGalleryItems } from './gallery-search.js';
 import { renderStatisticsDashboard, trackViewVisit } from './stats.js';
@@ -16,6 +16,8 @@ const VIEW_DESCRIPTIONS = {
 };
 let currentChatRequestPreview = null;
 let currentEditingMessageId = null;
+let messageInputResizeObserver = null;
+let messageInputResizeSaveTimer = null;
 
 function normalizeView(view) {
     return ['chat', 'characters', 'generator', 'gallery', 'stats'].includes(view) ? view : 'chat';
@@ -255,8 +257,32 @@ export async function copyCurrentChatRequestPreview() {
 
 // Auto-resize textarea as user types
 export function autoResizeTextarea() {
-    elements.messageInput.style.height = 'auto';
-    elements.messageInput.style.height = `${Math.min(elements.messageInput.scrollHeight, 150)}px`;
+    elements.messageInput.style.overflowY = 'auto';
+}
+
+export function setupMessageInputResizePersistence() {
+    if (!elements.messageInput || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+
+    if (messageInputResizeObserver) {
+        messageInputResizeObserver.disconnect();
+    }
+
+    messageInputResizeObserver = new ResizeObserver(() => {
+        const nextHeight = normalizeMessageInputHeight(elements.messageInput.offsetHeight);
+        if (nextHeight === state.settings.messageInputHeight) {
+            return;
+        }
+
+        state.settings.messageInputHeight = nextHeight;
+        window.clearTimeout(messageInputResizeSaveTimer);
+        messageInputResizeSaveTimer = window.setTimeout(() => {
+            saveToLocalStorage();
+        }, 250);
+    });
+
+    messageInputResizeObserver.observe(elements.messageInput);
 }
 
 // Scroll chat container to bottom

@@ -8,6 +8,7 @@ import {
     generateId,
     normalizeContextMessageCount,
     normalizeImageProvider,
+    normalizeMessageInputHeight,
     normalizeSwarmSampler,
     syncSwarmSamplerSelect
 } from './utils.js';
@@ -259,6 +260,9 @@ export function loadFromLocalStorage() {
                 state.settings.contextMessageCount = normalizeContextMessageCount(
                     state.settings.contextMessageCount
                 );
+                state.settings.messageInputHeight = normalizeMessageInputHeight(
+                    state.settings.messageInputHeight
+                );
                 updateSettingsUI();
             }
             if (parsed.characters) {
@@ -393,6 +397,12 @@ export function updateSettingsUI() {
     elements.contextMessageCount.value = normalizeContextMessageCount(
         state.settings.contextMessageCount
     );
+    state.settings.messageInputHeight = normalizeMessageInputHeight(
+        state.settings.messageInputHeight
+    );
+    if (elements.messageInput) {
+        elements.messageInput.style.height = `${state.settings.messageInputHeight}px`;
+    }
     elements.imgWidth.value = state.settings.imgWidth;
     elements.imgHeight.value = state.settings.imgHeight;
     elements.steps.value = state.settings.steps;

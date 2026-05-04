@@ -16,7 +16,8 @@ import {
     toggleAdvancedSettings,
     scrollToBottom,
     setCurrentView,
-    showChatRequestPreview
+    showChatRequestPreview,
+    setupMessageInputResizePersistence
 } from './ui.js';
 import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
@@ -202,7 +203,7 @@ export async function sendMessage() {
     const createdAt = new Date().toISOString();
 
     elements.messageInput.value = '';
-    elements.messageInput.style.height = 'auto';
+    elements.messageInput.scrollTop = 0;
     updateRequestPreviewButtonState();
     clearSuggestions();
 
@@ -379,6 +380,7 @@ async function init() {
     window.editCharacter = editCharacter;
 
     loadFromLocalStorage();
+    setupMessageInputResizePersistence();
     renderMemoryPanel();
     renderOpenRouterQuickModelSelect();
     await initGenerator();

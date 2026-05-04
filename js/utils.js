@@ -200,6 +200,15 @@ export function normalizeContextMessageCount(value, fallback = 20) {
     return Math.ceil(bounded / 20) * 20;
 }
 
+export function normalizeMessageInputHeight(value, fallback = 192) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+
+    return Math.min(384, Math.max(48, parsed));
+}
+
 export function normalizeTtsVoiceId(
     value,
     allowedVoiceIds = null,

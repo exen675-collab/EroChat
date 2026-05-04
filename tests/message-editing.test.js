@@ -17,6 +17,7 @@ describe('assistant message editing', () => {
             <button id="saveEditMessageBtn" type="button"></button>
             <button id="cancelEditMessageBtn" type="button"></button>
             <button id="closeEditMessageBtn" type="button"></button>
+            <textarea id="messageInput"></textarea>
             <div id="generatorView" class="hidden"></div>
             <div id="galleryView" class="hidden"></div>
             <div id="chatView"></div>
@@ -76,6 +77,46 @@ describe('assistant message editing', () => {
         expect(document.querySelector('#assistant-1 .message-edited-badge')?.textContent).toContain(
             'Edited'
         );
+    });
+
+    it('places text actions under the text and image actions under the image', async () => {
+        messages.addAIMessageToUI(
+            'Assistant content',
+            'data:image/png;base64,abc',
+            'assistant-1',
+            null,
+            '2026-04-05T20:00:00.000Z'
+        );
+
+        const message = document.querySelector('#assistant-1');
+        const textColumn = message?.querySelector('.chat-media-message');
+        const mediaColumn = message?.querySelector('.chat-media-wrap');
+
+        expect(textColumn?.querySelector('.chat-text-actions .edit-message-btn')).not.toBeNull();
+        expect(textColumn?.querySelector('.chat-text-actions .remove-message-btn')).not.toBeNull();
+        expect(
+            textColumn?.querySelector('.chat-text-actions .message-edited-badge')
+        ).not.toBeNull();
+        expect(textColumn?.querySelector('.regenerate-image-btn')).toBeNull();
+        expect(
+            mediaColumn?.querySelector('.chat-media-actions .regenerate-image-btn')
+        ).not.toBeNull();
+        expect(mediaColumn?.querySelector('.edit-message-btn')).toBeNull();
+        expect(mediaColumn?.querySelector('.remove-message-btn')).toBeNull();
+    });
+
+    it('keeps the message textarea scrollable without auto-growing', async () => {
+        const textarea = document.getElementById('messageInput');
+        Object.defineProperty(textarea, 'scrollHeight', {
+            configurable: true,
+            value: 220
+        });
+        textarea.style.height = '192px';
+
+        ui.autoResizeTextarea();
+
+        expect(textarea.style.height).toBe('192px');
+        expect(textarea.style.overflowY).toBe('auto');
     });
 
     it('renders user message actions below the bubble inside the content column', async () => {

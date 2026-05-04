@@ -44,6 +44,7 @@ export const defaultSettings = {
     imageProvider: 'swarm',
     enableImageGeneration: true,
     contextMessageCount: 20,
+    messageInputHeight: 192,
     imgWidth: 832,
     imgHeight: 1216,
     steps: 25,

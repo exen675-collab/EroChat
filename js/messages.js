@@ -70,12 +70,33 @@ function getEditMessageButtonMarkup(messageId) {
     `;
 }
 
+function getRegenerateImageButtonMarkup(messageId) {
+    return `
+        <button onclick="window.regenerateImage('${messageId}')" class="regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Regenerate Image
+        </button>
+    `;
+}
+
+function getGenerateVideoButtonMarkup(messageId) {
+    return `
+        <button onclick="window.generateVideoForMessage('${messageId}')" class="generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            Generate Video
+        </button>
+    `;
+}
+
 function getMessageActionsMarkup(messageId, options = {}) {
     const {
         align = 'left',
         showRegenerate = false,
         showGenerateVideo = false,
-        showTts = false,
         showEdit = false,
         isEdited = false
     } = options;
@@ -89,29 +110,11 @@ function getMessageActionsMarkup(messageId, options = {}) {
     }
 
     if (showRegenerate) {
-        actionButtons.push(`
-            <button onclick="window.regenerateImage('${messageId}')" class="regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Regenerate Image
-            </button>
-        `);
+        actionButtons.push(getRegenerateImageButtonMarkup(messageId));
     }
 
     if (showGenerateVideo) {
-        actionButtons.push(`
-            <button onclick="window.generateVideoForMessage('${messageId}')" class="generate-video-btn text-xs text-gray-500 hover:text-cyan-400 flex items-center gap-1 transition-colors">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h2a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-                Generate Video
-            </button>
-        `);
-    }
-
-    if (showTts) {
-        actionButtons.push(getTtsActionButtonMarkup(messageId));
+        actionButtons.push(getGenerateVideoButtonMarkup(messageId));
     }
 
     actionButtons.push(getRemoveMessageButtonMarkup(messageId));
@@ -134,6 +137,48 @@ function getMessageActionsMarkup(messageId, options = {}) {
                 </div>
             `
             }
+        </div>
+    `;
+}
+
+function getAssistantTextActionsMarkup(messageId, options = {}) {
+    const { isEdited = false } = options;
+    const actionButtons = [];
+
+    actionButtons.push(getEditMessageButtonMarkup(messageId));
+    actionButtons.push(getRemoveMessageButtonMarkup(messageId));
+
+    return `
+        <div class="message-actions chat-text-actions flex flex-wrap items-center justify-between gap-2 mt-2">
+            <div class="flex flex-wrap items-center gap-2">
+                ${isEdited ? '<span class="message-edited-badge">Edited</span>' : ''}
+            </div>
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                ${actionButtons.join('')}
+            </div>
+        </div>
+    `;
+}
+
+function getAssistantMediaActionsMarkup(messageId, options = {}) {
+    const { showRegenerate = false, showGenerateVideo = false, renderEmpty = false } = options;
+    const actionButtons = [];
+
+    if (showRegenerate) {
+        actionButtons.push(getRegenerateImageButtonMarkup(messageId));
+    }
+
+    if (showGenerateVideo) {
+        actionButtons.push(getGenerateVideoButtonMarkup(messageId));
+    }
+
+    if (actionButtons.length === 0 && !renderEmpty) {
+        return '';
+    }
+
+    return `
+        <div class="message-actions chat-media-actions flex flex-wrap items-center justify-end gap-2 mt-2">
+            ${actionButtons.join('')}
         </div>
     `;
 }
@@ -261,6 +306,9 @@ export function addAIMessageToUI(
     messageDiv.id = messageId;
 
     const displayContent = getAssistantVisibleText(content);
+    const showRegenerate = Boolean(imageUrl || videoUrl);
+    const showGenerateVideo = false;
+    const isEdited = Boolean(editedAt);
 
     let imageSection = '';
     if (videoUrl) {
@@ -269,6 +317,7 @@ export function addAIMessageToUI(
                 <div class="image-container chat-media-frame">
                     <video src="${videoUrl}" autoplay loop muted playsinline class="chat-video-preview chat-media-preview fade-in cursor-zoom-in"></video>
                 </div>
+                ${getAssistantMediaActionsMarkup(messageId, { showRegenerate, showGenerateVideo, renderEmpty: true })}
             </div>
         `;
     } else if (imageUrl) {
@@ -277,6 +326,7 @@ export function addAIMessageToUI(
                 <div class="image-container chat-media-frame">
                     <img src="${imageUrl}" alt="Generated" class="chat-image-preview chat-media-preview cursor-zoom-in">
                 </div>
+                ${getAssistantMediaActionsMarkup(messageId, { showRegenerate, showGenerateVideo, renderEmpty: true })}
             </div>
         `;
     } else if (
@@ -292,15 +342,12 @@ export function addAIMessageToUI(
                         <p class="text-gray-400 text-sm">Generating image...</p>
                     </div>
                 </div>
+                ${getAssistantMediaActionsMarkup(messageId, { showRegenerate, showGenerateVideo, renderEmpty: true })}
             </div>
         `;
     }
 
     const hasImage = imageSection !== '';
-    const showRegenerate = Boolean(imageUrl || videoUrl);
-    const showGenerateVideo = false;
-    const showTts = false;
-    const isEdited = Boolean(editedAt);
 
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
@@ -308,20 +355,15 @@ export function addAIMessageToUI(
                 <span class="text-xl">${character.avatar}</span>
             </div>
             <div class="flex-1 flex gap-3 min-w-0 ${hasImage ? 'chat-message-with-media flex-col lg:flex-row' : 'flex-col'}">
-                <div class="glass rounded-2xl rounded-tl-none px-5 py-4 ${hasImage ? 'chat-media-message' : 'w-full'}">
-                    <p class="text-gray-300 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(displayContent), 'ai')}</p>
+                <div class="${hasImage ? 'chat-media-message' : 'w-full'}">
+                    <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
+                        <p class="text-gray-300 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(displayContent), 'ai')}</p>
+                    </div>
+                    ${getAssistantTextActionsMarkup(messageId, { isEdited })}
                 </div>
                 ${imageSection}
             </div>
         </div>
-        ${getMessageActionsMarkup(messageId, {
-            align: 'left',
-            showRegenerate,
-            showGenerateVideo,
-            showTts,
-            showEdit: true,
-            isEdited
-        })}
     `;
 
     elements.chatContainer.appendChild(messageDiv);
@@ -341,12 +383,9 @@ export function updateAIMessageImage(messageId, imageUrl) {
             `;
         }
 
-        const actions = messageDiv.querySelector('.message-actions');
+        const actions = messageDiv.querySelector('.chat-media-actions');
         if (actions) {
-            const buttonGroup = actions.querySelector('div:last-child') || actions;
-            const removeButton = buttonGroup.querySelector('.remove-message-btn');
-
-            if (!buttonGroup.querySelector('.regenerate-image-btn')) {
+            if (!actions.querySelector('.regenerate-image-btn')) {
                 const regenerateButton = document.createElement('button');
                 regenerateButton.className =
                     'regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors';
@@ -357,7 +396,7 @@ export function updateAIMessageImage(messageId, imageUrl) {
                     </svg>
                     Regenerate Image
                 `;
-                buttonGroup.insertBefore(regenerateButton, removeButton);
+                actions.prepend(regenerateButton);
             }
         }
     }
