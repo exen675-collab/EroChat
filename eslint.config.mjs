@@ -31,7 +31,7 @@ export default tseslint.config(
         }
     },
     {
-        files: ['src/client/**/*.ts'],
+        files: ['src/client/**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
@@ -43,7 +43,7 @@ export default tseslint.config(
         }
     },
     {
-        files: ['tests/**/*.ts', 'eslint.config.mjs', 'vitest.config.mjs'],
+        files: ['tests/**/*.ts', 'eslint.config.mjs', 'vite.config.mjs', 'vitest.config.mjs'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',

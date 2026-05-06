@@ -26,7 +26,7 @@ import {
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages, saveEditedAssistantMessage } from './messages.js';
-import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './main.js';
+import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './legacy-main.js';
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import { requestConfirmation, showToast } from './notifications.js';

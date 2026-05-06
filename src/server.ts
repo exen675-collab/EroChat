@@ -1340,11 +1340,10 @@ app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
 });
 
 app.get(['/app', '/app/'], requireAuth, (req, res) => {
-    res.sendFile(path.join(ROOT_DIR, 'index.html'));
+    res.sendFile(path.join(ROOT_DIR, 'dist', 'client', 'index.html'));
 });
 
-app.use('/app/css', requireAuth, express.static(path.join(ROOT_DIR, 'css')));
-app.use('/app/js', requireAuth, express.static(path.join(ROOT_DIR, 'dist', 'client')));
+app.use('/app', requireAuth, express.static(path.join(ROOT_DIR, 'dist', 'client')));
 app.use('/app/media', requireAuth, express.static(MEDIA_DIR));
 
 app.use((error, req, res, next) => {

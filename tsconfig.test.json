@@ -3,9 +3,17 @@
     "compilerOptions": {
         "module": "ES2022",
         "moduleResolution": "Bundler",
+        "jsx": "react-jsx",
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "allowImportingTsExtensions": true,
         "types": ["node", "vitest", "jsdom"]
     },
-    "include": ["src/**/*.ts", "tests/**/*.ts", "eslint.config.mjs", "vitest.config.mjs"]
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.ts",
+        "eslint.config.mjs",
+        "vite.config.mjs",
+        "vitest.config.mjs"
+    ]
 }

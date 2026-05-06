@@ -3,9 +3,8 @@
     "compilerOptions": {
         "module": "ES2022",
         "moduleResolution": "Bundler",
-        "rootDir": "src/client",
-        "outDir": "dist/client",
+        "jsx": "react-jsx",
         "lib": ["ES2022", "DOM", "DOM.Iterable"]
     },
-    "include": ["src/client/**/*.ts"]
+    "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "src/client/**/*.d.ts"]
 }

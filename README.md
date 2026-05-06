@@ -72,6 +72,7 @@ Open:
 ## Development scripts
 
 ```bash
+npm run dev
 npm run lint
 npm run lint:fix
 npm run typecheck
@@ -82,9 +83,10 @@ npm run test
 npm run test:watch
 ```
 
+- `dev` starts the Vite React client dev server
 - `lint` checks the server, frontend modules, config files, and tests with ESLint
 - `typecheck` runs TypeScript across the server, browser modules, and tests
-- `build` compiles runnable output into `dist/`
+- `build` compiles the server and bundles the React client into `dist/`
 - `format` runs Prettier across the repo
 - `test` runs the Vitest unit suite in JSDOM
 
@@ -124,7 +126,10 @@ EroChat/
 |   |-- server.ts
 |   |-- character-card-import.ts
 |   `-- client/
-|       |-- main.ts
+|       |-- main.tsx
+|       |-- App.tsx
+|       |-- legacy-main.ts
+|       |-- app-shell.html
 |       |-- config.ts
 |       |-- state.ts
 |       |-- dom.ts
