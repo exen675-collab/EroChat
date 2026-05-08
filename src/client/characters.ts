@@ -285,6 +285,97 @@ export function selectCharacter(charId) {
     }
 }
 
+function clonePlainValue(value, fallback) {
+    if (value == null) return fallback;
+
+    try {
+        return JSON.parse(JSON.stringify(value));
+    } catch {
+        return fallback;
+    }
+}
+
+function buildBranchName(baseName) {
+    const sourceName = String(baseName || 'Character').trim() || 'Character';
+    const branchLabel = `${sourceName} (Branch)`;
+    const existingNames = new Set(state.characters.map((character) => character?.name));
+
+    if (!existingNames.has(branchLabel)) {
+        return branchLabel;
+    }
+
+    let copyNumber = 2;
+    while (existingNames.has(`${branchLabel} ${copyNumber}`)) {
+        copyNumber += 1;
+    }
+    return `${branchLabel} ${copyNumber}`;
+}
+
+export function branchChatFromMessage(messageId) {
+    const branchIndex = state.messages.findIndex(
+        (message) => message?.id === messageId && message.role === 'assistant'
+    );
+    if (branchIndex === -1) {
+        showToast('Assistant message not found for branching.', {
+            type: 'error'
+        });
+        return null;
+    }
+
+    const sourceCharacter = getCurrentCharacter();
+    const branchMessages = clonePlainValue(state.messages.slice(0, branchIndex + 1), []);
+    const branchMessageIds = new Set(branchMessages.map((message) => message?.id).filter(Boolean));
+    const branchId = `char_branch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const branchName = buildBranchName(sourceCharacter.name);
+    const branchCharacter = {
+        ...clonePlainValue(sourceCharacter, {}),
+        id: branchId,
+        name: branchName,
+        isDefault: false,
+        messages: branchMessages,
+        memorySnapshots: clonePlainValue(sourceCharacter.memorySnapshots, []),
+        contextMessageCount: normalizeContextMessageCount(
+            sourceCharacter.contextMessageCount ?? state.settings.contextMessageCount
+        ),
+        branchedFrom: {
+            characterId: sourceCharacter.id || state.currentCharacterId || 'default',
+            characterName: sourceCharacter.name || 'Character',
+            messageId,
+            createdAt: new Date().toISOString()
+        }
+    };
+
+    state.characters.push(branchCharacter);
+
+    if (Array.isArray(state.galleryImages)) {
+        const copiedGalleryItems = state.galleryImages
+            .filter(
+                (item) =>
+                    item?.characterId === sourceCharacter.id &&
+                    item?.messageId &&
+                    branchMessageIds.has(item.messageId)
+            )
+            .map((item) => ({
+                ...clonePlainValue(item, {}),
+                id: `gallery_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                characterId: branchId,
+                characterName: branchName,
+                characterAvatar: branchCharacter.avatar || sourceCharacter.avatar || 'ðŸ¤–'
+            }));
+
+        if (copiedGalleryItems.length > 0) {
+            state.galleryImages.unshift(...copiedGalleryItems);
+        }
+    }
+
+    selectCharacter(branchId);
+    showToast(`Branched chat into "${branchName}".`, {
+        type: 'success'
+    });
+
+    return branchCharacter;
+}
+
 // Update current character UI elements
 export function updateCurrentCharacterUI() {
     const character = getCurrentCharacter();

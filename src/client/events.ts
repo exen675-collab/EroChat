@@ -30,7 +30,12 @@ import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import { requestConfirmation, showToast } from './notifications.js';
-import { handleMemoryPanelClick, renderMemoryPanel, setCurrentChatContextLimit } from './memory.js';
+import {
+    closeMemoryViewerModal,
+    handleMemoryPanelClick,
+    renderMemoryPanel,
+    setCurrentChatContextLimit
+} from './memory.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -289,6 +294,11 @@ export function setupEventListeners() {
             return;
         }
 
+        if (e.key === 'Escape' && !elements.memoryViewerModal.classList.contains('hidden')) {
+            closeMemoryViewerModal();
+            return;
+        }
+
         if (e.key === 'Escape' && !elements.editMessageModal.classList.contains('hidden')) {
             ui.closeEditMessageModal();
         }
@@ -423,6 +433,7 @@ export function setupEventListeners() {
     elements.closeEditMessageBtn.addEventListener('click', ui.closeEditMessageModal);
     elements.cancelEditMessageBtn.addEventListener('click', ui.closeEditMessageModal);
     elements.closeRequestPreviewBtn.addEventListener('click', ui.closeRequestPreviewModal);
+    elements.closeMemoryViewerBtn.addEventListener('click', closeMemoryViewerModal);
     elements.copyRequestPreviewBtn.addEventListener('click', async () => {
         try {
             await ui.copyCurrentChatRequestPreview();
@@ -461,6 +472,11 @@ export function setupEventListeners() {
     elements.requestPreviewModal.addEventListener('click', (e) => {
         if (e.target === elements.requestPreviewModal) {
             ui.closeRequestPreviewModal();
+        }
+    });
+    elements.memoryViewerModal.addEventListener('click', (e) => {
+        if (e.target === elements.memoryViewerModal) {
+            closeMemoryViewerModal();
         }
     });
     elements.editMessageModal.addEventListener('click', (e) => {

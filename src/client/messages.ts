@@ -71,6 +71,20 @@ function getEditMessageButtonMarkup(messageId) {
     `;
 }
 
+function getBranchChatButtonMarkup(messageId) {
+    return `
+        <button onclick="window.branchChatFromMessage('${messageId}')"
+            class="branch-chat-btn text-xs text-gray-500 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+            type="button">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M6 3v6a3 3 0 003 3h6m0 0l-3-3m3 3l-3 3m6-12v18"></path>
+            </svg>
+            Branch Chat
+        </button>
+    `;
+}
+
 function getRegenerateImageButtonMarkup(messageId) {
     return `
         <button onclick="window.regenerateImage('${messageId}')" class="regenerate-image-btn text-xs text-gray-500 hover:text-pink-400 flex items-center gap-1 transition-colors">
@@ -147,6 +161,7 @@ function getAssistantTextActionsMarkup(messageId, options = {}) {
     const actionButtons = [];
 
     actionButtons.push(getEditMessageButtonMarkup(messageId));
+    actionButtons.push(getBranchChatButtonMarkup(messageId));
     actionButtons.push(getRemoveMessageButtonMarkup(messageId));
 
     return `

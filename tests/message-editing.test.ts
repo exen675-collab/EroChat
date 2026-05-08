@@ -25,6 +25,15 @@ describe('assistant message editing', () => {
             <div id="chatSettingsPane"></div>
             <div id="generatorSettingsPane" class="hidden"></div>
             <div id="currentCharacterDisplay"></div>
+            <span id="currentCharacterName"></span>
+            <span id="welcomeAvatar"></span>
+            <span id="typingAvatar"></span>
+            <div id="welcomeMessage"></div>
+            <div id="charactersList"></div>
+            <div id="charactersViewGrid"></div>
+            <input id="systemPrompt" />
+            <input id="contextMessageCount" />
+            <div id="memoryPanel"></div>
             <div id="currentViewDescription"></div>
             <button id="navChatBtn" type="button"></button>
             <button id="navGeneratorBtn" type="button"></button>
@@ -94,6 +103,7 @@ describe('assistant message editing', () => {
         const mediaColumn = message?.querySelector('.chat-media-wrap');
 
         expect(textColumn?.querySelector('.chat-text-actions .edit-message-btn')).not.toBeNull();
+        expect(textColumn?.querySelector('.chat-text-actions .branch-chat-btn')).not.toBeNull();
         expect(textColumn?.querySelector('.chat-text-actions .remove-message-btn')).not.toBeNull();
         expect(
             textColumn?.querySelector('.chat-text-actions .message-edited-badge')
@@ -103,7 +113,78 @@ describe('assistant message editing', () => {
             mediaColumn?.querySelector('.chat-media-actions .regenerate-image-btn')
         ).not.toBeNull();
         expect(mediaColumn?.querySelector('.edit-message-btn')).toBeNull();
+        expect(mediaColumn?.querySelector('.branch-chat-btn')).toBeNull();
         expect(mediaColumn?.querySelector('.remove-message-btn')).toBeNull();
+    });
+
+    it('branches an assistant message into a copied character at that point', async () => {
+        const characters = await import('../src/client/characters.ts');
+        state.currentCharacterId = 'char-a';
+        state.characters = [
+            {
+                id: 'char-a',
+                name: 'Alicia',
+                avatar: 'A',
+                systemPrompt: 'Stay in character.',
+                description: 'Original character',
+                messages: [],
+                memorySnapshots: [{ finalText: 'They met at dusk.' }],
+                contextMessageCount: 40
+            }
+        ];
+        state.messages = [
+            { id: 'user-1', role: 'user', content: 'Hello' },
+            {
+                id: 'assistant-1',
+                role: 'assistant',
+                content: 'Hi',
+                imageUrl: '/app/media/a.png',
+                videoUrl: null
+            },
+            { id: 'user-2', role: 'user', content: 'Continue' },
+            { id: 'assistant-2', role: 'assistant', content: 'Later' }
+        ];
+        state.galleryImages = [
+            {
+                id: 'gallery-1',
+                imageUrl: '/app/media/a.png',
+                characterId: 'char-a',
+                characterName: 'Alicia',
+                characterAvatar: 'A',
+                source: 'chat',
+                messageId: 'assistant-1'
+            },
+            {
+                id: 'gallery-2',
+                imageUrl: '/app/media/b.png',
+                characterId: 'char-a',
+                characterName: 'Alicia',
+                characterAvatar: 'A',
+                source: 'chat',
+                messageId: 'assistant-2'
+            }
+        ];
+
+        const branch = characters.branchChatFromMessage('assistant-1');
+
+        expect(branch).not.toBeNull();
+        expect(branch?.id).not.toBe('char-a');
+        expect(branch?.name).toBe('Alicia (Branch)');
+        expect(branch?.messages.map((message) => message.id)).toEqual(['user-1', 'assistant-1']);
+        expect(branch?.memorySnapshots).toEqual([{ finalText: 'They met at dusk.' }]);
+        expect(state.currentCharacterId).toBe(branch?.id);
+        expect(state.messages.map((message) => message.id)).toEqual(['user-1', 'assistant-1']);
+        expect(state.galleryImages[0]).toMatchObject({
+            imageUrl: '/app/media/a.png',
+            characterId: branch?.id,
+            characterName: 'Alicia (Branch)',
+            messageId: 'assistant-1'
+        });
+        expect(
+            state.galleryImages.some(
+                (item) => item.characterId === branch?.id && item.messageId === 'assistant-2'
+            )
+        ).toBe(false);
     });
 
     it('keeps the message textarea scrollable without auto-growing', async () => {

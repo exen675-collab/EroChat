@@ -284,6 +284,75 @@ function getReviewMarkup(draft) {
     `;
 }
 
+function getMemoryViewerMarkup() {
+    const snapshots = getCurrentMemorySnapshots();
+
+    if (snapshots.length === 0) {
+        return `
+            <div>
+                <p class="chat-memory-empty">No accepted memories yet.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div>
+            <div class="chat-memory-snapshots">
+                ${snapshots
+                    .map((snapshot, index) => {
+                        const acceptedDate = snapshot.acceptedAt
+                            ? new Date(snapshot.acceptedAt).toLocaleString()
+                            : '';
+                        const sourceRange =
+                            snapshot.sourceMessageStartIndex && snapshot.sourceMessageEndIndex
+                                ? `Messages ${snapshot.sourceMessageStartIndex}-${snapshot.sourceMessageEndIndex}`
+                                : `Memory ${index + 1}`;
+                        const summaryParts = [
+                            `Memory ${index + 1}`,
+                            sourceRange,
+                            acceptedDate
+                        ].filter(Boolean);
+
+                        return `
+                            <details class="chat-memory-snapshot" ${index === snapshots.length - 1 ? 'open' : ''}>
+                                <summary>${escapeHtml(summaryParts.join(' | '))}</summary>
+                                <p>${escapeHtml(snapshot.finalText || snapshot.generatedText || '')}</p>
+                            </details>
+                        `;
+                    })
+                    .join('')}
+            </div>
+        </div>
+    `;
+}
+
+export function openMemoryViewerModal() {
+    if (!elements.memoryViewerModal || !elements.memoryViewerBody) return;
+
+    elements.memoryViewerBody.innerHTML = getMemoryViewerMarkup();
+    elements.memoryViewerModal.classList.remove('hidden');
+    document.body.classList.add('settings-open');
+}
+
+export function closeMemoryViewerModal() {
+    if (!elements.memoryViewerModal) return;
+
+    elements.memoryViewerModal.classList.add('hidden');
+    document.body.classList.toggle(
+        'settings-open',
+        Boolean(
+            (elements.settingsPanel &&
+                !elements.settingsPanel.classList.contains('-translate-x-full')) ||
+                (elements.advancedSettingsModal &&
+                    !elements.advancedSettingsModal.classList.contains('hidden')) ||
+                (elements.requestPreviewModal &&
+                    !elements.requestPreviewModal.classList.contains('hidden')) ||
+                (elements.editMessageModal &&
+                    !elements.editMessageModal.classList.contains('hidden'))
+        )
+    );
+}
+
 export function updateMemoryBlockingControls() {
     const pressure = getMemoryPressureState();
     const blocked = pressure.isBlocked;
@@ -309,7 +378,7 @@ export function renderMemoryPanel() {
         <div class="chat-memory-summary">
             <span>${pressure.activeCount}/${pressure.threshold} active raw messages</span>
             <span>${pressure.archivedCount} archived</span>
-            <span>${pressure.snapshotCount} memories</span>
+            <button type="button" data-memory-action="open-view">${pressure.snapshotCount} memories</button>
             <span>limit ${pressure.limit}</span>
         </div>
     `;
@@ -338,5 +407,7 @@ export function handleMemoryPanelClick(event) {
         rejectMemorySummary();
     } else if (action === 'increase') {
         increaseCurrentChatLimit(Number.parseInt(button.getAttribute('data-increment'), 10) || 20);
+    } else if (action === 'open-view') {
+        openMemoryViewerModal();
     }
 }

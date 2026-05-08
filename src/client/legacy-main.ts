@@ -24,7 +24,7 @@ import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { editAssistantMessage, regenerateImage } from './messages.js';
-import { selectCharacter, deleteCharacter, editCharacter } from './characters.js';
+import { selectCharacter, deleteCharacter, editCharacter, branchChatFromMessage } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
 import { fetchOpenRouterModels, renderOpenRouterQuickModelSelect } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
@@ -376,6 +376,7 @@ async function init() {
     window.regenerateImage = regenerateImage;
     window.removeMessageFromContext = removeMessageFromContext;
     window.editAssistantMessage = editAssistantMessage;
+    window.branchChatFromMessage = branchChatFromMessage;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;

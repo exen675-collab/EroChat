@@ -113,6 +113,9 @@ export const elements: Record<string, any> = {
     requestPreviewEndpoint: document.getElementById('requestPreviewEndpoint'),
     requestPreviewHeaders: document.getElementById('requestPreviewHeaders'),
     requestPreviewBody: document.getElementById('requestPreviewBody'),
+    memoryViewerModal: document.getElementById('memoryViewerModal'),
+    closeMemoryViewerBtn: document.getElementById('closeMemoryViewerBtn'),
+    memoryViewerBody: document.getElementById('memoryViewerBody'),
     generateThumbnailBtn: document.getElementById('generateThumbnailBtn'),
     generatePromptBtn: document.getElementById('generatePromptBtn'),
 

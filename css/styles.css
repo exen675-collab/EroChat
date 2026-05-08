@@ -376,11 +376,26 @@ select:focus {
 }
 
 .chat-memory-summary span,
+.chat-memory-summary button,
 .chat-memory-kicker {
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.44);
     padding: 0.25rem 0.65rem;
+}
+
+.chat-memory-summary button {
+    color: #c4b5fd;
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        color 160ms ease;
+}
+
+.chat-memory-summary button:hover,
+.chat-memory-summary button[aria-expanded='true'] {
+    border-color: rgba(196, 181, 253, 0.55);
+    color: #ede9fe;
 }
 
 .chat-memory-panel {
