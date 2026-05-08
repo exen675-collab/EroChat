@@ -4,106 +4,313 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>EroChat Login</title>
+        <link rel="icon" type="image/png" href="/favicon.png" />
         <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {
+                background:
+                    radial-gradient(
+                        circle at 12% 18%,
+                        rgba(244, 114, 182, 0.22),
+                        transparent 28rem
+                    ),
+                    radial-gradient(circle at 78% 8%, rgba(34, 211, 238, 0.18), transparent 26rem),
+                    linear-gradient(135deg, #120918 0%, #111827 45%, #0b1020 100%);
+            }
+
+            .glass-panel {
+                box-shadow:
+                    0 24px 80px rgba(0, 0, 0, 0.42),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+
+            .anime-panel {
+                background-image:
+                    linear-gradient(90deg, rgba(12, 15, 30, 0.7), rgba(12, 15, 30, 0.36)),
+                    url('/anime_login.png');
+                background-position: center;
+                background-size: cover;
+            }
+        </style>
     </head>
-    <body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-        <div class="w-full max-w-5xl grid gap-6 md:grid-cols-2">
-            <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-                <h1 class="text-2xl font-bold text-pink-400 mb-2">Log In</h1>
-                <p class="text-sm text-slate-400 mb-6">Use your username and password.</p>
+    <body class="min-h-screen overflow-x-hidden text-white antialiased">
+        <main
+            class="mx-auto flex min-h-screen w-full max-w-7xl items-center px-5 py-8 sm:px-8 lg:px-10"
+        >
+            <div
+                class="glass-panel grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.07] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]"
+            >
+                <section
+                    class="anime-panel relative hidden min-h-[760px] overflow-hidden p-10 lg:block"
+                >
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-black/25"
+                    ></div>
+                    <div class="relative z-10 flex h-full flex-col">
+                        <div>
+                            <div class="mb-10 flex items-center gap-3">
+                                <img
+                                    src="/favicon.png"
+                                    alt="EroChat"
+                                    class="h-12 w-12 rounded-2xl bg-white object-cover p-1 shadow-lg shadow-black/20"
+                                />
+                                <div>
+                                    <p class="text-lg font-semibold tracking-wide">EroChat</p>
+                                    <p class="text-sm text-slate-300">Private AI companions</p>
+                                </div>
+                            </div>
 
-                <form id="loginForm" class="space-y-4">
-                    <div>
-                        <label for="loginUsername" class="block text-sm text-slate-300 mb-1"
-                            >Username</label
-                        >
-                        <input
-                            id="loginUsername"
-                            name="username"
-                            type="text"
-                            required
-                            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-pink-500"
-                        />
+                            <h1 class="max-w-xl text-5xl font-black leading-[1.02] text-white">
+                                Step back into your conversations.
+                            </h1>
+                            <p class="mt-6 max-w-lg text-base leading-7 text-slate-300">
+                                A calmer, sharper entrance for your character chats, image sessions,
+                                and saved stories.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <label for="loginPassword" class="block text-sm text-slate-300 mb-1"
-                            >Password</label
-                        >
-                        <input
-                            id="loginPassword"
-                            name="password"
-                            type="password"
-                            required
-                            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-pink-500"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        class="w-full rounded-lg bg-pink-600 hover:bg-pink-500 transition-colors py-2 font-semibold"
-                    >
-                        Log In
-                    </button>
-                </form>
-            </section>
+                </section>
 
-            <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-                <h2 class="text-2xl font-bold text-cyan-400 mb-2">Create Account</h2>
-                <p class="text-sm text-slate-400 mb-6">
-                    Username: 3-24 chars, letters/numbers/_/-. Password: 6+ chars.
-                </p>
+                <section
+                    class="flex min-h-screen items-center justify-center p-5 sm:p-8 lg:min-h-[760px] lg:p-12"
+                >
+                    <div class="w-full max-w-md">
+                        <div class="mb-8 lg:hidden">
+                            <div class="mb-5 flex items-center gap-3">
+                                <img
+                                    src="/favicon.png"
+                                    alt="EroChat"
+                                    class="h-11 w-11 rounded-2xl bg-white object-cover p-1 shadow-lg shadow-black/20"
+                                />
+                                <div>
+                                    <p class="text-lg font-semibold">EroChat</p>
+                                    <p class="text-sm text-slate-300">Private AI companions</p>
+                                </div>
+                            </div>
+                            <h1 class="text-3xl font-black leading-tight">
+                                Step back into your conversations.
+                            </h1>
+                        </div>
 
-                <form id="signupForm" class="space-y-4">
-                    <div>
-                        <label for="signupUsername" class="block text-sm text-slate-300 mb-1"
-                            >Username</label
+                        <div
+                            class="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-2 shadow-2xl"
                         >
-                        <input
-                            id="signupUsername"
-                            name="username"
-                            type="text"
-                            required
-                            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-cyan-500"
-                        />
+                            <div class="grid grid-cols-2 rounded-[1.35rem] bg-white/[0.06] p-1">
+                                <button
+                                    type="button"
+                                    data-auth-tab="login"
+                                    class="auth-tab rounded-2xl px-4 py-3 text-sm font-bold transition"
+                                >
+                                    Log in
+                                </button>
+                                <button
+                                    type="button"
+                                    data-auth-tab="signup"
+                                    class="auth-tab rounded-2xl px-4 py-3 text-sm font-bold transition"
+                                >
+                                    Create account
+                                </button>
+                            </div>
+
+                            <div class="p-5 sm:p-7">
+                                <div class="mb-7">
+                                    <p
+                                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200"
+                                    >
+                                        Welcome
+                                    </p>
+                                    <h2 id="panelTitle" class="mt-3 text-3xl font-black text-white">
+                                        Log in
+                                    </h2>
+                                    <p id="panelCopy" class="mt-2 text-sm leading-6 text-slate-300">
+                                        Use your username and password to open your workspace.
+                                    </p>
+                                </div>
+
+                                <form id="loginForm" class="auth-form space-y-4">
+                                    <div>
+                                        <label
+                                            for="loginUsername"
+                                            class="mb-2 block text-sm font-semibold text-slate-200"
+                                        >
+                                            Username
+                                        </label>
+                                        <input
+                                            id="loginUsername"
+                                            name="username"
+                                            type="text"
+                                            required
+                                            autocomplete="username"
+                                            class="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-rose-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-rose-400/10"
+                                            placeholder="your_name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="loginPassword"
+                                            class="mb-2 block text-sm font-semibold text-slate-200"
+                                        >
+                                            Password
+                                        </label>
+                                        <div class="relative">
+                                            <input
+                                                id="loginPassword"
+                                                name="password"
+                                                type="password"
+                                                required
+                                                autocomplete="current-password"
+                                                class="password-input w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 pr-16 text-white outline-none transition placeholder:text-slate-500 focus:border-rose-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-rose-400/10"
+                                                placeholder="password"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="password-toggle absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                                                aria-label="Show password"
+                                            >
+                                                Show
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        class="submit-button w-full rounded-2xl bg-gradient-to-r from-rose-500 to-fuchsia-500 px-5 py-3.5 font-black text-white shadow-lg shadow-rose-950/30 transition hover:scale-[1.01] hover:from-rose-400 hover:to-fuchsia-400 focus:outline-none focus:ring-4 focus:ring-rose-300/25 active:scale-[0.99]"
+                                    >
+                                        Log in
+                                    </button>
+                                </form>
+
+                                <form id="signupForm" class="auth-form hidden space-y-4">
+                                    <div>
+                                        <label
+                                            for="signupUsername"
+                                            class="mb-2 block text-sm font-semibold text-slate-200"
+                                        >
+                                            Username
+                                        </label>
+                                        <input
+                                            id="signupUsername"
+                                            name="username"
+                                            type="text"
+                                            required
+                                            autocomplete="username"
+                                            minlength="3"
+                                            maxlength="24"
+                                            pattern="[A-Za-z0-9_-]+"
+                                            class="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-400/10"
+                                            placeholder="choose_a_name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="signupPassword"
+                                            class="mb-2 block text-sm font-semibold text-slate-200"
+                                        >
+                                            Password
+                                        </label>
+                                        <div class="relative">
+                                            <input
+                                                id="signupPassword"
+                                                name="password"
+                                                type="password"
+                                                required
+                                                autocomplete="new-password"
+                                                minlength="6"
+                                                class="password-input w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 pr-16 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-400/10"
+                                                placeholder="password"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="password-toggle absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                                                aria-label="Show password"
+                                            >
+                                                Show
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p
+                                        class="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.08] px-4 py-3 text-xs leading-5 text-cyan-100"
+                                    >
+                                        Use 3-24 characters for your username: letters, numbers,
+                                        underscore, or dash.
+                                    </p>
+                                    <button
+                                        type="submit"
+                                        class="submit-button w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-teal-400 px-5 py-3.5 font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:scale-[1.01] hover:from-cyan-300 hover:to-teal-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/25 active:scale-[0.99]"
+                                    >
+                                        Create account
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label for="signupPassword" class="block text-sm text-slate-300 mb-1"
-                            >Password</label
-                        >
-                        <input
-                            id="signupPassword"
-                            name="password"
-                            type="password"
-                            required
-                            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-cyan-500"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        class="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 transition-colors py-2 font-semibold"
-                    >
-                        Create Account
-                    </button>
-                </form>
-            </section>
-        </div>
+                </section>
+            </div>
+        </main>
 
         <div
             id="authMessage"
-            class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm"
+            role="status"
+            class="fixed bottom-5 left-1/2 z-50 hidden w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border bg-slate-950/95 px-4 py-3 text-sm shadow-2xl backdrop-blur"
         ></div>
 
         <script>
             const loginForm = document.getElementById('loginForm');
             const signupForm = document.getElementById('signupForm');
             const authMessage = document.getElementById('authMessage');
+            const tabs = Array.from(document.querySelectorAll('.auth-tab'));
+            const panelTitle = document.getElementById('panelTitle');
+            const panelCopy = document.getElementById('panelCopy');
+
+            const panelContent = {
+                login: {
+                    title: 'Log in',
+                    copy: 'Use your username and password to open your workspace.'
+                },
+                signup: {
+                    title: 'Create account',
+                    copy: 'Start fresh with a username and a private password.'
+                }
+            };
+
+            function setActiveTab(activeTab) {
+                const isSignup = activeTab === 'signup';
+                loginForm.classList.toggle('hidden', isSignup);
+                signupForm.classList.toggle('hidden', !isSignup);
+                panelTitle.textContent = panelContent[activeTab].title;
+                panelCopy.textContent = panelContent[activeTab].copy;
+
+                tabs.forEach((tab) => {
+                    const selected = tab.dataset.authTab === activeTab;
+                    tab.classList.toggle('bg-white', selected);
+                    tab.classList.toggle('text-slate-950', selected);
+                    tab.classList.toggle('shadow-lg', selected);
+                    tab.classList.toggle('text-slate-300', !selected);
+                    tab.classList.toggle('hover:text-white', !selected);
+                });
+
+                authMessage.classList.add('hidden');
+            }
 
             function showMessage(text, isError) {
                 authMessage.textContent = text;
                 authMessage.classList.remove('hidden');
-                authMessage.classList.toggle('text-red-300', Boolean(isError));
-                authMessage.classList.toggle('border-red-700', Boolean(isError));
-                authMessage.classList.toggle('text-green-300', !isError);
-                authMessage.classList.toggle('border-green-700', !isError);
+                authMessage.classList.toggle('text-red-100', Boolean(isError));
+                authMessage.classList.toggle('border-red-400/30', Boolean(isError));
+                authMessage.classList.toggle('bg-red-950/90', Boolean(isError));
+                authMessage.classList.toggle('text-emerald-100', !isError);
+                authMessage.classList.toggle('border-emerald-400/30', !isError);
+                authMessage.classList.toggle('bg-emerald-950/90', !isError);
+            }
+
+            function setLoading(form, isLoading) {
+                const button = form.querySelector('.submit-button');
+                if (!button) return;
+                button.disabled = isLoading;
+                button.dataset.originalText =
+                    button.dataset.originalText || button.textContent.trim();
+                button.textContent = isLoading ? 'Please wait...' : button.dataset.originalText;
+                button.classList.toggle('cursor-wait', isLoading);
+                button.classList.toggle('opacity-75', isLoading);
             }
 
             async function postAuth(url, payload) {
@@ -120,6 +327,23 @@
                 return data;
             }
 
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => setActiveTab(tab.dataset.authTab));
+            });
+
+            document.querySelectorAll('.password-toggle').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const input = button.parentElement.querySelector('.password-input');
+                    const showPassword = input.type === 'password';
+                    input.type = showPassword ? 'text' : 'password';
+                    button.textContent = showPassword ? 'Hide' : 'Show';
+                    button.setAttribute(
+                        'aria-label',
+                        showPassword ? 'Hide password' : 'Show password'
+                    );
+                });
+            });
+
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(loginForm);
@@ -127,10 +351,13 @@
                 const password = String(formData.get('password') || '');
 
                 try {
+                    setLoading(loginForm, true);
                     await postAuth('/api/auth/login', { username, password });
                     window.location.href = '/app/';
                 } catch (error) {
                     showMessage(error.message, true);
+                } finally {
+                    setLoading(loginForm, false);
                 }
             });
 
@@ -141,12 +368,17 @@
                 const password = String(formData.get('password') || '');
 
                 try {
+                    setLoading(signupForm, true);
                     await postAuth('/api/auth/signup', { username, password });
                     window.location.href = '/app/';
                 } catch (error) {
                     showMessage(error.message, true);
+                } finally {
+                    setLoading(signupForm, false);
                 }
             });
+
+            setActiveTab('login');
         </script>
     </body>
 </html>

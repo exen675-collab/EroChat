@@ -635,6 +635,7 @@ app.use((req, res, next) => {
     }
     next();
 });
+app.use(express.static(path.join(ROOT_DIR, 'public')));
 app.use(
     session({
         name: 'erochat_auth_sid',
