@@ -3,6 +3,12 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { CHAT_REQUEST_DEFAULTS, OPENROUTER_REASONING_EFFORTS } from './chat-request.js';
 import { getOpenRouterQuickAccessModels } from './stats.js';
+import {
+    buildSystemPromptWithStaticBlocks,
+    CHARACTER_SYSTEM_PROMPT_GENERATION_TEMPLATE,
+    CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS,
+    stripProtectedSystemPromptBlocks
+} from './static-prompts.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
@@ -169,13 +175,40 @@ export async function fetchOpenRouterModels(silent = false) {
     }
 }
 
+function ensureStaticSystemPromptBlock(messages) {
+    if (!Array.isArray(messages)) return messages;
+
+    return messages.map((message, index) =>
+        index === 0 && message?.role === 'system'
+            ? {
+                  ...message,
+                  content: buildSystemPromptWithStaticBlocks(message.content)
+              }
+            : message
+    );
+}
+
 export async function sendOpenRouterChatRequest(apiMessages) {
-    const request =
+    const normalizedApiMessages =
         apiMessages &&
         typeof apiMessages === 'object' &&
         !Array.isArray(apiMessages) &&
         Array.isArray(apiMessages.body?.messages)
-            ? apiMessages
+            ? {
+                  ...apiMessages,
+                  body: {
+                      ...apiMessages.body,
+                      messages: ensureStaticSystemPromptBlock(apiMessages.body.messages)
+                  }
+              }
+            : apiMessages;
+
+    const request =
+        normalizedApiMessages &&
+        typeof normalizedApiMessages === 'object' &&
+        !Array.isArray(normalizedApiMessages) &&
+        Array.isArray(normalizedApiMessages.body?.messages)
+            ? normalizedApiMessages
             : {
                   url: 'https://openrouter.ai/api/v1/chat/completions',
                   headers: {
@@ -186,7 +219,7 @@ export async function sendOpenRouterChatRequest(apiMessages) {
                   },
                   body: {
                       model: elements.openrouterModel.value,
-                      messages: apiMessages,
+                      messages: ensureStaticSystemPromptBlock(apiMessages),
                       temperature: 0.9,
                       max_tokens: 2000,
                       ...(elements.openrouterReasoningEnabled?.checked
@@ -232,44 +265,7 @@ async function generateCharacterSystemPromptOpenRouter({
     userInfo
 }) {
     const generatorModel = 'anthropic/claude-sonnet-4.5';
-    const ROLEPLAY_TEMPLATE = `
-    # SYSTEM PROMPT – Roleplay Agent
-    ## Gatunek i Typ
-    Erotyczny slowburn roleplay . Napięcie buduje się bardzo powoli – przez flirt, dwuznaczności, przypadkowe dotyki, droczenie i prowokacje.
-
-
-    ## Perspektywa i Styl Odpowiedzi
-    - Piszesz WYŁĄCZNIE jako {{agent_name}} (dialog + jej działania + mowa ciała).
-    - Nigdy nie piszesz działań, myśli ani słów {{player_name}} – to postać gracza.
-    - Format: *akcje i opisy kursywą*, "dialogi normalnie".
-    - Długość odpowiedzi: 2–5 akapitów (wystarczająco, żeby budować napięcie, ale nie przytłaczać).
-
-    ## Postać Gracza – {{player_name}}
-    - 20 lat, prawiczek, nieatrakcyjny (pryszcze, przeciętna budowa)
-    - Bardzo nieśmiały, lekko w spektrum autyzmu – unika kontaktu wzrokowego, niezręczne zachowanie
-    - Pełen kompleksów wyglądu, zdesperowany seksualnie, ale sparaliżowany wstydem
-
-    ## Postać Agenta – {{agent_name}} (koleżanka starszej siostry {{player_name}})
-    **Wygląd:**
-    25-letnia bardzo atrakcyjna kobieta. Długie falowane ciemnobrązowe włosy do ramion. Szczupła, zgrabna sylwetka, ładne małe piersi, bardzo wąska talia. Zawsze ubrana w elegancką, błyszczącą satynową sukienkę w kolorze teal z głębokim drapowanym dekoltem cowl-neck, która pięknie podkreśla figurę.
-
-    **Osobowość:**
-    Ekstrawertyczka, pewna siebie, ciepła i opiekuńcza. Jest najlepszą przyjaciółką starszej siostry {{player_name}} i bardzo często bywa u nich w domu (nawet gdy siostra jest w pracy lub na zajęciach). Traktuje Adama troskliwie jak „swojego młodszego braciszka”, ale mocno ją kręci jego nieśmiałość, niezręczność i kompleksy. Uwielbia się nim zajmować, droczyć się z nim, prowokować go, powoli uwodzić i obserwować, jak się czerwieni. Ma wyraźną, silną skłonność do exhibicionizmu – lubi „przypadkowo” pokazywać ciało (głęboki dekolt, pochylanie się, poprawianie sukienki, rozciąganie się itd.).
-
-    ## Zasady Slowburna
-    1. Faza 1 – Troskliwa starsza koleżanka + lekkie droczenie
-    2. Faza 2 – „Przypadkowe” prowokacje (pochylanie się w dekolcie, dotyk ramienia/uda, sukienka się zsuwa)
-    3. Faza 3 – Otwarty flirt i jawne testowanie granic
-    4. Faza 4 – Fizyczna eskalacja
-    → Przechodź do kolejnej fazy tylko gdy gracz aktywnie eskaluje.
-
-    ## Generowanie Tagów Graficznych (Stable Diffusion / Danbooru)
-    Po KAŻDEJ odpowiedzi dodaj na samym dole blok:
-
-    ---IMAGE_PROMPT START---
-    masterpiece, best_quality, ...
-    ---IMAGE_PROMPT END---
-    `;
+    const roleplayTemplate = CHARACTER_SYSTEM_PROMPT_GENERATION_TEMPLATE;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -284,12 +280,11 @@ async function generateCharacterSystemPromptOpenRouter({
             messages: [
                 {
                     role: 'system',
-                    content:
-                        'Jesteś edytorem promptów. Otrzymujesz TEMPLATE z placeholderami {{PLACEHOLDER}} oraz DANE POSTACI. Wypełnij wszystkie placeholdery odpowiednimi danymi. Zachowaj oryginalną strukturę i formatowanie. Zwróć TYLKO wypełniony prompt, bez żadnych komentarzy. Prompt będzie słózył do erotycznego roleplay. Masz odrobine dowolnosci do edycji ogrinalnego promptu tak zeby pasował pod dane które zostaną ci wysłane.'
+                    content: CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS
                 },
                 {
                     role: 'user',
-                    content: `TEMPLATE:${ROLEPLAY_TEMPLATE}---DANE POSTACI:- Imię agenta: ${name}- Opis: ${description}  - Tło fabularne: ${background}- Dane gracza: ${JSON.stringify(userInfo)}Wypełnij template powyższymi danymi.`
+                    content: `TEMPLATE:${roleplayTemplate}---DANE POSTACI:- Imie agenta: ${name}- Opis: ${description} - Tlo fabularne: ${background}- Dane gracza: ${JSON.stringify(userInfo)}Wypelnij template powyzszymi danymi.`
                 }
             ],
             temperature: 0.7,
@@ -309,7 +304,7 @@ async function generateCharacterSystemPromptOpenRouter({
     }
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || '';
+    return stripProtectedSystemPromptBlocks(data.choices?.[0]?.message?.content?.trim() || '');
 }
 
 export async function generateCharacterSystemPrompt(payload) {

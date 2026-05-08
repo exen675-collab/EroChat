@@ -13,6 +13,10 @@ import {
     normalizeSwarmSampler,
     syncSwarmSamplerSelect
 } from './utils.js';
+import {
+    renderProtectedSystemPromptBlocks,
+    stripProtectedSystemPromptBlocks
+} from './static-prompts.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -264,11 +268,15 @@ export function loadFromLocalStorage() {
                 state.settings.messageInputHeight = normalizeMessageInputHeight(
                     state.settings.messageInputHeight
                 );
+                state.settings.systemPrompt = stripProtectedSystemPromptBlocks(
+                    state.settings.systemPrompt
+                );
                 updateSettingsUI();
             }
             if (parsed.characters) {
                 state.characters = parsed.characters.map((character) => ({
                     ...character,
+                    systemPrompt: stripProtectedSystemPromptBlocks(character.systemPrompt),
                     messages: Array.isArray(character.messages) ? character.messages : [],
                     memorySnapshots: Array.isArray(character.memorySnapshots)
                         ? character.memorySnapshots
@@ -343,6 +351,9 @@ export function loadFromLocalStorage() {
 
     if (character) {
         state.messages = character.messages || [];
+        state.settings.systemPrompt = stripProtectedSystemPromptBlocks(
+            character.systemPrompt || state.settings.systemPrompt
+        );
         state.settings.contextMessageCount = normalizeContextMessageCount(
             character.contextMessageCount ?? state.settings.contextMessageCount
         );
@@ -411,5 +422,7 @@ export function updateSettingsUI() {
     elements.cfgScale.value = state.settings.cfgScale;
     elements.cfgValue.textContent = state.settings.cfgScale;
     syncSwarmSamplerSelect(elements.sampler, state.settings.sampler);
+    state.settings.systemPrompt = stripProtectedSystemPromptBlocks(state.settings.systemPrompt);
     elements.systemPrompt.value = state.settings.systemPrompt;
+    renderProtectedSystemPromptBlocks(elements.protectedSystemPromptBlock);
 }

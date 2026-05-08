@@ -6,6 +6,7 @@ import {
     buildChatRequestPreview,
     canPreviewChatRequest
 } from '../src/client/chat-request.ts';
+import { PROTECTED_SYSTEM_PROMPT_BLOCK } from '../src/client/static-prompts.ts';
 
 describe('chat request preview builder', () => {
     beforeEach(() => {
@@ -94,7 +95,7 @@ describe('chat request preview builder', () => {
                 contextMessageCount: 3
             })
         ).toEqual([
-            { role: 'system', content: 'System' },
+            { role: 'system', content: `System\n\n${PROTECTED_SYSTEM_PROMPT_BLOCK}` },
             { role: 'user', content: 'One' },
             { role: 'assistant', content: 'Two' },
             { role: 'user', content: 'Three' }
@@ -114,6 +115,10 @@ describe('chat request preview builder', () => {
         });
 
         expect(messages).toHaveLength(26);
+        expect(messages[0]).toEqual({
+            role: 'system',
+            content: `System\n\n${PROTECTED_SYSTEM_PROMPT_BLOCK}`
+        });
         expect(messages.slice(1)).toEqual(
             historyMessages.map((message) => ({
                 role: message.role,
@@ -133,7 +138,7 @@ describe('chat request preview builder', () => {
         });
 
         expect(messages).toEqual([
-            { role: 'system', content: 'System' },
+            { role: 'system', content: `System\n\n${PROTECTED_SYSTEM_PROMPT_BLOCK}` },
             {
                 role: 'system',
                 content:
@@ -141,6 +146,21 @@ describe('chat request preview builder', () => {
             },
             { role: 'assistant', content: 'Still active' }
         ]);
+    });
+
+    it('appends the protected image prompt block once to outgoing system prompts', () => {
+        const withExistingBlock = `System\n\n${PROTECTED_SYSTEM_PROMPT_BLOCK}`;
+
+        expect(
+            buildChatApiMessages({
+                systemPrompt: withExistingBlock,
+                historyMessages: [],
+                draftMessage: 'Hello'
+            })[0]
+        ).toEqual({
+            role: 'system',
+            content: withExistingBlock
+        });
     });
 
     it('adds accepted memory snapshots while preserving raw chat message content', () => {

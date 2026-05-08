@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { buildSystemPromptWithStaticBlocks } from './static-prompts.js';
 import { getActiveRawMessages } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
@@ -63,7 +64,7 @@ export function buildChatApiMessages({
     const memoryContextMessage = buildMemoryContextMessage(memorySnapshots);
 
     return [
-        { role: 'system', content: String(systemPrompt || '') },
+        { role: 'system', content: buildSystemPromptWithStaticBlocks(systemPrompt) },
         ...(memoryContextMessage ? [memoryContextMessage] : []),
         ...nextMessages
     ];

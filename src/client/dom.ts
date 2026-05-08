@@ -77,6 +77,7 @@ export const elements: Record<string, any> = {
     cfgValue: document.getElementById('cfgValue'),
     sampler: document.getElementById('sampler'),
     systemPrompt: document.getElementById('systemPrompt'),
+    protectedSystemPromptBlock: document.getElementById('protectedSystemPromptBlock'),
 
     // Character elements
     charactersList: document.getElementById('charactersList'),
@@ -96,6 +97,7 @@ export const elements: Record<string, any> = {
     charName: document.getElementById('charName'),
     charAvatar: document.getElementById('charAvatar'),
     charSystemPrompt: document.getElementById('charSystemPrompt'),
+    charProtectedSystemPromptBlock: document.getElementById('charProtectedSystemPromptBlock'),
     charAppearance: document.getElementById('charAppearance'),
     charDescription: document.getElementById('charDescription'),
     charBackground: document.getElementById('charBackground'),

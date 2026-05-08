@@ -7,6 +7,10 @@ import { escapeHtml, normalizeContextMessageCount, normalizeImageProvider } from
 import { generateCharacterSystemPrompt } from './api-openrouter.js';
 import { persistImageForStorage } from './media.js';
 import { requestConfirmation, showToast } from './notifications.js';
+import {
+    renderProtectedSystemPromptBlocks,
+    stripProtectedSystemPromptBlocks
+} from './static-prompts.js';
 
 // Track if we're editing an existing character
 let editingCharacterId = null;
@@ -261,8 +265,10 @@ export function selectCharacter(charId) {
     state.messages = character.messages || [];
 
     // Update system prompt in settings
-    elements.systemPrompt.value = character.systemPrompt;
-    state.settings.systemPrompt = character.systemPrompt;
+    const editableSystemPrompt = stripProtectedSystemPromptBlocks(character.systemPrompt);
+    elements.systemPrompt.value = editableSystemPrompt;
+    renderProtectedSystemPromptBlocks(elements.protectedSystemPromptBlock);
+    state.settings.systemPrompt = editableSystemPrompt;
     state.settings.contextMessageCount = normalizeContextMessageCount(
         character.contextMessageCount ?? state.settings.contextMessageCount
     );
@@ -441,7 +447,10 @@ export function openCharacterModal(characterId = null) {
             elements.modalTitle.textContent = 'Edit Character';
             elements.charName.value = character.name;
             elements.charAvatar.value = character.avatar;
-            elements.charSystemPrompt.value = character.systemPrompt;
+            elements.charSystemPrompt.value = stripProtectedSystemPromptBlocks(
+                character.systemPrompt
+            );
+            renderProtectedSystemPromptBlocks(elements.charProtectedSystemPromptBlock);
             elements.charDescription.value = character.description || '';
             elements.charBackground.value = character.background || '';
             elements.charUserInfo.value = character.userInfo || '';
@@ -468,6 +477,7 @@ export function openCharacterModal(characterId = null) {
         elements.charBackground.value = '';
         elements.charUserInfo.value = '';
         elements.charSystemPrompt.value = '';
+        renderProtectedSystemPromptBlocks(elements.charProtectedSystemPromptBlock);
         currentThumbnail = null;
         resetThumbnailPreview();
     }
@@ -547,7 +557,7 @@ export async function generateSystemPromptOnDemand() {
         });
 
         if (systemPrompt) {
-            elements.charSystemPrompt.value = systemPrompt;
+            elements.charSystemPrompt.value = stripProtectedSystemPromptBlocks(systemPrompt);
             setCharacterFormStatus(
                 'System prompt generated successfully. Review it before saving.',
                 false
@@ -579,7 +589,7 @@ export async function generateSystemPromptOnDemand() {
 export async function saveCharacter() {
     const name = elements.charName.value.trim();
     const avatar = elements.charAvatar.value.trim() || '🤖';
-    let systemPrompt = elements.charSystemPrompt.value.trim();
+    let systemPrompt = stripProtectedSystemPromptBlocks(elements.charSystemPrompt.value);
     const description = elements.charDescription.value.trim();
     const background = elements.charBackground.value.trim();
     const userInfo = elements.charUserInfo.value.trim();
@@ -647,6 +657,7 @@ export async function saveCharacter() {
                 throw new Error('Model returned an empty system prompt.');
             }
 
+            systemPrompt = stripProtectedSystemPromptBlocks(systemPrompt);
             elements.charSystemPrompt.value = systemPrompt;
         } catch (error) {
             console.error('System prompt generation error:', error);

@@ -30,6 +30,7 @@ import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import { requestConfirmation, showToast } from './notifications.js';
+import { stripProtectedSystemPromptBlocks } from './static-prompts.js';
 import {
     closeMemoryViewerModal,
     handleMemoryPanelClick,
@@ -492,6 +493,8 @@ export function setupEventListeners() {
             state.settings.contextMessageCount
         );
 
+        const editableSystemPrompt = stripProtectedSystemPromptBlocks(elements.systemPrompt.value);
+
         state.settings = {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
@@ -510,14 +513,14 @@ export function setupEventListeners() {
             steps: parseInt(elements.steps.value, 10),
             cfgScale: parseFloat(elements.cfgScale.value),
             sampler: elements.sampler.value,
-            systemPrompt: elements.systemPrompt.value
+            systemPrompt: editableSystemPrompt
         };
         setCurrentChatContextLimit(nextContextMessageCount);
 
         if (state.currentCharacterId !== 'default') {
             const charIndex = state.characters.findIndex((c) => c.id === state.currentCharacterId);
             if (charIndex !== -1) {
-                state.characters[charIndex].systemPrompt = elements.systemPrompt.value;
+                state.characters[charIndex].systemPrompt = editableSystemPrompt;
             }
         }
 
