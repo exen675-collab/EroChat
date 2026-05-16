@@ -30,7 +30,10 @@ import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import { requestConfirmation, showToast } from './notifications.js';
-import { stripProtectedSystemPromptBlocks } from './static-prompts.js';
+import {
+    renderProtectedSystemPromptBlocks,
+    stripProtectedSystemPromptBlocks
+} from './static-prompts.js';
 import {
     closeMemoryViewerModal,
     handleMemoryPanelClick,
@@ -359,6 +362,19 @@ export function setupEventListeners() {
         saveToLocalStorage();
     });
 
+    elements.protectedImagePromptLanguage.addEventListener('change', () => {
+        state.settings.protectedImagePromptLanguage = elements.protectedImagePromptLanguage.value;
+        renderProtectedSystemPromptBlocks(
+            elements.protectedSystemPromptBlock,
+            state.settings.protectedImagePromptLanguage
+        );
+        renderProtectedSystemPromptBlocks(
+            elements.charProtectedSystemPromptBlock,
+            state.settings.protectedImagePromptLanguage
+        );
+        saveToLocalStorage();
+    });
+
     elements.enableImageGeneration.addEventListener('change', () => {
         state.settings.enableImageGeneration = elements.enableImageGeneration.checked;
         saveToLocalStorage();
@@ -506,6 +522,7 @@ export function setupEventListeners() {
             comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),
             comfyModel: elements.comfyModel.value,
             imageProvider: normalizeImageProvider(elements.imageProvider.value),
+            protectedImagePromptLanguage: elements.protectedImagePromptLanguage.value,
             enableImageGeneration: elements.enableImageGeneration.checked,
             contextMessageCount: nextContextMessageCount,
             imgWidth: parseInt(elements.imgWidth.value, 10),

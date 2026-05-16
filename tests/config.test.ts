@@ -7,6 +7,7 @@ describe('default config', () => {
     it('keeps the main app defaults stable', () => {
         expect(defaultSettings.textProvider).toBe('openrouter');
         expect(defaultSettings.imageProvider).toBe('swarm');
+        expect(defaultSettings.protectedImagePromptLanguage).toBe('pl');
         expect(defaultSettings.enableImageGeneration).toBe(true);
         expect(defaultSettings.contextMessageCount).toBe(20);
         expect(defaultSettings.messageInputHeight).toBe(192);

@@ -14,6 +14,7 @@ import {
     syncSwarmSamplerSelect
 } from './utils.js';
 import {
+    normalizeProtectedImagePromptLanguage,
     renderProtectedSystemPromptBlocks,
     stripProtectedSystemPromptBlocks
 } from './static-prompts.js';
@@ -261,6 +262,10 @@ export function loadFromLocalStorage() {
                 }
                 Object.assign(state.settings, parsed.settings);
                 state.settings.imageProvider = normalizeImageProvider(state.settings.imageProvider);
+                state.settings.protectedImagePromptLanguage =
+                    normalizeProtectedImagePromptLanguage(
+                        state.settings.protectedImagePromptLanguage
+                    );
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
                 state.settings.contextMessageCount = normalizeContextMessageCount(
                     state.settings.contextMessageCount
@@ -405,6 +410,10 @@ export function updateSettingsUI() {
     elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';
     elements.comfyModel.value = state.settings.comfyModel || '';
     elements.imageProvider.value = normalizeImageProvider(state.settings.imageProvider);
+    state.settings.protectedImagePromptLanguage = normalizeProtectedImagePromptLanguage(
+        state.settings.protectedImagePromptLanguage
+    );
+    elements.protectedImagePromptLanguage.value = state.settings.protectedImagePromptLanguage;
     elements.enableImageGeneration.checked = state.settings.enableImageGeneration !== false;
     elements.contextMessageCount.value = normalizeContextMessageCount(
         state.settings.contextMessageCount
@@ -424,5 +433,8 @@ export function updateSettingsUI() {
     syncSwarmSamplerSelect(elements.sampler, state.settings.sampler);
     state.settings.systemPrompt = stripProtectedSystemPromptBlocks(state.settings.systemPrompt);
     elements.systemPrompt.value = state.settings.systemPrompt;
-    renderProtectedSystemPromptBlocks(elements.protectedSystemPromptBlock);
+    renderProtectedSystemPromptBlocks(
+        elements.protectedSystemPromptBlock,
+        state.settings.protectedImagePromptLanguage
+    );
 }

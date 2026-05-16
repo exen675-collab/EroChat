@@ -68,6 +68,7 @@ export const elements: Record<string, any> = {
     comfyUrl: document.getElementById('comfyUrl'),
     comfyModel: document.getElementById('comfyModel'),
     imageProvider: document.getElementById('imageProvider'),
+    protectedImagePromptLanguage: document.getElementById('protectedImagePromptLanguage'),
     enableImageGeneration: document.getElementById('enableImageGeneration'),
     contextMessageCount: document.getElementById('contextMessageCount'),
     imgWidth: document.getElementById('imgWidth'),

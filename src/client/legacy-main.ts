@@ -62,6 +62,10 @@ export function buildCurrentChatRequestPreview(draftMessage = elements.messageIn
         textProvider: elements.textProvider.value || state.settings.textProvider || 'premium',
         draftMessage,
         systemPrompt: character?.systemPrompt || '',
+        protectedImagePromptLanguage:
+            elements.protectedImagePromptLanguage.value ||
+            state.settings.protectedImagePromptLanguage ||
+            'pl',
         historyMessages: state.messages,
         contextMessageCount: getCurrentChatContextLimit(),
         memorySnapshots: getCurrentMemorySnapshots(),

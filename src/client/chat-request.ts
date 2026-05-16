@@ -39,6 +39,7 @@ export function canPreviewChatRequest(draftMessage, isGenerating = false) {
 
 export function buildChatApiMessages({
     systemPrompt,
+    protectedImagePromptLanguage = 'pl',
     historyMessages = [],
     draftMessage = '',
     contextMessageCount = 20,
@@ -64,7 +65,10 @@ export function buildChatApiMessages({
     const memoryContextMessage = buildMemoryContextMessage(memorySnapshots);
 
     return [
-        { role: 'system', content: buildSystemPromptWithStaticBlocks(systemPrompt) },
+        {
+            role: 'system',
+            content: buildSystemPromptWithStaticBlocks(systemPrompt, protectedImagePromptLanguage)
+        },
         ...(memoryContextMessage ? [memoryContextMessage] : []),
         ...nextMessages
     ];
@@ -73,6 +77,7 @@ export function buildChatApiMessages({
 export function buildChatRequestPreview({
     draftMessage = '',
     systemPrompt = '',
+    protectedImagePromptLanguage = 'pl',
     historyMessages = [],
     memorySnapshots = [],
     contextMessageCount = 20,
@@ -87,6 +92,7 @@ export function buildChatRequestPreview({
     const provider = 'openrouter';
     const messages = buildChatApiMessages({
         systemPrompt,
+        protectedImagePromptLanguage,
         historyMessages,
         draftMessage,
         contextMessageCount,

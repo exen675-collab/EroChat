@@ -26,6 +26,7 @@ export interface AppSettings {
     textProvider?: string;
     openrouterModel?: string;
     imageProvider?: string;
+    protectedImagePromptLanguage?: 'pl' | 'en';
     enableImageGeneration?: boolean;
     contextMessageCount?: number;
     [key: string]: unknown;

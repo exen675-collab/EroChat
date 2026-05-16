@@ -18,9 +18,9 @@ Scisle zasady:
 Zacznij roleplay pierwsza wiadomoscia jako Alicja (przyjazna, lekko napieta atmosfera).`
     },
     {
-        id: 'protected-image-prompt-tail',
+        id: 'protected-image-prompt-tail-pl',
         description:
-            'Protected non-editable tail appended to every outgoing chat system prompt so replies end with Danbooru-style image tags.',
+            'Protected non-editable Polish tail appended to every outgoing chat system prompt so replies end with Danbooru-style image tags.',
         protectedInSystemPrompt: true,
         content: `BARDZO WAŻNE: Po scenie RP generujesz tagi do ilustracji danego momentu. PAMIETAJ O TYM
 
@@ -38,6 +38,28 @@ masterpiece, best_quality, ...
 4. Styl: \`masterpiece, best quality\`
 5. Staraj sie skupiać na tym co ważne w danej wiadomosci
 6. Mała ilość szczegółów i krótki prompt`
+    },
+    {
+        id: 'protected-image-prompt-tail-en',
+        description:
+            'Protected non-editable English tail appended to every outgoing chat system prompt so replies end with Danbooru-style image tags.',
+        protectedInSystemPrompt: true,
+        content: `VERY IMPORTANT: After the RP scene, generate tags for an illustration of that exact moment. REMEMBER THIS.
+
+---IMAGE_PROMPT START---
+masterpiece, best_quality, ...
+---IMAGE_PROMPT END---
+
+### Tag generation rules:
+1. Use ONLY Danbooru-style tags (English).
+2. Describe ONLY what is VISIBLE in the image for this exact scene.
+3. DO NOT add tags for things that are NOT present in the image:
+   - Bare feet -> NO "shoes", "boots"
+   - No glasses -> NO "glasses"
+   - Alone in frame -> NO "1boy"
+4. Style: \`masterpiece, best quality\`
+5. Focus on what matters in the current message.
+6. Keep the prompt short and low-detail.`
     },
     {
         id: 'character-system-prompt-generator-instructions',
@@ -85,8 +107,18 @@ export function getStaticPrompt(id) {
 export const DEFAULT_CHARACTER_SYSTEM_PROMPT =
     getStaticPrompt('default-character-system-prompt')?.content || '';
 
-export const PROTECTED_SYSTEM_PROMPT_BLOCK =
-    getStaticPrompt('protected-image-prompt-tail')?.content || '';
+export const DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE = 'pl';
+
+export function normalizeProtectedImagePromptLanguage(language = '') {
+    return language === 'en' ? 'en' : DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE;
+}
+
+export function getProtectedSystemPromptBlock(language = DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE) {
+    const normalizedLanguage = normalizeProtectedImagePromptLanguage(language);
+    return getStaticPrompt(`protected-image-prompt-tail-${normalizedLanguage}`)?.content || '';
+}
+
+export const PROTECTED_SYSTEM_PROMPT_BLOCK = getProtectedSystemPromptBlock();
 
 export const CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS =
     getStaticPrompt('character-system-prompt-generator-instructions')?.content || '';
@@ -106,12 +138,18 @@ export function stripProtectedSystemPromptBlocks(systemPrompt = '') {
     return editablePrompt.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function buildSystemPromptWithStaticBlocks(systemPrompt = '') {
+export function buildSystemPromptWithStaticBlocks(
+    systemPrompt = '',
+    language = DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE
+) {
     const editablePrompt = stripProtectedSystemPromptBlocks(systemPrompt);
-    return [editablePrompt, PROTECTED_SYSTEM_PROMPT_BLOCK].filter(Boolean).join('\n\n');
+    return [editablePrompt, getProtectedSystemPromptBlock(language)].filter(Boolean).join('\n\n');
 }
 
-export function renderProtectedSystemPromptBlocks(target) {
+export function renderProtectedSystemPromptBlocks(
+    target,
+    language = DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE
+) {
     if (!target) return;
-    target.textContent = PROTECTED_SYSTEM_PROMPT_BLOCK;
+    target.textContent = getProtectedSystemPromptBlock(language);
 }

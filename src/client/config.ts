@@ -27,6 +27,7 @@ export const defaultSettings = {
     comfyUrl: 'http://localhost:8188',
     comfyModel: '',
     imageProvider: 'swarm',
+    protectedImagePromptLanguage: 'pl',
     enableImageGeneration: true,
     contextMessageCount: 20,
     messageInputHeight: 192,

@@ -267,7 +267,10 @@ export function selectCharacter(charId) {
     // Update system prompt in settings
     const editableSystemPrompt = stripProtectedSystemPromptBlocks(character.systemPrompt);
     elements.systemPrompt.value = editableSystemPrompt;
-    renderProtectedSystemPromptBlocks(elements.protectedSystemPromptBlock);
+    renderProtectedSystemPromptBlocks(
+        elements.protectedSystemPromptBlock,
+        state.settings.protectedImagePromptLanguage
+    );
     state.settings.systemPrompt = editableSystemPrompt;
     state.settings.contextMessageCount = normalizeContextMessageCount(
         character.contextMessageCount ?? state.settings.contextMessageCount
@@ -450,7 +453,10 @@ export function openCharacterModal(characterId = null) {
             elements.charSystemPrompt.value = stripProtectedSystemPromptBlocks(
                 character.systemPrompt
             );
-            renderProtectedSystemPromptBlocks(elements.charProtectedSystemPromptBlock);
+            renderProtectedSystemPromptBlocks(
+                elements.charProtectedSystemPromptBlock,
+                state.settings.protectedImagePromptLanguage
+            );
             elements.charDescription.value = character.description || '';
             elements.charBackground.value = character.background || '';
             elements.charUserInfo.value = character.userInfo || '';
@@ -477,7 +483,10 @@ export function openCharacterModal(characterId = null) {
         elements.charBackground.value = '';
         elements.charUserInfo.value = '';
         elements.charSystemPrompt.value = '';
-        renderProtectedSystemPromptBlocks(elements.charProtectedSystemPromptBlock);
+        renderProtectedSystemPromptBlocks(
+            elements.charProtectedSystemPromptBlock,
+            state.settings.protectedImagePromptLanguage
+        );
         currentThumbnail = null;
         resetThumbnailPreview();
     }

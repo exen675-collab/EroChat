@@ -6,7 +6,10 @@ import {
     buildChatRequestPreview,
     canPreviewChatRequest
 } from '../src/client/chat-request.ts';
-import { PROTECTED_SYSTEM_PROMPT_BLOCK } from '../src/client/static-prompts.ts';
+import {
+    getProtectedSystemPromptBlock,
+    PROTECTED_SYSTEM_PROMPT_BLOCK
+} from '../src/client/static-prompts.ts';
 
 describe('chat request preview builder', () => {
     beforeEach(() => {
@@ -160,6 +163,22 @@ describe('chat request preview builder', () => {
         ).toEqual({
             role: 'system',
             content: withExistingBlock
+        });
+    });
+
+    it('uses the selected protected image prompt language', () => {
+        const englishBlock = getProtectedSystemPromptBlock('en');
+
+        expect(
+            buildChatApiMessages({
+                systemPrompt: 'System',
+                protectedImagePromptLanguage: 'en',
+                historyMessages: [],
+                draftMessage: 'Hello'
+            })[0]
+        ).toEqual({
+            role: 'system',
+            content: `System\n\n${englishBlock}`
         });
     });
 
