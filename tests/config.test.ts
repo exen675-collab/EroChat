@@ -12,6 +12,7 @@ describe('default config', () => {
         expect(defaultSettings.messageInputHeight).toBe(192);
         expect(defaultSettings.openrouterReasoningEnabled).toBe(false);
         expect(defaultSettings.openrouterReasoningEffort).toBe('medium');
+        expect(defaultSettings.openrouterTtsModel).toBe('x-ai/grok-voice-tts-1.0');
     });
 
     it('keeps generator defaults stable', () => {

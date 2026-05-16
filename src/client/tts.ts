@@ -1,15 +1,11 @@
 // @ts-nocheck
-// TTS DISABLED — depends on Grok API which has been removed (issue #16).
-// This file is kept intact for future reimplementation with an alternative TTS provider (issue #17).
-// Do not import this module until TTS support is restored.
-
 import { elements } from './dom.js';
 import { state } from './state.js';
 import {
-    DEFAULT_GROK_TTS_OUTPUT_FORMAT,
-    fetchGrokTtsVoices,
-    generateGrokSpeechBlob
-} from './api-grok.js';
+    DEFAULT_OPENROUTER_TTS_MODEL,
+    DEFAULT_OPENROUTER_TTS_OUTPUT_FORMAT,
+    generateOpenRouterSpeechBlob
+} from './api-openrouter-tts.js';
 import {
     DEFAULT_GROK_TTS_VOICE_ID,
     GROK_TTS_FALLBACK_VOICES,
@@ -25,7 +21,11 @@ let activeAudioUrl = null;
 let activeMessageId = null;
 let loadingMessageId = null;
 let playbackRequestSequence = 0;
-const TTS_CACHE_FORMAT_KEY = `${DEFAULT_GROK_TTS_OUTPUT_FORMAT.codec}:${DEFAULT_GROK_TTS_OUTPUT_FORMAT.sample_rate}:${DEFAULT_GROK_TTS_OUTPUT_FORMAT.bit_rate}`;
+function getTtsCacheFormatKey() {
+    return `${
+        String(state.settings.openrouterTtsModel || '').trim() || DEFAULT_OPENROUTER_TTS_MODEL
+    }:${DEFAULT_OPENROUTER_TTS_OUTPUT_FORMAT}`;
+}
 
 function getAvailableVoiceIds() {
     return availableTtsVoices.map((voice) => voice.voice_id);
@@ -45,26 +45,6 @@ function getSelectedVoiceId() {
     }
 
     return selectedVoiceId;
-}
-
-function setAvailableVoices(voices) {
-    if (!Array.isArray(voices) || voices.length === 0) {
-        availableTtsVoices = [...GROK_TTS_FALLBACK_VOICES];
-        return;
-    }
-
-    const normalizedVoices = voices
-        .map((voice) => ({
-            voice_id: String(voice.voice_id || '')
-                .trim()
-                .toLowerCase(),
-            name: String(voice.name || voice.voice_id || '').trim(),
-            language: String(voice.language || 'multilingual').trim()
-        }))
-        .filter((voice) => voice.voice_id && voice.name);
-
-    availableTtsVoices =
-        normalizedVoices.length > 0 ? normalizedVoices : [...GROK_TTS_FALLBACK_VOICES];
 }
 
 function renderVoiceOptions() {
@@ -96,7 +76,7 @@ function getTtsButtonInnerMarkup(stateName) {
             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 6h4v12H6zm8 0h4v12h-4z"></path>
             </svg>
-            <span>Stop Voice</span>
+            <span>Stop Audio</span>
         `;
     }
 
@@ -106,7 +86,7 @@ function getTtsButtonInnerMarkup(stateName) {
                 d="M11 5 6 9H3v6h3l5 4V5zm4.5 4.5a5 5 0 0 1 0 5m2.5-7.5a8.5 8.5 0 0 1 0 10">
             </path>
         </svg>
-        <span>Play Voice</span>
+        <span>Play Audio</span>
     `;
 }
 
@@ -146,7 +126,7 @@ function handlePlaybackFinished(messageId) {
 }
 
 function buildCacheKey(text, voiceId) {
-    return `${voiceId}::${TTS_CACHE_FORMAT_KEY}::${text}`;
+    return `${voiceId}::${getTtsCacheFormatKey()}::${text}`;
 }
 
 async function getSpeechBlob(text, voiceId) {
@@ -156,7 +136,7 @@ async function getSpeechBlob(text, voiceId) {
         return ttsAudioCache.get(cacheKey);
     }
 
-    const blob = await generateGrokSpeechBlob({
+    const blob = await generateOpenRouterSpeechBlob({
         text,
         voiceId
     });
@@ -193,16 +173,6 @@ export function stopActiveTtsPlayback() {
 
 export async function initTts() {
     renderVoiceOptions();
-
-    try {
-        const voices = await fetchGrokTtsVoices();
-        setAvailableVoices(voices);
-    } catch (error) {
-        console.warn('Falling back to bundled TTS voices:', error);
-        setAvailableVoices(GROK_TTS_FALLBACK_VOICES);
-    }
-
-    renderVoiceOptions();
 }
 
 export async function toggleMessageTts(messageId) {
@@ -219,7 +189,7 @@ export async function toggleMessageTts(messageId) {
 
     if (readableText.length > MAX_GROK_TTS_TEXT_LENGTH) {
         alert(
-            `This message is too long for Grok TTS (${readableText.length}/${MAX_GROK_TTS_TEXT_LENGTH} characters).`
+            `This message is too long for TTS (${readableText.length}/${MAX_GROK_TTS_TEXT_LENGTH} characters).`
         );
         return;
     }

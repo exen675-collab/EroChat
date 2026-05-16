@@ -83,6 +83,7 @@ describe('assistant message editing', () => {
         );
 
         expect(document.querySelector('#user-1 .edit-message-btn')).toBeNull();
+        expect(document.querySelector('#assistant-1 .play-tts-btn')).not.toBeNull();
         expect(document.querySelector('#assistant-1 .edit-message-btn')).not.toBeNull();
         expect(document.querySelector('#assistant-1 .message-edited-badge')?.textContent).toContain(
             'Edited'
@@ -103,6 +104,7 @@ describe('assistant message editing', () => {
         const mediaColumn = message?.querySelector('.chat-media-wrap');
 
         expect(textColumn?.querySelector('.chat-text-actions .edit-message-btn')).not.toBeNull();
+        expect(textColumn?.querySelector('.chat-text-actions .play-tts-btn')).not.toBeNull();
         expect(textColumn?.querySelector('.chat-text-actions .branch-chat-btn')).not.toBeNull();
         expect(textColumn?.querySelector('.chat-text-actions .remove-message-btn')).not.toBeNull();
         expect(

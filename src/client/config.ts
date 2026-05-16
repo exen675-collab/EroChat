@@ -20,6 +20,7 @@ export const defaultSettings = {
     openrouterModel: 'anthropic/claude-3.5-sonnet',
     openrouterReasoningEnabled: false,
     openrouterReasoningEffort: 'medium',
+    openrouterTtsModel: 'x-ai/grok-voice-tts-1.0',
     ttsVoiceId: 'ara',
     swarmUrl: 'http://localhost:7801',
     swarmModel: '',

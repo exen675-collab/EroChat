@@ -42,6 +42,7 @@ import {
     renderMemoryPanel,
     updateMemoryBlockingControls
 } from './memory.js';
+import { initTts, toggleMessageTts } from './tts.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
@@ -378,6 +379,7 @@ async function init() {
     window.removeMessageFromContext = removeMessageFromContext;
     window.editAssistantMessage = editAssistantMessage;
     window.branchChatFromMessage = branchChatFromMessage;
+    window.playMessageTts = toggleMessageTts;
     window.selectCharacter = selectCharacter;
     window.deleteCharacter = deleteCharacter;
     window.editCharacter = editCharacter;
@@ -387,6 +389,7 @@ async function init() {
     setupMessageInputTopResize();
     renderMemoryPanel();
     renderOpenRouterQuickModelSelect();
+    await initTts();
     await initGenerator();
 
     syncViewFromHash();

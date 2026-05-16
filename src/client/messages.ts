@@ -21,6 +21,7 @@ import { saveToLocalStorage } from './storage.js';
 import { persistImageForStorage } from './media.js';
 import { recordGeneratedMedia } from './stats.js';
 import { requestConfirmation, showToast } from './notifications.js';
+import { canPlayMessageTts, getTtsActionButtonMarkup, refreshTtsButtons } from './tts.js';
 
 function getActiveContextMessageIds() {
     return new Set(
@@ -157,8 +158,12 @@ function getMessageActionsMarkup(messageId, options = {}) {
 }
 
 function getAssistantTextActionsMarkup(messageId, options = {}) {
-    const { isEdited = false } = options;
+    const { isEdited = false, content = '' } = options;
     const actionButtons = [];
+
+    if (canPlayMessageTts(content)) {
+        actionButtons.push(getTtsActionButtonMarkup(messageId));
+    }
 
     actionButtons.push(getEditMessageButtonMarkup(messageId));
     actionButtons.push(getBranchChatButtonMarkup(messageId));
@@ -375,7 +380,7 @@ export function addAIMessageToUI(
                     <div class="glass rounded-2xl rounded-tl-none px-5 py-4">
                         <p class="text-gray-300 leading-relaxed chat-formatted-text">${formatMessage(escapeHtml(displayContent), 'ai')}</p>
                     </div>
-                    ${getAssistantTextActionsMarkup(messageId, { isEdited })}
+                    ${getAssistantTextActionsMarkup(messageId, { isEdited, content })}
                 </div>
                 ${imageSection}
             </div>
@@ -383,6 +388,7 @@ export function addAIMessageToUI(
     `;
 
     elements.chatContainer.appendChild(messageDiv);
+    refreshTtsButtons();
     scrollToBottom();
     return messageId;
 }
