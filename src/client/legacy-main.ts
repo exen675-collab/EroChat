@@ -18,7 +18,8 @@ import {
     scrollToBottom,
     setCurrentView,
     showChatRequestPreview,
-    setupMessageInputResizePersistence
+    setupMessageInputResizePersistence,
+    setupMessageInputTopResize
 } from './ui.js';
 import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
@@ -383,6 +384,7 @@ async function init() {
 
     loadFromLocalStorage();
     setupMessageInputResizePersistence();
+    setupMessageInputTopResize();
     renderMemoryPanel();
     renderOpenRouterQuickModelSelect();
     await initGenerator();

@@ -626,9 +626,9 @@ select:focus {
 .app-shell {
     border: 1px solid rgba(139, 92, 246, 0.22);
     border-radius: 18px;
-    margin: 10px;
+    margin: 0 10px 10px;
     overflow: hidden;
-    height: calc(100vh - 20px);
+    height: calc(100vh - 10px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
 
@@ -645,7 +645,7 @@ body.settings-open {
     height: 192px;
     max-height: 384px;
     overflow-y: auto;
-    resize: vertical;
+    resize: none;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -676,6 +676,49 @@ body.settings-open {
     width: 100%;
     min-width: 26rem;
     align-self: start;
+}
+
+.message-input-shell {
+    position: relative;
+    min-width: 26rem;
+}
+
+.message-input-resize-handle {
+    position: absolute;
+    inset: -0.5rem 0 auto;
+    z-index: 1;
+    height: 0.75rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.message-input-resize-handle span {
+    position: absolute;
+    top: 0.25rem;
+    left: 50%;
+    width: 3rem;
+    height: 0.2rem;
+    border-radius: 999px;
+    background: rgba(213, 211, 229, 0.38);
+    transform: translateX(-50%);
+    transition:
+        background-color 160ms ease,
+        width 160ms ease;
+}
+
+.message-input-resize-handle:hover span,
+.message-input-resize-handle:focus-visible span,
+body.resizing-message-input .message-input-resize-handle span {
+    width: 4rem;
+    background: rgba(236, 72, 153, 0.72);
+}
+
+body.resizing-message-input {
+    cursor: ns-resize;
+    user-select: none;
 }
 
 .chat-input-row .quick-model-select,
@@ -1636,6 +1679,10 @@ body.settings-open {
     .chat-input-row #messageInput {
         min-width: 18rem;
     }
+
+    .message-input-shell {
+        min-width: 18rem;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1727,6 +1774,10 @@ body.settings-open {
     }
 
     .chat-input-row #messageInput {
+        min-width: 0;
+    }
+
+    .message-input-shell {
         min-width: 0;
     }
 

@@ -26,6 +26,7 @@ export const elements: Record<string, any> = {
     chatContainer: document.getElementById('chatContainer'),
     memoryPanel: document.getElementById('memoryPanel'),
     messageInput: document.getElementById('messageInput'),
+    messageInputResizeHandle: document.getElementById('messageInputResizeHandle'),
     previewRequestBtn: document.getElementById('previewRequestBtn'),
     sendBtn: document.getElementById('sendBtn'),
     typingIndicator: document.getElementById('typingIndicator'),

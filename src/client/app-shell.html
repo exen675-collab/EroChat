@@ -972,12 +972,24 @@
                             <select id="openrouterQuickModel" class="quick-model-select" disabled>
                                 <option value="">Quick models...</option>
                             </select>
-                            <textarea
-                                id="messageInput"
-                                rows="1"
-                                placeholder="Write your messageâ€¦ (Enter to send, Shift+Enter for new line)"
-                                class="flex-1 px-5 py-3 rounded-xl"
-                            ></textarea>
+                            <div class="message-input-shell">
+                                <button
+                                    id="messageInputResizeHandle"
+                                    class="message-input-resize-handle"
+                                    type="button"
+                                    role="separator"
+                                    aria-orientation="horizontal"
+                                    aria-label="Resize message input"
+                                >
+                                    <span aria-hidden="true"></span>
+                                </button>
+                                <textarea
+                                    id="messageInput"
+                                    rows="1"
+                                    placeholder="Write your messageâ€¦ (Enter to send, Shift+Enter for new line)"
+                                    class="flex-1 px-5 py-3 rounded-xl"
+                                ></textarea>
+                            </div>
                             <button
                                 id="sendBtn"
                                 type="button"

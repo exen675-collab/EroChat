@@ -286,6 +286,50 @@ export function setupMessageInputResizePersistence() {
     messageInputResizeObserver.observe(elements.messageInput);
 }
 
+export function setupMessageInputTopResize() {
+    if (!elements.messageInput || !elements.messageInputResizeHandle) {
+        return;
+    }
+
+    let startY = 0;
+    let startHeight = 0;
+    let activePointerId = null;
+
+    const stopResize = () => {
+        activePointerId = null;
+        document.body.classList.remove('resizing-message-input');
+    };
+
+    elements.messageInputResizeHandle.addEventListener('pointerdown', (event) => {
+        activePointerId = event.pointerId;
+        startY = event.clientY;
+        startHeight = elements.messageInput.offsetHeight;
+        elements.messageInputResizeHandle.setPointerCapture?.(event.pointerId);
+        document.body.classList.add('resizing-message-input');
+        event.preventDefault();
+    });
+
+    elements.messageInputResizeHandle.addEventListener('pointermove', (event) => {
+        if (event.pointerId !== activePointerId) {
+            return;
+        }
+
+        const nextHeight = normalizeMessageInputHeight(startHeight + (startY - event.clientY));
+        elements.messageInput.style.height = `${nextHeight}px`;
+    });
+
+    elements.messageInputResizeHandle.addEventListener('pointerup', (event) => {
+        if (event.pointerId !== activePointerId) {
+            return;
+        }
+
+        elements.messageInputResizeHandle.releasePointerCapture?.(event.pointerId);
+        stopResize();
+    });
+
+    elements.messageInputResizeHandle.addEventListener('pointercancel', stopResize);
+}
+
 // Scroll chat container to bottom
 export function scrollToBottom() {
     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
