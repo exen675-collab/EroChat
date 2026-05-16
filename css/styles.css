@@ -659,7 +659,7 @@ body.settings-open {
 .chat-input-row {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(13rem, 18rem) minmax(26rem, 1fr) auto auto auto;
+    grid-template-columns: minmax(13rem, 18rem) minmax(26rem, 1fr) auto;
     align-items: start;
     gap: 0.75rem;
 }
@@ -721,8 +721,82 @@ body.resizing-message-input {
     user-select: none;
 }
 
+.text-upgrade-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.chat-input-actions {
+    display: grid;
+    justify-items: end;
+    gap: 0.65rem;
+}
+
+.chat-input-actions-top {
+    display: flex;
+    align-items: start;
+    gap: 0.75rem;
+}
+
+.text-upgrade-control {
+    position: relative;
+    display: inline-flex;
+}
+
+.text-upgrade-main-btn,
+.text-upgrade-menu-btn {
+    min-height: 40px;
+    font-weight: 600;
+}
+
+.text-upgrade-main-btn {
+    border-radius: 0.75rem 0 0 0.75rem;
+    padding: 0 0.95rem;
+}
+
+.text-upgrade-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.35rem;
+    border-left: 0;
+    border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.text-upgrade-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.45rem);
+    z-index: 3;
+    display: grid;
+    min-width: 9rem;
+    overflow: hidden;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 0.75rem;
+    background: rgba(12, 14, 24, 0.98);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.36);
+}
+
+.text-upgrade-menu.hidden {
+    display: none;
+}
+
+.text-upgrade-menu button {
+    border: 0;
+    background: transparent;
+    color: var(--text-1);
+    padding: 0.7rem 0.85rem;
+    text-align: left;
+}
+
+.text-upgrade-menu button:hover,
+.text-upgrade-menu button.is-active {
+    background: rgba(139, 92, 246, 0.18);
+    color: var(--text-0);
+}
+
 .chat-input-row .quick-model-select,
-.chat-input-row > button {
+.chat-input-actions-top > button {
     height: 48px;
     min-height: 48px;
     align-self: start;
@@ -1673,7 +1747,7 @@ body.resizing-message-input {
     }
 
     .chat-input-row {
-        grid-template-columns: minmax(11rem, 14rem) minmax(18rem, 1fr) auto auto auto;
+        grid-template-columns: minmax(11rem, 14rem) minmax(18rem, 1fr) auto;
     }
 
     .chat-input-row #messageInput {
@@ -1779,6 +1853,32 @@ body.resizing-message-input {
 
     .message-input-shell {
         min-width: 0;
+    }
+
+    .chat-input-actions,
+    .chat-input-actions-top {
+        width: 100%;
+    }
+
+    .chat-input-actions {
+        justify-items: stretch;
+    }
+
+    .chat-input-actions-top {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .text-upgrade-row {
+        justify-content: stretch;
+    }
+
+    .text-upgrade-control {
+        width: 100%;
+    }
+
+    .text-upgrade-main-btn {
+        flex: 1 1 auto;
     }
 
     #messageInput {

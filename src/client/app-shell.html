@@ -1002,68 +1002,78 @@
                                     class="flex-1 px-5 py-3 rounded-xl"
                                 ></textarea>
                             </div>
-                            <button
-                                id="sendBtn"
-                                type="button"
-                                class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2"
-                            >
-                                <span>Send</span>
-                                <svg
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                                    ></path>
-                                </svg>
-                            </button>
-                            <button
-                                id="suggestBtn"
-                                type="button"
-                                class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
-                                title="Get writing suggestions based on the conversation"
-                            >
-                                <span>Suggest</span>
-                                <svg
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                                    ></path>
-                                </svg>
-                            </button>
-                            <button
-                                id="previewRequestBtn"
-                                type="button"
-                                class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
-                                title="Preview the API request for this message"
-                            >
-                                <span>Request</span>
-                                <svg
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9 17l-5-5 5-5m6 10l5-5-5-5"
-                                    ></path>
-                                </svg>
-                            </button>
+                            <div class="chat-input-actions">
+                                <div class="chat-input-actions-top">
+                                    <button
+                                        id="sendBtn"
+                                        type="button"
+                                        class="px-6 py-3 btn-primary rounded-xl font-semibold flex items-center gap-2"
+                                    >
+                                        <span>Send</span>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        id="suggestBtn"
+                                        type="button"
+                                        class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
+                                        title="Get writing suggestions based on the conversation"
+                                    >
+                                        <span>Suggest</span>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        id="previewRequestBtn"
+                                        type="button"
+                                        class="px-4 py-3 btn-secondary rounded-xl font-medium flex items-center gap-2"
+                                        title="Preview the API request for this message"
+                                    >
+                                        <span>Request</span>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m6 10l5-5-5-5"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="text-upgrade-row">
+                                    <input id="textUpgradeMode" type="hidden" value="normal" />
+                                    <div class="text-upgrade-control">
+                                        <button
+                                            id="upgradeTextBtn"
+                                            type="button"
+                                            class="text-upgrade-main-btn btn-secondary"
+                                            title="Upgrade the text in the message box"
+                                        >
+                                            <span>Upgrade</span>
+                                        </button>
+                                        <button
+                                            id="upgradeTextMenuBtn"
+                                            type="button"
+                                            class="text-upgrade-menu-btn btn-secondary"
+                                            aria-label="Choose text upgrade level"
+                                            aria-haspopup="menu"
+                                            aria-expanded="false"
+                                            title="Choose text upgrade level"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
+                                        <div
+                                            id="textUpgradeMenu"
+                                            class="text-upgrade-menu hidden"
+                                            role="menu"
+                                            aria-label="Text upgrade level"
+                                        >
+                                            <button type="button" data-upgrade-mode="minimal" role="menuitem">Minimal</button>
+                                            <button type="button" data-upgrade-mode="normal" role="menuitem">Normal</button>
+                                            <button type="button" data-upgrade-mode="full" role="menuitem">Full</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

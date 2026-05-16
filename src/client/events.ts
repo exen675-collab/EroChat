@@ -29,6 +29,12 @@ import { renderMessages, saveEditedAssistantMessage } from './messages.js';
 import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './legacy-main.js';
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
+import {
+    closeTextUpgradeMenu,
+    selectTextUpgradeMode,
+    toggleTextUpgradeMenu,
+    upgradeCurrentDraft
+} from './text-upgrade.js';
 import { requestConfirmation, showToast } from './notifications.js';
 import {
     renderProtectedSystemPromptBlocks,
@@ -161,6 +167,16 @@ export function setupEventListeners() {
 
     // Send button
     elements.sendBtn.addEventListener('click', sendMessage);
+    elements.upgradeTextBtn?.addEventListener('click', upgradeCurrentDraft);
+    elements.upgradeTextMenuBtn?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleTextUpgradeMenu();
+    });
+    elements.textUpgradeMenu?.addEventListener('click', (event) => {
+        const option = event.target.closest('[data-upgrade-mode]');
+        if (!option) return;
+        selectTextUpgradeMode(option.getAttribute('data-upgrade-mode'));
+    });
     elements.previewRequestBtn.addEventListener('click', openRequestPreview);
     elements.suggestBtn?.addEventListener('click', () => {
         import('./suggestions.js').then(({ fetchSuggestions, renderSuggestions }) => {
@@ -278,6 +294,11 @@ export function setupEventListeners() {
     });
 
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !elements.textUpgradeMenu?.classList.contains('hidden')) {
+            closeTextUpgradeMenu();
+            return;
+        }
+
         if (e.key === 'Escape' && !elements.advancedSettingsModal.classList.contains('hidden')) {
             ui.toggleAdvancedSettings(false);
             return;
@@ -305,6 +326,15 @@ export function setupEventListeners() {
 
         if (e.key === 'Escape' && !elements.editMessageModal.classList.contains('hidden')) {
             ui.closeEditMessageModal();
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (
+            !elements.textUpgradeMenu?.classList.contains('hidden') &&
+            !event.target.closest('.text-upgrade-control')
+        ) {
+            closeTextUpgradeMenu();
         }
     });
 

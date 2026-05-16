@@ -252,6 +252,37 @@ export async function sendOpenRouterChatRequest(apiMessages) {
     return data.choices[0].message.content;
 }
 
+export async function sendOpenRouterUtilityRequest({
+    model,
+    messages,
+    temperature = 0.2,
+    maxTokens = 1200
+}) {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${elements.openrouterKey.value}`,
+            'HTTP-Referer': window.location.href,
+            'X-Title': 'EroChat'
+        },
+        body: JSON.stringify({
+            model,
+            messages,
+            temperature,
+            max_tokens: maxTokens
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get response');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
+
 // Send chat completion request to selected provider
 export async function sendChatRequest(apiMessages) {
     return sendOpenRouterChatRequest(apiMessages);
