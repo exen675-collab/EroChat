@@ -182,6 +182,20 @@ describe('chat request preview builder', () => {
         });
     });
 
+    it('omits the protected image prompt block when language is none', () => {
+        expect(
+            buildChatApiMessages({
+                systemPrompt: `System\n\n${PROTECTED_SYSTEM_PROMPT_BLOCK}`,
+                protectedImagePromptLanguage: 'none',
+                historyMessages: [],
+                draftMessage: 'Hello'
+            })[0]
+        ).toEqual({
+            role: 'system',
+            content: 'System'
+        });
+    });
+
     it('adds accepted memory snapshots while preserving raw chat message content', () => {
         const rawAssistantContent = `Visible reply
 

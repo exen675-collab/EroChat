@@ -110,11 +110,14 @@ export const DEFAULT_CHARACTER_SYSTEM_PROMPT =
 export const DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE = 'pl';
 
 export function normalizeProtectedImagePromptLanguage(language = '') {
-    return language === 'en' ? 'en' : DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE;
+    return ['en', 'none'].includes(language) ? language : DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE;
 }
 
 export function getProtectedSystemPromptBlock(language = DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE) {
     const normalizedLanguage = normalizeProtectedImagePromptLanguage(language);
+    if (normalizedLanguage === 'none') {
+        return '';
+    }
     return getStaticPrompt(`protected-image-prompt-tail-${normalizedLanguage}`)?.content || '';
 }
 
