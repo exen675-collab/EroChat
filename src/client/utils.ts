@@ -58,6 +58,19 @@ export const SWARM_SAMPLERS = [
     'gradient_estimation_cfg_pp'
 ];
 
+export const IMAGE_SCHEDULERS = [
+    { value: '', label: 'None' },
+    { value: 'karras', label: 'karras' },
+    { value: 'normal', label: 'normal' },
+    { value: 'exponential', label: 'exponential' },
+    { value: 'sgm_uniform', label: 'sgm_uniform' },
+    { value: 'simple', label: 'simple' },
+    { value: 'ddim_uniform', label: 'ddim_uniform' },
+    { value: 'beta', label: 'beta' },
+    { value: 'linear_quadratic', label: 'linear_quadratic' },
+    { value: 'kl_optimal', label: 'kl_optimal' }
+];
+
 const SWARM_SAMPLER_ALIASES = {
     'euler a': 'euler_ancestral',
     'euler ancestral': 'euler_ancestral',
@@ -70,6 +83,26 @@ const SWARM_SAMPLER_ALIASES = {
     ddim: 'ddim',
     unipc: 'uni_pc',
     uni_pc: 'uni_pc'
+};
+
+const IMAGE_SCHEDULER_ALIASES = {
+    none: '',
+    off: '',
+    disabled: '',
+    no: '',
+    karras: 'karras',
+    normal: 'normal',
+    exponential: 'exponential',
+    'sgm uniform': 'sgm_uniform',
+    sgm_uniform: 'sgm_uniform',
+    simple: 'simple',
+    'ddim uniform': 'ddim_uniform',
+    ddim_uniform: 'ddim_uniform',
+    beta: 'beta',
+    'linear quadratic': 'linear_quadratic',
+    linear_quadratic: 'linear_quadratic',
+    'kl optimal': 'kl_optimal',
+    kl_optimal: 'kl_optimal'
 };
 
 const IMAGE_PROMPT_BLOCK_PATTERN = /---IMAGE_PROMPT START---[\s\S]*?---IMAGE_PROMPT END---/g;
@@ -135,6 +168,20 @@ export function normalizeSwarmSampler(value, fallback = 'euler_ancestral') {
     return SWARM_SAMPLER_ALIASES[normalized] || fallback;
 }
 
+export function normalizeImageScheduler(value, fallback = 'karras') {
+    const normalized = String(value ?? '')
+        .trim()
+        .toLowerCase();
+
+    if (normalized === '') {
+        return '';
+    }
+
+    return Object.prototype.hasOwnProperty.call(IMAGE_SCHEDULER_ALIASES, normalized)
+        ? IMAGE_SCHEDULER_ALIASES[normalized]
+        : fallback;
+}
+
 export function stripImagePromptBlocks(text) {
     return String(text ?? '').replace(IMAGE_PROMPT_BLOCK_PATTERN, '');
 }
@@ -176,6 +223,21 @@ export function syncSwarmSamplerSelect(select, value, fallback = 'euler_ancestra
 
     const nextValue = normalizeSwarmSampler(value, fallback);
     select.value = SWARM_SAMPLERS.includes(nextValue) ? nextValue : fallback;
+}
+
+export function syncImageSchedulerSelect(select, value, fallback = 'karras') {
+    if (!select) return;
+
+    if (select.options.length !== IMAGE_SCHEDULERS.length) {
+        select.innerHTML = IMAGE_SCHEDULERS.map(
+            (scheduler) => `<option value="${scheduler.value}">${scheduler.label}</option>`
+        ).join('');
+    }
+
+    const nextValue = normalizeImageScheduler(value, fallback);
+    select.value = IMAGE_SCHEDULERS.some((scheduler) => scheduler.value === nextValue)
+        ? nextValue
+        : fallback;
 }
 
 export function normalizeImageProvider(value, fallback = 'swarm') {

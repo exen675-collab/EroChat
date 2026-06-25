@@ -96,6 +96,7 @@ export async function executeGeneratorJob(job) {
             steps: request.steps,
             cfgScale: request.cfgScale,
             sampler: request.sampler,
+            scheduler: request.scheduler,
             seedMode: request.seedMode,
             baseSeed: request.baseSeed
         });

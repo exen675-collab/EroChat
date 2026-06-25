@@ -560,6 +560,7 @@ export function setupEventListeners() {
             steps: parseInt(elements.steps.value, 10),
             cfgScale: parseFloat(elements.cfgScale.value),
             sampler: elements.sampler.value,
+            scheduler: elements.scheduler.value,
             systemPrompt: editableSystemPrompt
         };
         setCurrentChatContextLimit(nextContextMessageCount);

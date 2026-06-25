@@ -36,6 +36,7 @@ export const defaultSettings = {
     steps: 25,
     cfgScale: 7,
     sampler: 'euler_ancestral',
+    scheduler: 'karras',
     systemPrompt: defaultCharacter.systemPrompt
 };
 
@@ -57,6 +58,7 @@ export const defaultGeneratorPrefs = {
     swarmSteps: 25,
     swarmCfgScale: 7,
     swarmSampler: 'euler_ancestral',
+    swarmScheduler: 'karras',
     swarmSeedMode: 'random',
     swarmBaseSeed: 1,
     promptPresets: []

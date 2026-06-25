@@ -20,7 +20,12 @@ import {
     runPromptHelperAction
 } from './prompt-helper.js';
 import { uploadFileForStorage } from './media.js';
-import { normalizeSwarmSampler, syncSwarmSamplerSelect } from './utils.js';
+import {
+    normalizeImageScheduler,
+    normalizeSwarmSampler,
+    syncImageSchedulerSelect,
+    syncSwarmSamplerSelect
+} from './utils.js';
 import { recordGeneratedMedia, recordGeneratorBatch } from './stats.js';
 
 let elements = null;
@@ -50,6 +55,7 @@ function getElements() {
         generatorSwarmSteps: document.getElementById('generatorSwarmSteps'),
         generatorSwarmCfgScale: document.getElementById('generatorSwarmCfgScale'),
         generatorSwarmSampler: document.getElementById('generatorSwarmSampler'),
+        generatorSwarmScheduler: document.getElementById('generatorSwarmScheduler'),
         generatorSwarmSeedMode: document.getElementById('generatorSwarmSeedMode'),
         generatorSwarmBaseSeed: document.getElementById('generatorSwarmBaseSeed'),
         generatorHelperProvider: document.getElementById('generatorHelperProvider'),
@@ -157,6 +163,10 @@ function applyPrefsToForm() {
     if (elements.generatorSwarmCfgScale)
         elements.generatorSwarmCfgScale.value = state.generatorPrefs.swarmCfgScale || 7;
     syncSwarmSamplerSelect(elements.generatorSwarmSampler, state.generatorPrefs.swarmSampler);
+    syncImageSchedulerSelect(
+        elements.generatorSwarmScheduler,
+        state.generatorPrefs.swarmScheduler
+    );
     if (elements.generatorSwarmSeedMode)
         elements.generatorSwarmSeedMode.value = state.generatorPrefs.swarmSeedMode || 'random';
     if (elements.generatorSwarmBaseSeed)
@@ -372,6 +382,7 @@ function readPrefsFromForm() {
         swarmSteps: parseInt(elements.generatorSwarmSteps.value, 10) || 25,
         swarmCfgScale: parseFloat(elements.generatorSwarmCfgScale.value) || 7,
         swarmSampler: elements.generatorSwarmSampler.value,
+        swarmScheduler: elements.generatorSwarmScheduler.value,
         swarmSeedMode: elements.generatorSwarmSeedMode.value,
         swarmBaseSeed: parseInt(elements.generatorSwarmBaseSeed.value, 10) || 1
     });
@@ -415,6 +426,7 @@ function buildJobRequests() {
                 steps: state.generatorPrefs.swarmSteps,
                 cfgScale: state.generatorPrefs.swarmCfgScale,
                 sampler: normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
+                scheduler: normalizeImageScheduler(state.generatorPrefs.swarmScheduler),
                 seedMode: state.generatorPrefs.swarmSeedMode,
                 baseSeed:
                     state.generatorPrefs.swarmSeedMode === 'increment'
@@ -611,6 +623,7 @@ function bindEvents() {
         elements.generatorSwarmSteps,
         elements.generatorSwarmCfgScale,
         elements.generatorSwarmSampler,
+        elements.generatorSwarmScheduler,
         elements.generatorSwarmSeedMode,
         elements.generatorSwarmBaseSeed,
         elements.generatorEditAspectRatio,

@@ -1,7 +1,12 @@
 // @ts-nocheck
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { updateConnectionStatus, normalizeBaseUrl, normalizeSwarmSampler } from './utils.js';
+import {
+    updateConnectionStatus,
+    normalizeBaseUrl,
+    normalizeSwarmSampler,
+    normalizeImageScheduler
+} from './utils.js';
 
 const SWARM_ALLOWED_ASPECT_RATIOS = [
     '1:1',
@@ -228,10 +233,14 @@ function buildSwarmPayload(options = {}) {
         ? options.cfgScale
         : parseFloat(elements.cfgScale.value);
     const sampler = normalizeSwarmSampler(options.sampler || elements.sampler.value);
+    const scheduler = normalizeImageScheduler(
+        options.scheduler ?? elements.scheduler.value,
+        state.settings.scheduler
+    );
     const seedMode = options.seedMode || 'random';
     const baseSeed = Number.isFinite(options.baseSeed) ? Math.trunc(options.baseSeed) : 1;
 
-    return {
+    const payload = {
         session_id: state.sessionId,
         images: batchCount,
         batchsize: String(batchCount),
@@ -246,7 +255,6 @@ function buildSwarmPayload(options = {}) {
         steps,
         cfgscale: cfgScale,
         sampler_name: sampler,
-        scheduler: 'karras',
         seed: seedMode === 'random' ? -1 : baseSeed,
         aspectratio: resolveSwarmAspectRatio(width, height),
         automaticvae: true,
@@ -254,6 +262,12 @@ function buildSwarmPayload(options = {}) {
         colorcorrectionbehavior: 'None',
         colordepth: '8bit'
     };
+
+    if (scheduler) {
+        payload.scheduler = scheduler;
+    }
+
+    return payload;
 }
 
 export async function generateLocalImages(options = {}) {

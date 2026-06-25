@@ -8,9 +8,11 @@ import { ensureStatisticsShape } from './stats.js';
 import {
     generateId,
     normalizeContextMessageCount,
+    normalizeImageScheduler,
     normalizeImageProvider,
     normalizeMessageInputHeight,
     normalizeSwarmSampler,
+    syncImageSchedulerSelect,
     syncSwarmSamplerSelect
 } from './utils.js';
 import {
@@ -267,6 +269,7 @@ export function loadFromLocalStorage() {
                         state.settings.protectedImagePromptLanguage
                     );
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
+                state.settings.scheduler = normalizeImageScheduler(state.settings.scheduler);
                 state.settings.contextMessageCount = normalizeContextMessageCount(
                     state.settings.contextMessageCount
                 );
@@ -316,6 +319,9 @@ export function loadFromLocalStorage() {
                 Object.assign(state.generatorPrefs, parsed.generatorPrefs);
                 state.generatorPrefs.swarmSampler = normalizeSwarmSampler(
                     state.generatorPrefs.swarmSampler
+                );
+                state.generatorPrefs.swarmScheduler = normalizeImageScheduler(
+                    state.generatorPrefs.swarmScheduler
                 );
             }
             state.statistics = ensureStatisticsShape(parsed.statistics);
@@ -431,6 +437,7 @@ export function updateSettingsUI() {
     elements.cfgScale.value = state.settings.cfgScale;
     elements.cfgValue.textContent = state.settings.cfgScale;
     syncSwarmSamplerSelect(elements.sampler, state.settings.sampler);
+    syncImageSchedulerSelect(elements.scheduler, state.settings.scheduler);
     state.settings.systemPrompt = stripProtectedSystemPromptBlocks(state.settings.systemPrompt);
     elements.systemPrompt.value = state.settings.systemPrompt;
     renderProtectedSystemPromptBlocks(

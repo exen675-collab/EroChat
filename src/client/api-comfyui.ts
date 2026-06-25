@@ -1,7 +1,12 @@
 // @ts-nocheck
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { updateConnectionStatus, normalizeBaseUrl, normalizeSwarmSampler } from './utils.js';
+import {
+    updateConnectionStatus,
+    normalizeBaseUrl,
+    normalizeSwarmSampler,
+    normalizeImageScheduler
+} from './utils.js';
 
 const DEFAULT_NEGATIVE_PROMPT = ' (bad quality:1.15), (worst quality:1.3)';
 const COMFY_POLL_INTERVAL_MS = 1000;
@@ -194,12 +199,32 @@ function buildComfyWorkflow(options = {}) {
         parseFloat(elements.cfgScale.value) || 7
     );
     const sampler = normalizeSwarmSampler(options.sampler || elements.sampler.value);
+    const scheduler = normalizeImageScheduler(
+        options.scheduler ?? elements.scheduler.value,
+        state.settings.scheduler
+    );
     const negativePrompt =
         typeof options.negativePrompt === 'string' && options.negativePrompt.trim()
             ? options.negativePrompt
             : DEFAULT_NEGATIVE_PROMPT;
     const seed = Math.max(1, normalizePositiveInteger(options.seed, 1));
     const model = options.model || elements.comfyModel.value;
+
+    const kSamplerInputs = {
+        seed,
+        steps,
+        cfg: cfgScale,
+        sampler_name: sampler,
+        denoise: 1,
+        model: ['1', 0],
+        positive: ['2', 0],
+        negative: ['3', 0],
+        latent_image: ['4', 0]
+    };
+
+    if (scheduler) {
+        kSamplerInputs.scheduler = scheduler;
+    }
 
     return {
         1: {
@@ -232,18 +257,7 @@ function buildComfyWorkflow(options = {}) {
         },
         5: {
             class_type: 'KSampler',
-            inputs: {
-                seed,
-                steps,
-                cfg: cfgScale,
-                sampler_name: sampler,
-                scheduler: 'karras',
-                denoise: 1,
-                model: ['1', 0],
-                positive: ['2', 0],
-                negative: ['3', 0],
-                latent_image: ['4', 0]
-            }
+            inputs: kSamplerInputs
         },
         6: {
             class_type: 'VAEDecode',

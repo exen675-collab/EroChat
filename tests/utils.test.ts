@@ -9,6 +9,7 @@ import {
     getContextMessageIdSet,
     normalizeBaseUrl,
     normalizeContextMessageCount,
+    normalizeImageScheduler,
     normalizeImageProvider,
     normalizeSwarmSampler,
     normalizeTtsVoiceId,
@@ -37,6 +38,14 @@ describe('utils helpers', () => {
         expect(normalizeContextMessageCount('0')).toBe(20);
         expect(normalizeContextMessageCount('21')).toBe(40);
         expect(normalizeContextMessageCount('nope')).toBe(20);
+    });
+
+    it('normalizes scheduler aliases and allows none to omit scheduler', () => {
+        expect(normalizeImageScheduler('Karras')).toBe('karras');
+        expect(normalizeImageScheduler('sgm uniform')).toBe('sgm_uniform');
+        expect(normalizeImageScheduler('none')).toBe('');
+        expect(normalizeImageScheduler('')).toBe('');
+        expect(normalizeImageScheduler('unknown')).toBe('karras');
     });
 
     it('normalizes TTS voices against an allow list', () => {

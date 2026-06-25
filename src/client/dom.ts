@@ -82,6 +82,7 @@ export const elements: Record<string, any> = {
     cfgScale: document.getElementById('cfgScale'),
     cfgValue: document.getElementById('cfgValue'),
     sampler: document.getElementById('sampler'),
+    scheduler: document.getElementById('scheduler'),
     systemPrompt: document.getElementById('systemPrompt'),
     protectedSystemPromptBlock: document.getElementById('protectedSystemPromptBlock'),
 
