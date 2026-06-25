@@ -175,14 +175,25 @@ export async function fetchOpenRouterModels(silent = false) {
     }
 }
 
-function ensureStaticSystemPromptBlock(messages) {
+function getSelectedProtectedImagePromptLanguage() {
+    return (
+        elements.protectedImagePromptLanguage?.value ||
+        state.settings.protectedImagePromptLanguage ||
+        'pl'
+    );
+}
+
+function ensureStaticSystemPromptBlock(
+    messages,
+    language = getSelectedProtectedImagePromptLanguage()
+) {
     if (!Array.isArray(messages)) return messages;
 
     return messages.map((message, index) =>
         index === 0 && message?.role === 'system'
             ? {
                   ...message,
-                  content: buildSystemPromptWithStaticBlocks(message.content)
+                  content: buildSystemPromptWithStaticBlocks(message.content, language)
               }
             : message
     );
@@ -198,7 +209,10 @@ export async function sendOpenRouterChatRequest(apiMessages) {
                   ...apiMessages,
                   body: {
                       ...apiMessages.body,
-                      messages: ensureStaticSystemPromptBlock(apiMessages.body.messages)
+                      messages: ensureStaticSystemPromptBlock(
+                          apiMessages.body.messages,
+                          apiMessages.protectedImagePromptLanguage
+                      )
                   }
               }
             : apiMessages;

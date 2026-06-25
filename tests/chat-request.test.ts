@@ -196,6 +196,17 @@ describe('chat request preview builder', () => {
         });
     });
 
+    it('keeps the selected protected image prompt language on the final request preview', () => {
+        const preview = buildChatRequestPreview({
+            systemPrompt: 'System',
+            protectedImagePromptLanguage: 'none',
+            historyMessages: [],
+            draftMessage: 'Hello'
+        });
+
+        expect(preview.protectedImagePromptLanguage).toBe('none');
+    });
+
     it('adds accepted memory snapshots while preserving raw chat message content', () => {
         const rawAssistantContent = `Visible reply
 

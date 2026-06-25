@@ -126,6 +126,7 @@ export function buildChatRequestPreview({
         provider,
         method: 'POST',
         url: 'https://openrouter.ai/api/v1/chat/completions',
+        protectedImagePromptLanguage,
         headers,
         body,
         displayText: formatChatRequestPreview({
