@@ -305,12 +305,13 @@ export function getOpenRouterQuickAccessModels() {
         models.push(normalized);
     };
 
+    normalizeStringList(state.settings.favoriteOpenRouterModels).forEach(addModel);
     getTopOpenRouterModels().forEach(addModel);
     normalizeStringList(statistics.recentModels.openrouter)
         .slice(0, QUICK_ACCESS_RECENT_COUNT)
         .forEach(addModel);
 
-    return models.slice(0, QUICK_ACCESS_MOST_USED_COUNT + QUICK_ACCESS_RECENT_COUNT);
+    return models.slice(0, QUICK_ACCESS_MOST_USED_COUNT + QUICK_ACCESS_RECENT_COUNT + 8);
 }
 
 export function touchOpenRouterRecentModel(model, createdAt = null) {

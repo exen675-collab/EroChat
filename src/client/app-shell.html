@@ -968,14 +968,17 @@
                     </nav>
 
                     <div class="app-header-right">
-                        <div
-                            class="px-3 py-1 rounded-full bg-black/30 border border-purple-900/40 text-sm"
+                        <button
+                            id="openProfileSettingsBtn"
+                            type="button"
+                            class="user-profile-chip"
+                            title="Open user settings"
                         >
                             <span class="text-gray-400">User:</span>
                             <span id="currentUsername" class="text-cyan-300 font-medium"
                                 >Loading...</span
                             >
-                        </div>
+                        </button>
                         <div
                             class="px-3 py-1 rounded-full bg-black/30 border border-cyan-900/40 text-sm"
                         >
@@ -1004,6 +1007,119 @@
                         </div>
                     </div>
                 </header>
+
+                <div
+                    id="profileSettingsModal"
+                    class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center p-4"
+                >
+                    <div class="profile-settings-dialog">
+                        <div class="profile-settings-header">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.2em] text-cyan-300 mb-2">
+                                    User settings
+                                </p>
+                                <h2 class="text-xl font-semibold text-gray-100">Profile</h2>
+                            </div>
+                            <button
+                                id="closeProfileSettingsBtn"
+                                type="button"
+                                class="profile-icon-btn"
+                                aria-label="Close user settings"
+                            >
+                                <svg
+                                    class="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    ></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="profile-settings-body">
+                            <section class="profile-settings-section">
+                                <h3>Account</h3>
+                                <label>
+                                    <span>Username</span>
+                                    <input
+                                        id="profileUsernameInput"
+                                        type="text"
+                                        autocomplete="username"
+                                        class="w-full px-4 py-2 rounded-lg text-sm"
+                                    />
+                                </label>
+                                <label>
+                                    <span>Current password</span>
+                                    <input
+                                        id="profileCurrentPasswordInput"
+                                        type="password"
+                                        autocomplete="current-password"
+                                        class="w-full px-4 py-2 rounded-lg text-sm"
+                                    />
+                                </label>
+                                <label>
+                                    <span>New password</span>
+                                    <input
+                                        id="profileNewPasswordInput"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        class="w-full px-4 py-2 rounded-lg text-sm"
+                                    />
+                                </label>
+                                <label>
+                                    <span>Confirm new password</span>
+                                    <input
+                                        id="profileConfirmPasswordInput"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        class="w-full px-4 py-2 rounded-lg text-sm"
+                                    />
+                                </label>
+                            </section>
+
+                            <section class="profile-settings-section">
+                                <div class="profile-section-heading">
+                                    <h3>Favorite models</h3>
+                                    <button
+                                        id="addFavoriteModelBtn"
+                                        type="button"
+                                        class="btn-secondary profile-add-btn"
+                                    >
+                                        Add selected
+                                    </button>
+                                </div>
+                                <div id="favoriteModelsList" class="favorite-models-list"></div>
+                            </section>
+                        </div>
+
+                        <p id="profileStatus" class="profile-status text-gray-400">
+                            Manage account details and quick access models.
+                        </p>
+
+                        <div class="profile-settings-actions">
+                            <button
+                                id="cancelProfileSettingsBtn"
+                                type="button"
+                                class="btn-secondary px-4 py-2 rounded-lg font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                id="saveProfileSettingsBtn"
+                                type="button"
+                                class="btn-primary px-4 py-2 rounded-lg font-semibold"
+                            >
+                                Save profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="chatView" class="flex-1 flex flex-col min-h-0">
                     <!-- Chat Messages -->

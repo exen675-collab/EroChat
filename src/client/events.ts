@@ -20,6 +20,7 @@ import { fetchNanoGptModels } from './api-nanogpt.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import {
     fetchOpenRouterModels,
+    getOpenRouterModelLabel,
     renderOpenRouterQuickModelSelect,
     selectOpenRouterModel,
     setupModelSearch
@@ -27,7 +28,12 @@ import {
 import { fetchAdminUsers, handleAdminUsersListClick } from './admin.js';
 import { saveToLocalStorage } from './storage.js';
 import { renderMessages, saveEditedAssistantMessage } from './messages.js';
-import { openRequestPreview, sendMessage, updateRequestPreviewButtonState } from './legacy-main.js';
+import {
+    openRequestPreview,
+    sendMessage,
+    updateCurrentUserUI,
+    updateRequestPreviewButtonState
+} from './legacy-main.js';
 import { importCharacterCardFile } from './character-import.js';
 import { clearSuggestions } from './suggestions.js';
 import {
@@ -50,6 +56,157 @@ import {
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
+}
+
+function normalizeFavoriteOpenRouterModels(value) {
+    return Array.isArray(value)
+        ? Array.from(
+              new Set(value.map((model) => String(model || '').trim()).filter(Boolean))
+          ).slice(0, 12)
+        : [];
+}
+
+function setProfileStatus(message = '', isError = false) {
+    if (!elements.profileStatus) return;
+    elements.profileStatus.textContent = message;
+    elements.profileStatus.classList.toggle('text-red-300', isError);
+    elements.profileStatus.classList.toggle('text-gray-400', !isError);
+}
+
+function renderFavoriteModelsList() {
+    if (!elements.favoriteModelsList) return;
+
+    state.settings.favoriteOpenRouterModels = normalizeFavoriteOpenRouterModels(
+        state.settings.favoriteOpenRouterModels
+    );
+
+    const models = state.settings.favoriteOpenRouterModels;
+    if (models.length === 0) {
+        elements.favoriteModelsList.innerHTML =
+            '<p class="profile-empty-copy">No favorite models yet.</p>';
+        return;
+    }
+
+    elements.favoriteModelsList.innerHTML = '';
+    models.forEach((model) => {
+        const row = document.createElement('div');
+        row.className = 'favorite-model-row';
+
+        const label = document.createElement('span');
+        label.textContent = getOpenRouterModelLabel(model);
+        row.appendChild(label);
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'favorite-model-remove';
+        removeButton.dataset.model = model;
+        removeButton.textContent = 'Remove';
+        row.appendChild(removeButton);
+
+        elements.favoriteModelsList.appendChild(row);
+    });
+}
+
+function openProfileSettings() {
+    if (!elements.profileSettingsModal) return;
+
+    elements.profileUsernameInput.value = state.currentUser?.username || '';
+    elements.profileCurrentPasswordInput.value = '';
+    elements.profileNewPasswordInput.value = '';
+    elements.profileConfirmPasswordInput.value = '';
+    setProfileStatus('Manage account details and quick access models.');
+    renderFavoriteModelsList();
+    elements.profileSettingsModal.classList.remove('hidden');
+    elements.profileSettingsModal.classList.add('flex');
+    elements.profileUsernameInput.focus();
+}
+
+function closeProfileSettings() {
+    if (!elements.profileSettingsModal) return;
+    elements.profileSettingsModal.classList.remove('flex');
+    elements.profileSettingsModal.classList.add('hidden');
+}
+
+function addSelectedFavoriteModel() {
+    const model = String(
+        elements.openrouterModel?.value || state.settings.openrouterModel || ''
+    ).trim();
+    if (!model) {
+        setProfileStatus('Select an OpenRouter model first.', true);
+        return;
+    }
+
+    state.settings.favoriteOpenRouterModels = normalizeFavoriteOpenRouterModels([
+        model,
+        ...(state.settings.favoriteOpenRouterModels || [])
+    ]);
+    saveToLocalStorage();
+    renderFavoriteModelsList();
+    renderOpenRouterQuickModelSelect();
+    setProfileStatus('Favorite model added.');
+}
+
+async function saveProfileSettings() {
+    const username = String(elements.profileUsernameInput?.value || '').trim();
+    const currentPassword = String(elements.profileCurrentPasswordInput?.value || '');
+    const newPassword = String(elements.profileNewPasswordInput?.value || '');
+    const confirmPassword = String(elements.profileConfirmPasswordInput?.value || '');
+
+    if (!/^[a-zA-Z0-9_-]{3,24}$/.test(username)) {
+        setProfileStatus('Username must be 3-24 chars: letters, numbers, _ or -.', true);
+        return;
+    }
+
+    if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+            setProfileStatus('New passwords do not match.', true);
+            return;
+        }
+        if (newPassword.length < 6 || newPassword.length > 128) {
+            setProfileStatus('Password must be between 6 and 128 characters.', true);
+            return;
+        }
+        if (!currentPassword) {
+            setProfileStatus('Enter your current password to change it.', true);
+            return;
+        }
+    }
+
+    const originalLabel = elements.saveProfileSettingsBtn.textContent;
+    elements.saveProfileSettingsBtn.disabled = true;
+    elements.saveProfileSettingsBtn.textContent = 'Saving...';
+    setProfileStatus('Saving profile...');
+
+    try {
+        const response = await fetch('/api/auth/profile', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                currentPassword,
+                newPassword
+            })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to update profile.');
+        }
+
+        state.currentUser = data.user;
+        updateCurrentUserUI();
+        setProfileStatus('Profile updated.');
+        showToast('Profile updated.', { type: 'success' });
+        elements.profileCurrentPasswordInput.value = '';
+        elements.profileNewPasswordInput.value = '';
+        elements.profileConfirmPasswordInput.value = '';
+    } catch (error) {
+        setProfileStatus(error.message || 'Failed to update profile.', true);
+    } finally {
+        elements.saveProfileSettingsBtn.disabled = false;
+        elements.saveProfileSettingsBtn.textContent = originalLabel;
+    }
 }
 
 // Setup all event listeners
@@ -215,6 +372,29 @@ export function setupEventListeners() {
             window.location.href = '/';
         }
     });
+    elements.openProfileSettingsBtn?.addEventListener('click', openProfileSettings);
+    elements.closeProfileSettingsBtn?.addEventListener('click', closeProfileSettings);
+    elements.cancelProfileSettingsBtn?.addEventListener('click', closeProfileSettings);
+    elements.saveProfileSettingsBtn?.addEventListener('click', saveProfileSettings);
+    elements.addFavoriteModelBtn?.addEventListener('click', addSelectedFavoriteModel);
+    elements.favoriteModelsList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.favorite-model-remove');
+        if (!button) return;
+
+        const model = button.dataset.model || '';
+        state.settings.favoriteOpenRouterModels = normalizeFavoriteOpenRouterModels(
+            state.settings.favoriteOpenRouterModels
+        ).filter((item) => item !== model);
+        saveToLocalStorage();
+        renderFavoriteModelsList();
+        renderOpenRouterQuickModelSelect();
+        setProfileStatus('Favorite model removed.');
+    });
+    elements.profileSettingsModal?.addEventListener('click', (event) => {
+        if (event.target === elements.profileSettingsModal) {
+            closeProfileSettings();
+        }
+    });
 
     let gallerySearchPersistTimer = null;
     const persistGallerySearchSoon = () => {
@@ -302,6 +482,11 @@ export function setupEventListeners() {
 
         if (e.key === 'Escape' && !elements.advancedSettingsModal.classList.contains('hidden')) {
             ui.toggleAdvancedSettings(false);
+            return;
+        }
+
+        if (e.key === 'Escape' && !elements.profileSettingsModal?.classList.contains('hidden')) {
+            closeProfileSettings();
             return;
         }
 
@@ -557,6 +742,9 @@ export function setupEventListeners() {
             textProvider: elements.textProvider.value,
             openrouterKey: elements.openrouterKey.value,
             openrouterModel: elements.openrouterModel.value,
+            favoriteOpenRouterModels: normalizeFavoriteOpenRouterModels(
+                state.settings.favoriteOpenRouterModels
+            ),
             openrouterReasoningEnabled: elements.openrouterReasoningEnabled.checked,
             openrouterReasoningEffort: elements.openrouterReasoningEffort.value,
             swarmUrl: normalizeBaseUrl(elements.swarmUrl.value),

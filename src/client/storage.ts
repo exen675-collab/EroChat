@@ -275,6 +275,13 @@ export function loadFromLocalStorage() {
                 state.settings.messageInputHeight = normalizeMessageInputHeight(
                     state.settings.messageInputHeight
                 );
+                state.settings.favoriteOpenRouterModels = Array.isArray(
+                    state.settings.favoriteOpenRouterModels
+                )
+                    ? state.settings.favoriteOpenRouterModels
+                          .map((model) => String(model || '').trim())
+                          .filter(Boolean)
+                    : [];
                 state.settings.systemPrompt = stripProtectedSystemPromptBlocks(
                     state.settings.systemPrompt
                 );
@@ -406,6 +413,11 @@ export function updateSettingsUI() {
     elements.textProvider.value = state.settings.textProvider || 'premium';
     elements.openrouterKey.value = state.settings.openrouterKey;
     elements.openrouterModel.value = state.settings.openrouterModel;
+    state.settings.favoriteOpenRouterModels = Array.isArray(state.settings.favoriteOpenRouterModels)
+        ? state.settings.favoriteOpenRouterModels
+              .map((model) => String(model || '').trim())
+              .filter(Boolean)
+        : [];
     elements.openrouterReasoningEnabled.checked =
         state.settings.openrouterReasoningEnabled === true;
     elements.openrouterReasoningEffort.value = state.settings.openrouterReasoningEffort || 'medium';

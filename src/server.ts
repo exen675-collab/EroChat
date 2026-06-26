@@ -852,6 +852,92 @@ app.get('/api/auth/me', async (req, res) => {
     }
 });
 
+app.patch('/api/auth/profile', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const username = sanitizeUsername(req.body?.username);
+    const currentPassword =
+        typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+    const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+
+    if (!isValidUsername(username)) {
+        res.status(400).json({ error: 'Username must be 3-24 chars: letters, numbers, _ or -.' });
+        return;
+    }
+
+    if (newPassword && !isValidPassword(newPassword)) {
+        res.status(400).json({ error: 'Password must be between 6 and 128 characters.' });
+        return;
+    }
+
+    try {
+        const user = await get(
+            'SELECT id, username, password_hash, credits, is_admin FROM users WHERE id = ?',
+            [userId]
+        );
+        if (!user) {
+            res.status(404).json({ error: 'User not found.' });
+            return;
+        }
+
+        const updates = [];
+        const params = [];
+
+        if (username.toLowerCase() !== String(user.username || '').toLowerCase()) {
+            const existing = await get(
+                'SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id <> ?',
+                [username, userId]
+            );
+            if (existing) {
+                res.status(409).json({ error: 'Username is already taken.' });
+                return;
+            }
+            updates.push('username = ?');
+            params.push(username);
+        }
+
+        if (newPassword) {
+            if (!currentPassword) {
+                res.status(400).json({ error: 'Current password is required.' });
+                return;
+            }
+
+            const passwordOk = await bcrypt.compare(currentPassword, user.password_hash);
+            if (!passwordOk) {
+                res.status(401).json({ error: 'Current password is incorrect.' });
+                return;
+            }
+
+            updates.push('password_hash = ?');
+            params.push(await bcrypt.hash(newPassword, 12));
+        }
+
+        if (updates.length > 0) {
+            await run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...params, userId]);
+        }
+
+        const updated = await get(
+            'SELECT id, username, credits, is_admin FROM users WHERE id = ?',
+            [userId]
+        );
+        const isAdmin = Number.parseInt(updated.is_admin, 10) === 1;
+        req.session.username = updated.username;
+        req.session.isAdmin = isAdmin;
+
+        res.json({
+            ok: true,
+            user: {
+                id: updated.id,
+                username: updated.username,
+                credits: Number.isFinite(updated.credits) ? updated.credits : 0,
+                isAdmin
+            }
+        });
+    } catch (error) {
+        console.error('Profile update failed:', error);
+        res.status(500).json({ error: 'Failed to update profile.' });
+    }
+});
+
 app.get('/api/credits/me', requireApiAuth, async (req, res) => {
     try {
         const credits = await getUserCredits(req.session.userId);
@@ -976,7 +1062,9 @@ app.post('/api/nanogpt/images', requireApiAuth, async (req, res) => {
     const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
     const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
     const payload =
-        req.body?.payload && typeof req.body.payload === 'object' && !Array.isArray(req.body.payload)
+        req.body?.payload &&
+        typeof req.body.payload === 'object' &&
+        !Array.isArray(req.body.payload)
             ? req.body.payload
             : null;
 

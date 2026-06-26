@@ -18,6 +18,7 @@ export const defaultSettings = {
     textProvider: 'openrouter',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
+    favoriteOpenRouterModels: [],
     openrouterReasoningEnabled: false,
     openrouterReasoningEffort: 'medium',
     openrouterTtsModel: 'x-ai/grok-voice-tts-1.0',

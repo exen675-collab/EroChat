@@ -242,6 +242,171 @@ select:focus {
     backdrop-filter: blur(4px);
 }
 
+.user-profile-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 32px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88, 28, 135, 0.4);
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 0.875rem;
+    transition:
+        border-color 160ms ease,
+        background 160ms ease;
+}
+
+.user-profile-chip:hover,
+.user-profile-chip:focus-visible {
+    border-color: rgba(34, 211, 238, 0.55);
+    background: rgba(8, 145, 178, 0.12);
+}
+
+.profile-settings-dialog {
+    width: min(44rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(12, 13, 23, 0.98), rgba(8, 9, 17, 0.98));
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+}
+
+.profile-settings-header,
+.profile-settings-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.profile-settings-actions {
+    justify-content: flex-end;
+    border-top: 1px solid rgba(139, 92, 246, 0.18);
+    border-bottom: 0;
+}
+
+.profile-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgb(209, 213, 219);
+}
+
+.profile-icon-btn:hover,
+.profile-icon-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.profile-settings-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.profile-settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.profile-settings-section h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgb(229, 231, 235);
+}
+
+.profile-settings-section label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.profile-settings-section label span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgb(156, 163, 175);
+}
+
+.profile-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.profile-add-btn {
+    min-height: 36px;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.favorite-models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.favorite-model-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.625rem;
+    background: rgba(15, 23, 42, 0.62);
+    color: rgb(229, 231, 235);
+    font-size: 0.85rem;
+}
+
+.favorite-model-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.favorite-model-remove {
+    flex-shrink: 0;
+    color: rgb(248, 113, 113);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.favorite-model-remove:hover,
+.favorite-model-remove:focus-visible {
+    color: rgb(254, 202, 202);
+}
+
+.profile-empty-copy,
+.profile-status {
+    font-size: 0.85rem;
+}
+
+.profile-empty-copy {
+    color: rgb(107, 114, 128);
+}
+
+.profile-status {
+    min-height: 1.25rem;
+    padding: 0 1rem 1rem;
+}
+
 .request-preview-summary {
     display: flex;
     flex-wrap: wrap;
@@ -1743,6 +1908,10 @@ body.resizing-message-input {
     }
 
     .advanced-settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-settings-body {
         grid-template-columns: 1fr;
     }
 

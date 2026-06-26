@@ -129,7 +129,7 @@ async function loadCurrentUser() {
     }
 }
 
-function updateCurrentUserUI() {
+export function updateCurrentUserUI() {
     if (!elements.currentUsername || !elements.currentCredits) return;
     if (!state.currentUser?.username) {
         elements.currentUsername.textContent = 'Unknown user';

@@ -13,7 +13,7 @@ import {
 // Store fetched models for filtering
 let fetchedModels = [];
 
-function getFetchedModelLabel(modelId) {
+export function getOpenRouterModelLabel(modelId) {
     const model = fetchedModels.find((item) => item.id === modelId);
     return model ? `${model.name} (${model.id})` : modelId;
 }
@@ -29,7 +29,7 @@ function ensureModelOption(select, modelId) {
 
     const option = document.createElement('option');
     option.value = modelId;
-    option.textContent = getFetchedModelLabel(modelId);
+    option.textContent = getOpenRouterModelLabel(modelId);
     select.appendChild(option);
 }
 
@@ -44,7 +44,8 @@ export function renderOpenRouterQuickModelSelect() {
     models.forEach((model) => {
         const option = document.createElement('option');
         option.value = model;
-        option.textContent = getFetchedModelLabel(model);
+        const isFavorite = state.settings.favoriteOpenRouterModels?.includes(model);
+        option.textContent = `${isFavorite ? 'Favorite: ' : ''}${getOpenRouterModelLabel(model)}`;
         elements.openrouterQuickModel.appendChild(option);
     });
 
