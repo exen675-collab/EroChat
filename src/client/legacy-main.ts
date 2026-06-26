@@ -25,8 +25,14 @@ import { escapeHtml, generateId, normalizeImageProvider } from './utils.js';
 import { persistImageForStorage } from './media.js';
 import { setupEventListeners } from './events.js';
 import { editAssistantMessage, regenerateImage } from './messages.js';
-import { selectCharacter, deleteCharacter, editCharacter, branchChatFromMessage } from './characters.js';
+import {
+    selectCharacter,
+    deleteCharacter,
+    editCharacter,
+    branchChatFromMessage
+} from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
+import { fetchNanoGptModels } from './api-nanogpt.js';
 import { fetchOpenRouterModels, renderOpenRouterQuickModelSelect } from './api-openrouter.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import { syncAdminPanelVisibility, fetchAdminUsers } from './admin.js';
@@ -206,6 +212,34 @@ export async function sendMessage() {
         return;
     }
 
+    if (
+        state.settings.enableImageGeneration !== false &&
+        imageProvider === 'nanogpt' &&
+        !elements.nanogptKey.value
+    ) {
+        showToast('Please enter your NanoGPT API key in settings or disable image generation.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
+        toggleAdvancedSettings(true);
+        return;
+    }
+
+    if (
+        state.settings.enableImageGeneration !== false &&
+        imageProvider === 'nanogpt' &&
+        !elements.nanogptModel.value
+    ) {
+        showToast('Please select a NanoGPT image model in settings or disable image generation.', {
+            type: 'warning',
+            actionLabel: 'Open settings',
+            onAction: () => toggleAdvancedSettings(true)
+        });
+        toggleAdvancedSettings(true);
+        return;
+    }
+
     const requestPreview = buildCurrentChatRequestPreview(content);
     const createdAt = new Date().toISOString();
 
@@ -265,7 +299,9 @@ export async function sendMessage() {
                 const imageProviderModel =
                     imageProvider === 'comfy'
                         ? state.settings.comfyModel || ''
-                        : state.settings.swarmModel || '';
+                        : imageProvider === 'nanogpt'
+                          ? state.settings.nanogptModel || ''
+                          : state.settings.swarmModel || '';
                 updateAIMessageImage(aiMessageId, imageUrl);
 
                 const msgIndex = state.messages.findIndex((m) => m.id === aiMessageId);
@@ -344,6 +380,14 @@ async function autoFetchModels() {
             await fetchComfyModels(true);
         } catch (e) {
             console.warn('Auto-fetch ComfyUI checkpoints failed:', e);
+        }
+    }
+
+    if (imageProvider === 'nanogpt' && elements.nanogptUrl.value) {
+        try {
+            await fetchNanoGptModels(true);
+        } catch (e) {
+            console.warn('Auto-fetch NanoGPT image models failed:', e);
         }
     }
 

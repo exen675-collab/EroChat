@@ -129,6 +129,7 @@ function formatProviderLabel(provider, fallback) {
         .toLowerCase();
     if (normalized === 'swarm') return 'SwarmUI';
     if (normalized === 'comfy') return 'ComfyUI';
+    if (normalized === 'nanogpt') return 'NanoGPT';
     if (normalized === 'premium') return 'Premium';
     if (normalized === 'openrouter') return 'OpenRouter';
     return String(provider || fallback || 'Unknown');

@@ -264,10 +264,9 @@ export function loadFromLocalStorage() {
                 }
                 Object.assign(state.settings, parsed.settings);
                 state.settings.imageProvider = normalizeImageProvider(state.settings.imageProvider);
-                state.settings.protectedImagePromptLanguage =
-                    normalizeProtectedImagePromptLanguage(
-                        state.settings.protectedImagePromptLanguage
-                    );
+                state.settings.protectedImagePromptLanguage = normalizeProtectedImagePromptLanguage(
+                    state.settings.protectedImagePromptLanguage
+                );
                 state.settings.sampler = normalizeSwarmSampler(state.settings.sampler);
                 state.settings.scheduler = normalizeImageScheduler(state.settings.scheduler);
                 state.settings.contextMessageCount = normalizeContextMessageCount(
@@ -415,6 +414,10 @@ export function updateSettingsUI() {
     elements.swarmModel.value = state.settings.swarmModel;
     elements.comfyUrl.value = state.settings.comfyUrl || 'http://localhost:8188';
     elements.comfyModel.value = state.settings.comfyModel || '';
+    elements.nanogptUrl.value = state.settings.nanogptUrl || 'https://nano-gpt.com';
+    elements.nanogptKey.value = state.settings.nanogptKey || '';
+    elements.nanogptModel.value = state.settings.nanogptModel || '';
+    elements.nanogptQuality.value = state.settings.nanogptQuality || 'medium';
     elements.imageProvider.value = normalizeImageProvider(state.settings.imageProvider);
     state.settings.protectedImagePromptLanguage = normalizeProtectedImagePromptLanguage(
         state.settings.protectedImagePromptLanguage

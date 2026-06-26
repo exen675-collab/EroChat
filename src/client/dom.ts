@@ -71,6 +71,10 @@ export const elements: Record<string, any> = {
     swarmModel: document.getElementById('swarmModel'),
     comfyUrl: document.getElementById('comfyUrl'),
     comfyModel: document.getElementById('comfyModel'),
+    nanogptUrl: document.getElementById('nanogptUrl'),
+    nanogptKey: document.getElementById('nanogptKey'),
+    nanogptModel: document.getElementById('nanogptModel'),
+    nanogptQuality: document.getElementById('nanogptQuality'),
     imageProvider: document.getElementById('imageProvider'),
     protectedImagePromptLanguage: document.getElementById('protectedImagePromptLanguage'),
     enableImageGeneration: document.getElementById('enableImageGeneration'),
@@ -131,6 +135,7 @@ export const elements: Record<string, any> = {
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),
     fetchComfyModelsBtn: document.getElementById('fetchComfyModelsBtn'),
+    fetchNanoGptModelsBtn: document.getElementById('fetchNanoGptModelsBtn'),
     fetchOpenRouterModelsBtn: document.getElementById('fetchOpenRouterModelsBtn'),
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),

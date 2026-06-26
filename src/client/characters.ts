@@ -770,6 +770,16 @@ export async function generateThumbnail() {
         return;
     }
 
+    if (imageProvider === 'nanogpt' && !elements.nanogptKey.value) {
+        setCharacterFormStatus('Please enter your NanoGPT API key first.', true);
+        return;
+    }
+
+    if (imageProvider === 'nanogpt' && !elements.nanogptModel.value) {
+        setCharacterFormStatus('Please select a NanoGPT image model first.', true);
+        return;
+    }
+
     // Import selected image provider API
     const { generateImage } = await import('./api-image.js');
 

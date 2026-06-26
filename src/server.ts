@@ -32,7 +32,7 @@ const DEFAULT_ADMIN_PASSWORD = 'admin';
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
 const GENERATOR_ALLOWED_MODES = new Set(['image_generate']);
-const GENERATOR_ALLOWED_PROVIDERS = new Set(['swarm', 'comfy']);
+const GENERATOR_ALLOWED_PROVIDERS = new Set(['swarm', 'comfy', 'nanogpt']);
 const GENERATOR_ALLOWED_STATUSES = new Set([
     'queued',
     'running',
@@ -468,6 +468,51 @@ async function importRemoteMedia(remoteUrl) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     return storeMediaBuffer(buffer, mimeType, MAX_REMOTE_MEDIA_BYTES);
+}
+
+function buildNanoGptApiUrl(baseUrl, pathname) {
+    const trimmedBaseUrl =
+        typeof baseUrl === 'string' && baseUrl.trim() ? baseUrl.trim() : 'https://nano-gpt.com';
+    const parsed = validateRemoteMediaUrl(new URL(pathname, trimmedBaseUrl).toString());
+    return parsed.toString();
+}
+
+async function readNanoGptResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        return response.json().catch(() => ({}));
+    }
+
+    const text = await response.text().catch(() => '');
+    return text ? { error: text } : {};
+}
+
+async function proxyNanoGptJsonRequest({ baseUrl, apiKey, pathname, method = 'GET', body = null }) {
+    const targetUrl = buildNanoGptApiUrl(baseUrl, pathname);
+    const headers = {
+        Accept: 'application/json'
+    };
+
+    if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+    }
+
+    if (body != null) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(targetUrl, {
+        method,
+        headers,
+        body: body != null ? JSON.stringify(body) : undefined
+    });
+    const payload = await readNanoGptResponse(response);
+
+    return {
+        ok: response.ok,
+        status: response.status,
+        payload
+    };
 }
 
 function requireAuth(req, res, next) {
@@ -906,6 +951,58 @@ app.post('/api/media/import-remote', requireApiAuth, async (req, res) => {
     } catch (error) {
         console.error('Failed to import remote media:', error);
         res.status(400).json({ error: error.message || 'Failed to import remote media.' });
+    }
+});
+
+app.post('/api/nanogpt/images/models', requireApiAuth, async (req, res) => {
+    const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
+    const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+
+    try {
+        const proxied = await proxyNanoGptJsonRequest({
+            baseUrl,
+            apiKey,
+            pathname: '/api/v1/image-models?detailed=true'
+        });
+
+        res.status(proxied.status).json(proxied.payload);
+    } catch (error) {
+        console.error('Failed to proxy NanoGPT image models:', error);
+        res.status(400).json({ error: error.message || 'Failed to fetch NanoGPT image models.' });
+    }
+});
+
+app.post('/api/nanogpt/images', requireApiAuth, async (req, res) => {
+    const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
+    const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+    const payload =
+        req.body?.payload && typeof req.body.payload === 'object' && !Array.isArray(req.body.payload)
+            ? req.body.payload
+            : null;
+
+    if (!apiKey) {
+        res.status(400).json({ error: 'NanoGPT API key is required.' });
+        return;
+    }
+
+    if (!payload) {
+        res.status(400).json({ error: 'NanoGPT image payload is required.' });
+        return;
+    }
+
+    try {
+        const proxied = await proxyNanoGptJsonRequest({
+            baseUrl,
+            apiKey,
+            pathname: '/api/v1/images/generations',
+            method: 'POST',
+            body: payload
+        });
+
+        res.status(proxied.status).json(proxied.payload);
+    } catch (error) {
+        console.error('Failed to proxy NanoGPT image generation:', error);
+        res.status(400).json({ error: error.message || 'Failed to generate NanoGPT image.' });
     }
 });
 

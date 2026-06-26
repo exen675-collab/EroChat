@@ -246,7 +246,7 @@ export function normalizeImageProvider(value, fallback = 'swarm') {
         .toLowerCase();
 
     if (normalized === 'local') return 'swarm';
-    if (normalized === 'swarm' || normalized === 'comfy') {
+    if (normalized === 'swarm' || normalized === 'comfy' || normalized === 'nanogpt') {
         return normalized;
     }
 

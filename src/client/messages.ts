@@ -544,7 +544,9 @@ export async function regenerateImage(messageId) {
         const providerModel =
             provider === 'comfy'
                 ? state.settings.comfyModel || ''
-                : state.settings.swarmModel || '';
+                : provider === 'nanogpt'
+                  ? state.settings.nanogptModel || ''
+                  : state.settings.swarmModel || '';
         addImageToGallery(imageUrl, 'regenerate', messageId, {
             prompt: imagePrompt,
             provider,

@@ -16,6 +16,7 @@ import {
     deleteEditingCharacter
 } from './characters.js';
 import { fetchComfyModels } from './api-comfyui.js';
+import { fetchNanoGptModels } from './api-nanogpt.js';
 import { fetchSwarmModels } from './api-swarmui.js';
 import {
     fetchOpenRouterModels,
@@ -341,6 +342,7 @@ export function setupEventListeners() {
     // Fetch models buttons
     elements.fetchModelsBtn.addEventListener('click', fetchSwarmModels);
     elements.fetchComfyModelsBtn.addEventListener('click', fetchComfyModels);
+    elements.fetchNanoGptModelsBtn.addEventListener('click', fetchNanoGptModels);
     elements.fetchOpenRouterModelsBtn.addEventListener('click', fetchOpenRouterModels);
     elements.refreshUsersBtn.addEventListener('click', () => {
         fetchAdminUsers();
@@ -384,6 +386,16 @@ export function setupEventListeners() {
 
     elements.comfyModel.addEventListener('change', () => {
         state.settings.comfyModel = elements.comfyModel.value;
+        saveToLocalStorage();
+    });
+
+    elements.nanogptModel.addEventListener('change', () => {
+        state.settings.nanogptModel = elements.nanogptModel.value;
+        saveToLocalStorage();
+    });
+
+    elements.nanogptQuality.addEventListener('change', () => {
+        state.settings.nanogptQuality = elements.nanogptQuality.value;
         saveToLocalStorage();
     });
 
@@ -551,6 +563,10 @@ export function setupEventListeners() {
             swarmModel: elements.swarmModel.value,
             comfyUrl: normalizeBaseUrl(elements.comfyUrl.value),
             comfyModel: elements.comfyModel.value,
+            nanogptUrl: normalizeBaseUrl(elements.nanogptUrl.value),
+            nanogptKey: elements.nanogptKey.value,
+            nanogptModel: elements.nanogptModel.value,
+            nanogptQuality: elements.nanogptQuality.value,
             imageProvider: normalizeImageProvider(elements.imageProvider.value),
             protectedImagePromptLanguage: elements.protectedImagePromptLanguage.value,
             enableImageGeneration: elements.enableImageGeneration.checked,

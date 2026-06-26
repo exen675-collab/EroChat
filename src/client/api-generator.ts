@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { generateComfyImages } from './api-comfyui.js';
+import { generateNanoGptImages } from './api-nanogpt.js';
 import { generateLocalImages } from './api-swarmui.js';
 import { persistImageForStorage } from './media.js';
 
@@ -83,14 +84,20 @@ export async function executeGeneratorJob(job) {
     const request = job.requestJson || {};
 
     if (job.mode === 'image_generate') {
-        if (job.provider !== 'comfy' && job.provider !== 'swarm') {
+        if (job.provider !== 'comfy' && job.provider !== 'swarm' && job.provider !== 'nanogpt') {
             throw new Error(`Unsupported image provider: ${job.provider}`);
         }
-        const generateImages = job.provider === 'comfy' ? generateComfyImages : generateLocalImages;
+        const generateImages =
+            job.provider === 'comfy'
+                ? generateComfyImages
+                : job.provider === 'nanogpt'
+                  ? generateNanoGptImages
+                  : generateLocalImages;
         const results = await generateImages({
             prompt: job.prompt,
             negativePrompt: job.negativePrompt || request.negativePrompt || '',
             batchCount: request.batchCount || 1,
+            model: job.providerModel || request.model,
             width: request.width,
             height: request.height,
             steps: request.steps,
@@ -98,11 +105,13 @@ export async function executeGeneratorJob(job) {
             sampler: request.sampler,
             scheduler: request.scheduler,
             seedMode: request.seedMode,
-            baseSeed: request.baseSeed
+            baseSeed: request.baseSeed,
+            quality: request.quality
         });
 
         const assets = await persistGeneratedImages(results, request, (result, index) => ({
             seed: result.seed,
+            model: job.providerModel || request.model || '',
             index
         }));
 

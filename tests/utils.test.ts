@@ -29,6 +29,7 @@ describe('utils helpers', () => {
     it('maps provider aliases and preserves known providers', () => {
         expect(normalizeImageProvider('local')).toBe('swarm');
         expect(normalizeImageProvider('comfy')).toBe('comfy');
+        expect(normalizeImageProvider('nanogpt')).toBe('nanogpt');
         expect(normalizeImageProvider('unknown')).toBe('swarm');
     });
 

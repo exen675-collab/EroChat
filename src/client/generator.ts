@@ -131,6 +131,7 @@ function getModeLabel(mode) {
 function getProviderLabel(provider) {
     if (provider === 'swarm') return 'SwarmUI';
     if (provider === 'comfy') return 'ComfyUI';
+    if (provider === 'nanogpt') return 'NanoGPT';
     return provider || 'Unknown';
 }
 
@@ -163,10 +164,7 @@ function applyPrefsToForm() {
     if (elements.generatorSwarmCfgScale)
         elements.generatorSwarmCfgScale.value = state.generatorPrefs.swarmCfgScale || 7;
     syncSwarmSamplerSelect(elements.generatorSwarmSampler, state.generatorPrefs.swarmSampler);
-    syncImageSchedulerSelect(
-        elements.generatorSwarmScheduler,
-        state.generatorPrefs.swarmScheduler
-    );
+    syncImageSchedulerSelect(elements.generatorSwarmScheduler, state.generatorPrefs.swarmScheduler);
     if (elements.generatorSwarmSeedMode)
         elements.generatorSwarmSeedMode.value = state.generatorPrefs.swarmSeedMode || 'random';
     if (elements.generatorSwarmBaseSeed)
@@ -407,31 +405,50 @@ function buildJobRequests() {
         throw new Error(`Unsupported generator mode: ${mode}`);
     }
 
-    if (provider !== 'swarm' && provider !== 'comfy') {
+    if (provider !== 'swarm' && provider !== 'comfy' && provider !== 'nanogpt') {
         throw new Error(`Unsupported image provider: ${provider}`);
     }
 
+    if (provider === 'nanogpt') {
+        if (!state.settings.nanogptKey) {
+            throw new Error('Please enter your NanoGPT API key in settings first.');
+        }
+        if (!state.settings.nanogptModel) {
+            throw new Error('Please select a NanoGPT image model in settings first.');
+        }
+    }
+
     for (let index = 0; index < batchCount; index += 1) {
+        const isNanoGpt = provider === 'nanogpt';
         jobs.push({
             batchId,
             mode,
             provider,
             prompt: state.generatorPrefs.prompt,
-            negativePrompt: state.generatorPrefs.negativePrompt,
-            providerModel: provider === 'comfy' ? 'comfyui' : 'swarmui',
+            negativePrompt: isNanoGpt ? '' : state.generatorPrefs.negativePrompt,
+            providerModel: isNanoGpt
+                ? state.settings.nanogptModel || ''
+                : provider === 'comfy'
+                  ? 'comfyui'
+                  : 'swarmui',
             requestJson: {
                 batchCount: 1,
                 width: state.generatorPrefs.swarmWidth,
                 height: state.generatorPrefs.swarmHeight,
                 steps: state.generatorPrefs.swarmSteps,
                 cfgScale: state.generatorPrefs.swarmCfgScale,
-                sampler: normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
-                scheduler: normalizeImageScheduler(state.generatorPrefs.swarmScheduler),
+                sampler: isNanoGpt
+                    ? null
+                    : normalizeSwarmSampler(state.generatorPrefs.swarmSampler),
+                scheduler: isNanoGpt
+                    ? null
+                    : normalizeImageScheduler(state.generatorPrefs.swarmScheduler),
                 seedMode: state.generatorPrefs.swarmSeedMode,
                 baseSeed:
                     state.generatorPrefs.swarmSeedMode === 'increment'
                         ? state.generatorPrefs.swarmBaseSeed + index
-                        : state.generatorPrefs.swarmBaseSeed
+                        : state.generatorPrefs.swarmBaseSeed,
+                quality: isNanoGpt ? state.settings.nanogptQuality || 'medium' : null
             }
         });
     }
