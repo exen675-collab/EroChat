@@ -10,7 +10,8 @@ export const defaultCharacter = {
     isDefault: true,
     messages: [],
     contextMessageCount: 20,
-    memorySnapshots: []
+    memorySnapshots: [],
+    openrouterSessionId: null
 };
 
 // Default settings

@@ -53,6 +53,7 @@ import {
     renderMemoryPanel,
     setCurrentChatContextLimit
 } from './memory.js';
+import { resetCurrentOpenRouterSessionId } from './openrouter-session.js';
 
 function closeSettingsPanel() {
     ui.toggleSidebar(false);
@@ -798,6 +799,7 @@ export function setupEventListeners() {
 
         state.messages = [];
         state.memoryCompressionDraft = null;
+        resetCurrentOpenRouterSessionId();
         const currentCharacter = state.characters.find((c) => c.id === state.currentCharacterId);
         if (currentCharacter) {
             currentCharacter.memorySnapshots = [];

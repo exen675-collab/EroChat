@@ -19,6 +19,7 @@ export interface Character {
     background?: string;
     greeting?: string;
     messages: ChatMessage[];
+    openrouterSessionId?: string | null;
     [key: string]: unknown;
 }
 

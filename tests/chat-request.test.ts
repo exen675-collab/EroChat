@@ -64,6 +64,19 @@ describe('chat request preview builder', () => {
         });
     });
 
+    it('adds an OpenRouter session id when provided', () => {
+        const preview = buildChatRequestPreview({
+            draftMessage: 'Keep this conversation sticky',
+            systemPrompt: 'System prompt',
+            openrouterKey: 'sk-test',
+            openrouterModel: 'anthropic/claude-sonnet-4.5',
+            openrouterSessionId: 'erochat-default-test-session'
+        });
+
+        expect(preview.body.session_id).toBe('erochat-default-test-session');
+        expect(preview.displayText).toContain('"session_id": "erochat-default-test-session"');
+    });
+
     it('falls back to medium for invalid OpenRouter reasoning effort', () => {
         const preview = buildChatRequestPreview({
             draftMessage: 'Think this through',

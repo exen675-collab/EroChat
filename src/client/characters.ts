@@ -351,7 +351,8 @@ export function branchChatFromMessage(messageId) {
             characterName: sourceCharacter.name || 'Character',
             messageId,
             createdAt: new Date().toISOString()
-        }
+        },
+        openrouterSessionId: null
     };
 
     state.characters.push(branchCharacter);
@@ -722,7 +723,8 @@ export async function saveCharacter() {
             isDefault: false,
             messages: [],
             contextMessageCount: state.settings.contextMessageCount,
-            memorySnapshots: []
+            memorySnapshots: [],
+            openrouterSessionId: null
         };
         // Add thumbnail if one was generated
         if (currentThumbnail) {

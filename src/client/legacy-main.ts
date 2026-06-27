@@ -49,6 +49,7 @@ import {
     updateMemoryBlockingControls
 } from './memory.js';
 import { initTts, toggleMessageTts } from './tts.js';
+import { ensureCurrentOpenRouterSessionId } from './openrouter-session.js';
 
 export function updateRequestPreviewButtonState() {
     if (!elements.previewRequestBtn) return;
@@ -79,6 +80,7 @@ export function buildCurrentChatRequestPreview(draftMessage = elements.messageIn
         openrouterModel: elements.openrouterModel.value,
         openrouterReasoningEnabled: elements.openrouterReasoningEnabled.checked,
         openrouterReasoningEffort: elements.openrouterReasoningEffort.value,
+        openrouterSessionId: ensureCurrentOpenRouterSessionId(),
         currentUrl: window.location.href
     });
 }

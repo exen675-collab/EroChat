@@ -20,6 +20,7 @@ import {
     renderProtectedSystemPromptBlocks,
     stripProtectedSystemPromptBlocks
 } from './static-prompts.js';
+import { normalizeOpenRouterSessionId } from './openrouter-session.js';
 
 const LEGACY_STORAGE_KEY = 'erochat_data';
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
@@ -297,6 +298,9 @@ export function loadFromLocalStorage() {
                         : [],
                     contextMessageCount: normalizeContextMessageCount(
                         character.contextMessageCount ?? state.settings.contextMessageCount
+                    ),
+                    openrouterSessionId: normalizeOpenRouterSessionId(
+                        character.openrouterSessionId
                     )
                 }));
             }

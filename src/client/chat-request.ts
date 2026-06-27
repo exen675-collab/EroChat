@@ -87,7 +87,8 @@ export function buildChatRequestPreview({
     temperature = CHAT_REQUEST_DEFAULTS.temperature,
     maxTokens = CHAT_REQUEST_DEFAULTS.maxTokens,
     openrouterReasoningEnabled = false,
-    openrouterReasoningEffort = CHAT_REQUEST_DEFAULTS.reasoningEffort
+    openrouterReasoningEffort = CHAT_REQUEST_DEFAULTS.reasoningEffort,
+    openrouterSessionId = ''
 }) {
     const provider = 'openrouter';
     const messages = buildChatApiMessages({
@@ -105,6 +106,11 @@ export function buildChatRequestPreview({
         temperature,
         max_tokens: maxTokens
     };
+
+    const normalizedSessionId = String(openrouterSessionId || '').trim().slice(0, 256);
+    if (normalizedSessionId) {
+        body.session_id = normalizedSessionId;
+    }
 
     if (openrouterReasoningEnabled) {
         body.reasoning = {
