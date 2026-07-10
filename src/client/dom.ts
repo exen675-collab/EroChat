@@ -152,6 +152,7 @@ export const elements: Record<string, any> = {
     refreshUsersBtn: document.getElementById('refreshUsersBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     clearChatBtn: document.getElementById('clearChatBtn'),
+    switchToModernUiBtn: document.getElementById('switchToModernUiBtn'),
 
     // Suggestions
     suggestBtn: document.getElementById('suggestBtn'),

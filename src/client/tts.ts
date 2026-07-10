@@ -15,7 +15,7 @@ import {
 } from './utils.js';
 
 const ttsAudioCache = new Map();
-let availableTtsVoices = [...GROK_TTS_FALLBACK_VOICES];
+const availableTtsVoices = [...GROK_TTS_FALLBACK_VOICES];
 let activeAudio = null;
 let activeAudioUrl = null;
 let activeMessageId = null;

@@ -6,13 +6,13 @@ export const DEFAULT_OPENROUTER_TTS_MODEL = 'x-ai/grok-voice-tts-1.0';
 export const DEFAULT_OPENROUTER_TTS_OUTPUT_FORMAT = 'mp3';
 
 function getOpenRouterTtsModel() {
-    return (
-        String(state.settings.openrouterTtsModel || '').trim() || DEFAULT_OPENROUTER_TTS_MODEL
-    );
+    return String(state.settings.openrouterTtsModel || '').trim() || DEFAULT_OPENROUTER_TTS_MODEL;
 }
 
 export async function generateOpenRouterSpeechBlob({ text, voiceId }) {
-    const apiKey = String(elements.openrouterKey?.value || state.settings.openrouterKey || '').trim();
+    const apiKey = String(
+        elements.openrouterKey?.value || state.settings.openrouterKey || ''
+    ).trim();
     if (!apiKey) {
         throw new Error('Enter your OpenRouter API key in settings before using TTS.');
     }
@@ -34,7 +34,7 @@ export async function generateOpenRouterSpeechBlob({ text, voiceId }) {
     });
 
     if (!response.ok) {
-        let detail = '';
+        let detail;
         try {
             const data = await response.json();
             detail = data?.error?.message || data?.message || '';

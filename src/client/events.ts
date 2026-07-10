@@ -43,6 +43,7 @@ import {
     upgradeCurrentDraft
 } from './text-upgrade.js';
 import { requestConfirmation, showToast } from './notifications.js';
+import { switchUiMode } from './ui-mode.js';
 import {
     renderProtectedSystemPromptBlocks,
     stripProtectedSystemPromptBlocks
@@ -212,6 +213,12 @@ async function saveProfileSettings() {
 
 // Setup all event listeners
 export function setupEventListeners() {
+    elements.switchToModernUiBtn?.addEventListener('click', () => {
+        saveToLocalStorage();
+        if (state.currentUser?.id != null) {
+            switchUiMode(state.currentUser.id, 'modern');
+        }
+    });
     ui.ensureAdvancedSettingsModalMounted();
 
     const openLightboxImage = (imageUrl) => {
