@@ -33,7 +33,7 @@ function id(): string {
 
 function viewFromHash(): ViewId | null {
     const value = window.location.hash.replace('#', '').toLowerCase();
-    return ['chat', 'characters', 'generator', 'gallery', 'stats'].includes(value)
+    return ['chat', 'characters', 'browse', 'generator', 'gallery', 'stats'].includes(value)
         ? (value as ViewId)
         : null;
 }

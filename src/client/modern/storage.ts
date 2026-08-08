@@ -2,7 +2,7 @@ import { defaultCharacter, defaultGeneratorPrefs, defaultSettings } from '../con
 import type { ModernCharacter, ModernPersistedState, ModernSettings, ViewId } from './types.js';
 
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
-const VIEWS: ViewId[] = ['chat', 'characters', 'generator', 'gallery', 'stats'];
+const VIEWS: ViewId[] = ['chat', 'characters', 'browse', 'generator', 'gallery', 'stats'];
 
 export function getModernStorageKey(userId: number | string): string {
     return `${USER_STORAGE_KEY_PREFIX}${userId}`;
@@ -37,7 +37,7 @@ export function createModernDefaultState(): ModernPersistedState {
         generatorPrefs: { ...defaultGeneratorPrefs, promptPresets: [] },
         statistics: {
             dailyActivity: {},
-            viewCounts: { chat: 0, characters: 0, generator: 0, gallery: 0, stats: 0 },
+            viewCounts: { chat: 0, characters: 0, browse: 0, generator: 0, gallery: 0, stats: 0 },
             modelUsage: { text: {}, image: {}, generator: {} },
             recentModels: { openrouter: [] },
             promptUsage: {},

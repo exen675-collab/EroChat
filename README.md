@@ -22,6 +22,8 @@ The Express backend provides:
 - Run standalone image-generation jobs and keep their history
 - Assign uploaded or generated media as character thumbnails
 - Import Character Card V2 JSON and PNG files
+- Publish characters to a shared Character Browse catalog
+- Search, sort, import, and chat with community characters
 - Save chats/settings/gallery in browser localStorage
 - Keep chats/settings/gallery separate per logged-in user on the same browser
 - Per-user credits
@@ -121,6 +123,11 @@ You can create multiple characters with their own:
 - optional uploaded, imported, or gallery-derived thumbnail.
 
 The Characters view can also import Character Card V2 JSON and PNG files.
+
+Use **Publish** on a character to share its profile, prompt, greeting, and thumbnail in **Character
+Browse**. Conversation history, memory snapshots, user information, and provider session data are
+never included. Importing a community character creates an independent private copy in the current
+user's browser library.
 
 To set a generated thumbnail, create or select an image in the Gallery and choose **Use as thumbnail**.
 

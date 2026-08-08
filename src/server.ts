@@ -41,6 +41,7 @@ const GENERATOR_ALLOWED_STATUSES = new Set([
     'failed',
     'interrupted'
 ]);
+const PUBLIC_CHARACTER_SORTS = new Set(['newest', 'popular', 'name']);
 const loginAttempts = new Map();
 
 const upload = multer({
@@ -244,6 +245,58 @@ function isValidUsername(username) {
 
 function isValidPassword(password) {
     return typeof password === 'string' && password.length >= 6 && password.length <= 128;
+}
+
+function limitedText(value, maxLength, required = false) {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (required && !text) return null;
+    return text.slice(0, maxLength);
+}
+
+function normalizePublicCharacterPayload(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+    const sourceCharacterId = limitedText(value.sourceCharacterId, 128, true);
+    const name = limitedText(value.name, 100, true);
+    const systemPrompt = limitedText(value.systemPrompt, 24000, true);
+    if (!sourceCharacterId || !name || !systemPrompt) return null;
+
+    const thumbnail = limitedText(value.thumbnail, 2048);
+    return {
+        sourceCharacterId,
+        name,
+        avatar: limitedText(value.avatar, 16) || '✨',
+        thumbnail: thumbnail && thumbnail.startsWith('/app/media/') ? thumbnail : '',
+        description: limitedText(value.description, 4000),
+        appearance: limitedText(value.appearance, 4000),
+        background: limitedText(value.background, 12000),
+        greeting: limitedText(value.greeting, 8000),
+        systemPrompt,
+        contextMessageCount: normalizePositiveInt(value.contextMessageCount, 20, 1, 200)
+    };
+}
+
+function mapPublicCharacterRow(row, currentUserId) {
+    if (!row) return null;
+    return {
+        id: row.id,
+        sourceCharacterId: row.source_character_id,
+        creator: row.creator_username,
+        creatorId: row.user_id,
+        isOwner: Number(row.user_id) === Number(currentUserId),
+        name: row.name,
+        avatar: row.avatar || '✨',
+        thumbnail: row.thumbnail || '',
+        description: row.description || '',
+        appearance: row.appearance || '',
+        background: row.background || '',
+        greeting: row.greeting || '',
+        systemPrompt: row.system_prompt,
+        contextMessageCount: Number(row.context_message_count) || 20,
+        imports: Number(row.import_count) || 0,
+        publishedAt: row.published_at,
+        updatedAt: row.updated_at
+    };
 }
 
 function getClientIp(req) {
@@ -629,6 +682,28 @@ async function initDb() {
     )
   `);
 
+    await run(`
+    CREATE TABLE IF NOT EXISTS public_characters (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      source_character_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      avatar TEXT NOT NULL DEFAULT '✨',
+      thumbnail TEXT,
+      description TEXT,
+      appearance TEXT,
+      background TEXT,
+      greeting TEXT,
+      system_prompt TEXT NOT NULL,
+      context_message_count INTEGER NOT NULL DEFAULT 20,
+      import_count INTEGER NOT NULL DEFAULT 0,
+      published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, source_character_id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
     await run(
         'CREATE INDEX IF NOT EXISTS idx_generator_jobs_user_created ON generator_jobs(user_id, created_at DESC)'
     );
@@ -639,6 +714,12 @@ async function initDb() {
         'CREATE INDEX IF NOT EXISTS idx_generator_assets_user_created ON generator_assets(user_id, created_at DESC)'
     );
     await run('CREATE INDEX IF NOT EXISTS idx_generator_assets_job ON generator_assets(job_id)');
+    await run(
+        'CREATE INDEX IF NOT EXISTS idx_public_characters_updated ON public_characters(updated_at DESC)'
+    );
+    await run(
+        'CREATE INDEX IF NOT EXISTS idx_public_characters_popular ON public_characters(import_count DESC, updated_at DESC)'
+    );
 
     await ensureDefaultAdminAccount();
 }
@@ -970,6 +1051,166 @@ app.post('/api/characters/import-card', requireApiAuth, upload.single('file'), a
         res.status(statusCode).json({
             error: error?.message || 'Failed to import character card.'
         });
+    }
+});
+
+app.get('/api/characters/browse', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const search = limitedText(req.query?.q, 100) || '';
+    const requestedSort = limitedText(req.query?.sort, 20) || 'newest';
+    const sort = PUBLIC_CHARACTER_SORTS.has(requestedSort) ? requestedSort : 'newest';
+    const orderBy =
+        sort === 'popular'
+            ? 'c.import_count DESC, c.updated_at DESC'
+            : sort === 'name'
+              ? 'c.name COLLATE NOCASE ASC, c.updated_at DESC'
+              : 'c.updated_at DESC';
+    const params = [];
+    let where = '';
+
+    if (search) {
+        where = 'WHERE c.name LIKE ? OR c.description LIKE ? OR u.username LIKE ?';
+        const pattern = `%${search}%`;
+        params.push(pattern, pattern, pattern);
+    }
+
+    try {
+        const rows = await all(
+            `
+      SELECT c.*, u.username AS creator_username
+      FROM public_characters c
+      JOIN users u ON u.id = c.user_id
+      ${where}
+      ORDER BY ${orderBy}
+      LIMIT 120
+    `,
+            params
+        );
+        res.json({ characters: rows.map((row) => mapPublicCharacterRow(row, userId)) });
+    } catch (error) {
+        console.error('Failed to browse public characters:', error);
+        res.status(500).json({ error: 'Failed to load public characters.' });
+    }
+});
+
+app.post('/api/characters/publish', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const character = normalizePublicCharacterPayload(req.body?.character);
+    if (!character) {
+        res.status(400).json({
+            error: 'Name, system prompt, and source character id are required.'
+        });
+        return;
+    }
+
+    try {
+        const existing = await get(
+            'SELECT id FROM public_characters WHERE user_id = ? AND source_character_id = ?',
+            [userId, character.sourceCharacterId]
+        );
+        await run(
+            `
+        INSERT INTO public_characters (
+          user_id, source_character_id, name, avatar, thumbnail, description, appearance,
+          background, greeting, system_prompt, context_message_count
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, source_character_id) DO UPDATE SET
+          name = excluded.name,
+          avatar = excluded.avatar,
+          thumbnail = excluded.thumbnail,
+          description = excluded.description,
+          appearance = excluded.appearance,
+          background = excluded.background,
+          greeting = excluded.greeting,
+          system_prompt = excluded.system_prompt,
+          context_message_count = excluded.context_message_count,
+          updated_at = CURRENT_TIMESTAMP
+      `,
+            [
+                userId,
+                character.sourceCharacterId,
+                character.name,
+                character.avatar,
+                character.thumbnail,
+                character.description,
+                character.appearance,
+                character.background,
+                character.greeting,
+                character.systemPrompt,
+                character.contextMessageCount
+            ]
+        );
+        const row = await get(
+            `
+        SELECT c.*, u.username AS creator_username
+        FROM public_characters c
+        JOIN users u ON u.id = c.user_id
+        WHERE c.user_id = ? AND c.source_character_id = ?
+      `,
+            [userId, character.sourceCharacterId]
+        );
+        res.status(existing ? 200 : 201).json({ character: mapPublicCharacterRow(row, userId) });
+    } catch (error) {
+        console.error('Failed to publish character:', error);
+        res.status(500).json({ error: 'Failed to publish character.' });
+    }
+});
+
+app.post('/api/characters/browse/:id/import', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const publicationId = normalizePositiveInt(req.params.id, 0, 0, Number.MAX_SAFE_INTEGER);
+    if (!publicationId) {
+        res.status(400).json({ error: 'Invalid public character id.' });
+        return;
+    }
+
+    try {
+        const row = await get(
+            `
+        SELECT c.*, u.username AS creator_username
+        FROM public_characters c
+        JOIN users u ON u.id = c.user_id
+        WHERE c.id = ?
+      `,
+            [publicationId]
+        );
+        if (!row) {
+            res.status(404).json({ error: 'Public character not found.' });
+            return;
+        }
+
+        await run('UPDATE public_characters SET import_count = import_count + 1 WHERE id = ?', [
+            publicationId
+        ]);
+        row.import_count = Number(row.import_count || 0) + 1;
+        res.json({ character: mapPublicCharacterRow(row, userId) });
+    } catch (error) {
+        console.error('Failed to import public character:', error);
+        res.status(500).json({ error: 'Failed to import public character.' });
+    }
+});
+
+app.delete('/api/characters/published/:id', requireApiAuth, async (req, res) => {
+    const userId = req.session.userId;
+    const publicationId = normalizePositiveInt(req.params.id, 0, 0, Number.MAX_SAFE_INTEGER);
+    if (!publicationId) {
+        res.status(400).json({ error: 'Invalid public character id.' });
+        return;
+    }
+
+    try {
+        const result = await run('DELETE FROM public_characters WHERE id = ? AND user_id = ?', [
+            publicationId,
+            userId
+        ]);
+        if (!result.changes) {
+            res.status(404).json({ error: 'Publication not found.' });
+            return;
+        }
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('Failed to unpublish character:', error);
+        res.status(500).json({ error: 'Failed to unpublish character.' });
     }
 });
 

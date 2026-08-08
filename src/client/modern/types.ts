@@ -1,6 +1,6 @@
 import type { BootstrapUser } from '../auth.js';
 
-export type ViewId = 'chat' | 'characters' | 'generator' | 'gallery' | 'stats';
+export type ViewId = 'chat' | 'characters' | 'browse' | 'generator' | 'gallery' | 'stats';
 export type ImageProvider = 'swarm' | 'comfy' | 'nanogpt';
 
 export interface ModernMessage {
@@ -38,6 +38,26 @@ export interface ModernCharacter {
     contextMessageCount?: number;
     openrouterSessionId?: string | null;
     isDefault?: boolean;
+}
+
+export interface PublicCharacter {
+    id: number;
+    sourceCharacterId: string;
+    creator: string;
+    creatorId: number;
+    isOwner: boolean;
+    name: string;
+    avatar?: string;
+    thumbnail?: string;
+    systemPrompt: string;
+    appearance?: string;
+    description?: string;
+    background?: string;
+    greeting?: string;
+    contextMessageCount?: number;
+    imports: number;
+    publishedAt: string;
+    updatedAt: string;
 }
 
 export interface ModernSettings {

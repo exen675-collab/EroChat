@@ -5,7 +5,8 @@ import type {
     GeneratorJob,
     ModernCharacter,
     ModernMessage,
-    ModernSettings
+    ModernSettings,
+    PublicCharacter
 } from './types.js';
 
 async function responsePayload(response: Response): Promise<any> {
@@ -450,6 +451,45 @@ export async function importCharacterCard(file: File) {
     form.append('file', file);
     const response = await fetch('/api/characters/import-card', { method: 'POST', body: form });
     return responsePayload(response);
+}
+
+export async function fetchPublicCharacters(
+    query = '',
+    sort: 'newest' | 'popular' | 'name' = 'newest'
+): Promise<PublicCharacter[]> {
+    const params = new URLSearchParams({ sort });
+    if (query.trim()) params.set('q', query.trim());
+    return (await jsonRequest(`/api/characters/browse?${params}`)).characters || [];
+}
+
+export async function publishCharacter(character: ModernCharacter): Promise<PublicCharacter> {
+    const payload = {
+        sourceCharacterId: character.id,
+        name: character.name,
+        avatar: character.avatar,
+        thumbnail: character.thumbnail,
+        description: character.description,
+        appearance: character.appearance,
+        background: character.background,
+        greeting: character.greeting,
+        systemPrompt: character.systemPrompt,
+        contextMessageCount: character.contextMessageCount
+    };
+    return (
+        await jsonRequest('/api/characters/publish', {
+            method: 'POST',
+            body: JSON.stringify({ character: payload })
+        })
+    ).character;
+}
+
+export async function importPublicCharacter(publicationId: number): Promise<PublicCharacter> {
+    return (await jsonRequest(`/api/characters/browse/${publicationId}/import`, { method: 'POST' }))
+        .character;
+}
+
+export async function unpublishCharacter(publicationId: number): Promise<void> {
+    await jsonRequest(`/api/characters/published/${publicationId}`, { method: 'DELETE' });
 }
 
 export async function logout() {
