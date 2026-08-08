@@ -1,0 +1,75 @@
+.m-gallery-tools {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) repeat(3, auto);
+    gap: 9px;
+    margin-bottom: 19px;
+}
+.m-search {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--m-border);
+    border-radius: 11px;
+    background: var(--m-surface);
+}
+.m-search svg {
+    color: var(--m-faint);
+}
+.m-search input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: var(--m-text);
+    background: transparent;
+}
+.m-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    align-items: start;
+    gap: 13px;
+}
+.m-gallery-card {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--m-border);
+    border-radius: 14px;
+    background: var(--m-surface);
+}
+.m-gallery-card > button {
+    width: 100%;
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: var(--m-bg);
+    cursor: zoom-in;
+}
+.m-gallery-card img,
+.m-gallery-card video {
+    width: 100%;
+    display: block;
+}
+.m-gallery-card > button span {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.65);
+    font-size: 9px;
+    text-transform: uppercase;
+}
+.m-gallery-card > div {
+    display: grid;
+    padding: 10px 12px;
+}
+.m-gallery-card strong {
+    font-size: 12px;
+}
+.m-gallery-card small {
+    margin-top: 2px;
+    color: var(--m-faint);
+    font-size: 10px;
+}

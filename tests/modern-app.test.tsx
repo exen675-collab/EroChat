@@ -31,16 +31,25 @@ describe('ModernApp', () => {
         vi.unstubAllGlobals();
     });
 
-    it('renders the modern chat and navigates between primary views', async () => {
+    it('renders the modern chat and navigates between every primary view', async () => {
         render(<ModernApp user={user} />);
         expect(
             screen.getByRole('heading', { name: 'Start a conversation with Default Character' })
         ).toBeInTheDocument();
 
-        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
-        expect(
-            screen.getByRole('heading', { name: 'Build a cast worth returning to.' })
-        ).toBeInTheDocument();
+        const destinations = [
+            ['Characters', 'Build a cast worth returning to.', '#characters'],
+            ['Browse', 'Find your next conversation.', '#browse'],
+            ['Create', 'Shape the scene.', '#generator'],
+            ['Gallery', 'Every scene, in one place.', '#gallery'],
+            ['Insights', 'Your creative rhythm.', '#stats']
+        ] as const;
+
+        for (const [buttonName, headingName, hash] of destinations) {
+            await userEvent.click(screen.getAllByRole('button', { name: buttonName })[0]);
+            expect(screen.getByRole('heading', { name: headingName })).toBeInTheDocument();
+            await waitFor(() => expect(window.location.hash).toBe(hash));
+        }
     });
 
     it('shows only the current settings sections', async () => {
