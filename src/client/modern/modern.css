@@ -1199,15 +1199,14 @@ textarea:focus-visible {
     background: transparent;
 }
 .m-gallery-grid {
-    columns: 4 240px;
-    column-gap: 13px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    align-items: start;
+    gap: 13px;
 }
 .m-gallery-card {
-    display: inline-block;
     width: 100%;
-    margin-bottom: 13px;
     overflow: hidden;
-    break-inside: avoid;
     border: 1px solid var(--m-border);
     border-radius: 14px;
     background: var(--m-surface);
@@ -2227,11 +2226,8 @@ textarea:focus-visible {
         grid-column: 1 / -1;
     }
     .m-gallery-grid {
-        columns: 2 145px;
-        column-gap: 8px;
-    }
-    .m-gallery-card {
-        margin-bottom: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
     .m-stat-grid {
         grid-template-columns: 1fr 1fr;
