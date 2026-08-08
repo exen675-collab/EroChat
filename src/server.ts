@@ -10,12 +10,20 @@ const SQLiteStoreFactory = require('connect-sqlite3');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const { parseCharacterCardImportFile } = require('./character-card-import');
+const {
+    buildCharacterGenerationMessages,
+    normalizeGeneratedCharacterDraft,
+    parseGeneratedCharacterDraft
+} = require('./character-generation');
 
 const app = express();
 const SQLiteStore = SQLiteStoreFactory(session);
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const DATA_DIR = path.join(ROOT_DIR, 'data');
+const DATA_DIR =
+    process.env.NODE_ENV === 'test' && process.env.EROCHAT_TEST_DATA_DIR
+        ? path.resolve(process.env.EROCHAT_TEST_DATA_DIR)
+        : path.join(ROOT_DIR, 'data');
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
 const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 const PORT = Number(process.env.PORT || 20121);
@@ -28,6 +36,22 @@ const MAX_UPLOADED_MEDIA_BYTES = 80 * 1024 * 1024;
 const MAX_REMOTE_MEDIA_BYTES = 80 * 1024 * 1024;
 const DEFAULT_ADMIN_USERNAME = 'admin';
 const DEFAULT_ADMIN_PASSWORD = 'admin';
+const OPENROUTER_CHAT_COMPLETIONS_URL =
+    process.env.NODE_ENV === 'test' && process.env.EROCHAT_TEST_OPENROUTER_URL
+        ? process.env.EROCHAT_TEST_OPENROUTER_URL
+        : 'https://openrouter.ai/api/v1/chat/completions';
+const configuredCharacterGenerationTimeout = Number.parseInt(
+    process.env.EROCHAT_TEST_CHARACTER_GENERATION_TIMEOUT_MS || '',
+    10
+);
+const ADMIN_CHARACTER_GENERATION_TIMEOUT_MS =
+    process.env.NODE_ENV === 'test' &&
+    Number.isFinite(configuredCharacterGenerationTimeout) &&
+    configuredCharacterGenerationTimeout > 0
+        ? configuredCharacterGenerationTimeout
+        : 120 * 1000;
+const ADMIN_CHARACTER_REFERENCE_LIMIT = 120;
+const ADMIN_CHARACTER_BRIEF_MAX_LENGTH = 2000;
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
@@ -297,6 +321,84 @@ function mapPublicCharacterRow(row, currentUserId) {
         publishedAt: row.published_at,
         updatedAt: row.updated_at
     };
+}
+
+function normalizeAdminCharacterReferenceIds(value) {
+    if (!Array.isArray(value) || value.length > ADMIN_CHARACTER_REFERENCE_LIMIT) {
+        return null;
+    }
+
+    const ids = [];
+    const seen = new Set();
+    for (const item of value) {
+        const id = Number(item);
+        if (!Number.isInteger(id) || id <= 0 || id > Number.MAX_SAFE_INTEGER) {
+            return null;
+        }
+        if (!seen.has(id)) {
+            seen.add(id);
+            ids.push(id);
+        }
+    }
+    return ids;
+}
+
+function mapCharacterGenerationReference(row) {
+    return {
+        name: row.name || '',
+        avatar: row.avatar || '✨',
+        description: row.description || '',
+        appearance: row.appearance || '',
+        background: row.background || '',
+        greeting: row.greeting || '',
+        systemPrompt: row.system_prompt || '',
+        contextMessageCount: Number(row.context_message_count) || 20
+    };
+}
+
+function getOpenRouterMessageText(payload) {
+    const content = payload?.choices?.[0]?.message?.content;
+    if (typeof content === 'string') {
+        return content.trim();
+    }
+    if (Array.isArray(content)) {
+        return content
+            .map((part) => {
+                if (typeof part === 'string') return part;
+                if (typeof part?.text === 'string') return part.text;
+                if (typeof part?.content === 'string') return part.content;
+                return '';
+            })
+            .join('')
+            .trim();
+    }
+    return '';
+}
+
+async function readOpenRouterPayload(response) {
+    const text = await response.text().catch(() => '');
+    if (!text) return {};
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { rawText: text.slice(0, 1000) };
+    }
+}
+
+function openRouterErrorMessage(status) {
+    if (status === 401 || status === 403) {
+        return 'OpenRouter rejected the configured API key.';
+    }
+    if (status === 402) {
+        return 'The OpenRouter account has insufficient credits.';
+    }
+    if (status === 429) {
+        return 'OpenRouter rate limit reached. Try again shortly.';
+    }
+    if (status >= 500) {
+        return 'OpenRouter is temporarily unavailable.';
+    }
+    return 'OpenRouter could not generate a character with the selected model.';
 }
 
 function getClientIp(req) {
@@ -1284,6 +1386,188 @@ app.post('/api/nanogpt/images', requireApiAuth, async (req, res) => {
     }
 });
 
+app.post('/api/admin/characters/generate', requireApiAuth, requireAdmin, async (req, res) => {
+    const rawApiKey = req.body?.apiKey;
+    const rawModel = req.body?.model;
+    const rawBrief = req.body?.brief;
+    const apiKey = typeof rawApiKey === 'string' ? rawApiKey.trim() : '';
+    const model = typeof rawModel === 'string' ? rawModel.trim() : '';
+    const brief = typeof rawBrief === 'string' ? rawBrief.trim() : '';
+    const referenceCharacterIds = normalizeAdminCharacterReferenceIds(
+        req.body?.referenceCharacterIds ?? []
+    );
+
+    if (!apiKey || apiKey.length > 4096) {
+        res.status(400).json({ error: 'A valid OpenRouter API key is required.' });
+        return;
+    }
+    if (!model || model.length > 300) {
+        res.status(400).json({ error: 'An OpenRouter model is required.' });
+        return;
+    }
+    if (rawBrief != null && typeof rawBrief !== 'string') {
+        res.status(400).json({ error: 'The creative brief must be text.' });
+        return;
+    }
+    if (brief.length > ADMIN_CHARACTER_BRIEF_MAX_LENGTH) {
+        res.status(400).json({
+            error: `The creative brief must be ${ADMIN_CHARACTER_BRIEF_MAX_LENGTH} characters or fewer.`
+        });
+        return;
+    }
+    if (!referenceCharacterIds) {
+        res.status(400).json({
+            error: `Reference character IDs must be a list of at most ${ADMIN_CHARACTER_REFERENCE_LIMIT} positive integers.`
+        });
+        return;
+    }
+
+    let references = [];
+    try {
+        if (referenceCharacterIds.length > 0) {
+            const placeholders = referenceCharacterIds.map(() => '?').join(', ');
+            const rows = await all(
+                `SELECT * FROM public_characters WHERE id IN (${placeholders})`,
+                referenceCharacterIds
+            );
+            const rowsById = new Map(rows.map((row) => [Number(row.id), row]));
+            const missingIds = referenceCharacterIds.filter((id) => !rowsById.has(id));
+            if (missingIds.length > 0) {
+                res.status(400).json({
+                    error: 'One or more selected reference characters no longer exist.'
+                });
+                return;
+            }
+            references = referenceCharacterIds.map((id) =>
+                mapCharacterGenerationReference(rowsById.get(id))
+            );
+        }
+    } catch (error) {
+        console.error('Failed to load character generation references:', error);
+        res.status(500).json({ error: 'Failed to load reference characters.' });
+        return;
+    }
+
+    let messages;
+    try {
+        messages = buildCharacterGenerationMessages({ references, brief });
+    } catch (error) {
+        res.status(400).json({ error: error?.message || 'Invalid character generation input.' });
+        return;
+    }
+
+    const abortController = new AbortController();
+    const timeout = setTimeout(
+        () => abortController.abort(),
+        ADMIN_CHARACTER_GENERATION_TIMEOUT_MS
+    );
+
+    try {
+        const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
+                'X-Title': 'EroChat'
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                temperature: 0.85,
+                max_tokens: 6000,
+                stream: false
+            }),
+            signal: abortController.signal
+        });
+        const payload = await readOpenRouterPayload(response);
+
+        if (!response.ok) {
+            const status = response.status === 429 ? 429 : 502;
+            res.status(status).json({ error: openRouterErrorMessage(response.status) });
+            return;
+        }
+
+        const content = getOpenRouterMessageText(payload);
+        if (!content) {
+            res.status(502).json({ error: 'OpenRouter returned an empty character draft.' });
+            return;
+        }
+
+        try {
+            const draft = parseGeneratedCharacterDraft(content);
+            res.json({ draft });
+        } catch (error) {
+            res.status(502).json({
+                error:
+                    error?.message ||
+                    'The selected model returned a malformed character draft. Try again or choose another model.'
+            });
+        }
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            res.status(504).json({ error: 'OpenRouter character generation timed out.' });
+            return;
+        }
+        console.error('OpenRouter character generation failed:', error?.message || error);
+        res.status(502).json({ error: 'Could not reach OpenRouter.' });
+    } finally {
+        clearTimeout(timeout);
+    }
+});
+
+app.post('/api/admin/characters/publish', requireApiAuth, requireAdmin, async (req, res) => {
+    let draft;
+    try {
+        draft = normalizeGeneratedCharacterDraft(req.body?.draft, {
+            requireComplete: false
+        });
+    } catch (error) {
+        res.status(400).json({
+            error: error?.message || 'The generated character draft is invalid.'
+        });
+        return;
+    }
+
+    const userId = req.session.userId;
+    const sourceCharacterId = `ai-${generateMediaFileId()}`;
+
+    try {
+        const result = await run(
+            `
+          INSERT INTO public_characters (
+            user_id, source_character_id, name, avatar, thumbnail, description, appearance,
+            background, greeting, system_prompt, context_message_count
+          ) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)
+        `,
+            [
+                userId,
+                sourceCharacterId,
+                draft.name,
+                draft.avatar,
+                draft.description,
+                draft.appearance,
+                draft.background,
+                draft.greeting,
+                draft.systemPrompt,
+                draft.contextMessageCount
+            ]
+        );
+        const row = await get(
+            `
+          SELECT c.*, u.username AS creator_username
+          FROM public_characters c
+          JOIN users u ON u.id = c.user_id
+          WHERE c.id = ?
+        `,
+            [result.lastID]
+        );
+        res.status(201).json({ character: mapPublicCharacterRow(row, userId) });
+    } catch (error) {
+        console.error('Failed to publish generated character:', error);
+        res.status(500).json({ error: 'Failed to publish the generated character.' });
+    }
+});
+
 app.get('/api/admin/users', requireApiAuth, requireAdmin, async (req, res) => {
     try {
         const rows = await all(
@@ -1742,8 +2026,11 @@ app.use((req, res) => {
 
 initDb()
     .then(() => {
-        app.listen(PORT, () => {
-            console.log(`EroChat server listening on http://localhost:${PORT}`);
+        const server = app.listen(PORT, () => {
+            const address = server.address();
+            const listeningPort =
+                address && typeof address === 'object' && address.port ? address.port : PORT;
+            console.log(`EroChat server listening on http://localhost:${listeningPort}`);
         });
     })
     .catch((error) => {

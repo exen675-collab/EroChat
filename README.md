@@ -24,6 +24,7 @@ The Express backend provides:
 - Import Character Card V2 JSON and PNG files
 - Publish characters to a shared Character Browse catalog
 - Search, sort, import, and chat with community characters
+- Let administrators generate and publish new catalog characters with OpenRouter
 - Save chats/settings/gallery in browser localStorage
 - Keep chats/settings/gallery separate per logged-in user on the same browser
 - Per-user credits
@@ -154,6 +155,18 @@ Browse**. Conversation history, memory snapshots, user information, and provider
 never included. Importing a community character creates an independent private copy in the current
 user's browser library.
 
+Administrators can also create catalog characters from **Character Browse**. Select any existing
+characters that OpenRouter should avoid repeating (or select none for an empty catalog), choose a
+text model, optionally add a creative brief, and click **Generate character**. Every creative field
+from each selected profile, including its greeting and system prompt, is supplied as anti-repetition
+context. Generation produces a complete editable draft; review its name, emoji avatar, description,
+appearance, background, greeting, system prompt, and context-message count before publishing it.
+The selected model applies only to this generation and does not change the chat model.
+
+The browser-stored OpenRouter key is forwarded to the server only for the generation request. It is
+not persisted, returned, or logged by the server. Generated catalog characters do not include a
+portrait, create generation history or a private browser copy, or consume app credits.
+
 To set a generated thumbnail, create or select an image in the Gallery and choose **Use as thumbnail**.
 
 ## Project structure
@@ -194,6 +207,7 @@ EroChat/
 
 - Login credentials are stored securely on the server (passwords hashed)
 - Provider credentials stay in browser storage per user
+- An administrator's OpenRouter key is forwarded transiently for character generation and is not stored on the server
 - Chat history/settings/gallery stay in your browser localStorage (separated per user)
 - Persisted media and generator history are scoped to the authenticated server account
 

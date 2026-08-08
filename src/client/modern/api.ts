@@ -1,6 +1,7 @@
 import { buildChatRequestPreview } from '../chat-request.js';
 import { normalizeBaseUrl, normalizeImageScheduler, normalizeSwarmSampler } from '../utils.js';
 import type {
+    GeneratedCharacterDraft,
     GeneratorAsset,
     GeneratorJob,
     ModernCharacter,
@@ -508,6 +509,31 @@ export async function fetchPublicCharacters(
     const params = new URLSearchParams({ sort });
     if (query.trim()) params.set('q', query.trim());
     return (await jsonRequest(`/api/characters/browse?${params}`)).characters || [];
+}
+
+export async function generateAdminCharacter(input: {
+    apiKey: string;
+    model: string;
+    referenceCharacterIds: number[];
+    brief: string;
+}): Promise<GeneratedCharacterDraft> {
+    return (
+        await jsonRequest('/api/admin/characters/generate', {
+            method: 'POST',
+            body: JSON.stringify(input)
+        })
+    ).draft;
+}
+
+export async function publishGeneratedCharacter(
+    draft: GeneratedCharacterDraft
+): Promise<PublicCharacter> {
+    return (
+        await jsonRequest('/api/admin/characters/publish', {
+            method: 'POST',
+            body: JSON.stringify({ draft })
+        })
+    ).character;
 }
 
 export async function publishCharacter(character: ModernCharacter): Promise<PublicCharacter> {

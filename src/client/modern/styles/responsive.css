@@ -281,6 +281,25 @@
     .m-browse-tools {
         grid-template-columns: 1fr;
     }
+    .m-page-hero__actions,
+    .m-admin-model-row {
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+    }
+    .m-page-hero__actions {
+        display: grid;
+    }
+    .m-page-hero__actions .m-button,
+    .m-admin-model-row .m-button {
+        width: 100%;
+    }
+    .m-generation-references header {
+        display: grid;
+        gap: 6px;
+    }
+    .m-reference-selection-summary {
+        align-items: flex-start;
+    }
     .m-character-card {
         display: grid;
         grid-template-columns: 125px 1fr;

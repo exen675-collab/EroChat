@@ -4,15 +4,16 @@ This document describes the current EroChat codebase for maintainers and coding 
 
 ## Product overview
 
-EroChat is an authenticated AI roleplay workspace with five primary views:
+EroChat is an authenticated AI roleplay workspace with six primary views:
 
 - Chat: character conversations, message actions, request preview, memory compression, suggestions, text upgrades, text-to-speech, and optional reply images.
 - Characters: character creation, editing, deletion, selection, thumbnails, and Character Card V2 import.
+- Browse: public character discovery, import, publishing, and administrator-only LLM generation.
 - Create: standalone image generation with presets, provider controls, batches, seeds, and job history.
 - Gallery: chat images and persisted generator assets with search, filters, sorting, lightbox actions, and character-thumbnail assignment.
 - Insights: local activity, character usage, model usage, favorites, and recent-model statistics.
 
-The client talks directly to OpenRouter, SwarmUI, and ComfyUI where appropriate. NanoGPT image calls, authenticated media persistence, account management, generator history, and admin operations go through the Express server.
+The client talks directly to OpenRouter, SwarmUI, and ComfyUI where appropriate. NanoGPT image calls, authenticated media persistence, account management, generator history, and admin operations go through the Express server. Administrator character generation is an exception to the normal browser-direct OpenRouter flow: the browser forwards its key transiently to an authenticated admin endpoint, which makes the generation request without storing the key.
 
 ## Technology stack
 
@@ -36,6 +37,8 @@ Browser
   |-- SwarmUI / ComfyUI ----------> local image generation
   `-- Express JSON/file APIs
         |-- authentication/admin --> SQLite users + sessions
+        |-- character catalog ----> SQLite public characters
+        |-- admin generation -----> OpenRouter Chat Completions
         |-- generator history ----> SQLite jobs + assets
         |-- media ----------------> data/media/
         `-- NanoGPT proxy --------> configured NanoGPT endpoint
@@ -112,7 +115,7 @@ erochat_data_user_<userId>
 
 The user ID prevents accounts using the same browser from sharing chat data. `storage.ts` merges parsed data with defaults, normalizes character collections and view IDs, and returns defaults if the stored JSON cannot be parsed. Controller state is persisted after changes.
 
-Chats, settings, characters, chat-gallery entries, and statistics are browser-owned data. They are not stored in the server database. Provider API keys also remain in that per-user browser record. Clearing site storage removes that local data.
+Chats, settings, characters, chat-gallery entries, and statistics are browser-owned data. They are not stored in the server database. Provider API keys also remain in that per-user browser record. The OpenRouter key is forwarded transiently for an administrator's character-generation request but is never persisted, returned, or logged by the server. Clearing site storage removes that local data.
 
 Generator jobs and generated assets are different: their history and metadata are server-owned and scoped by the authenticated user ID.
 
@@ -150,6 +153,32 @@ Characters contain an ID, name, avatar or thumbnail, system prompt, descriptive 
 Character Card V2 imports accept JSON files or PNG files containing `chara` metadata. The server validates and parses the card, stores the PNG as a thumbnail when present, and returns normalized card data. The React client maps supported card fields into an EroChat character and substitutes character/user template tokens.
 
 Thumbnail resolution prefers an explicitly assigned thumbnail, then suitable gallery media for that character, then the character avatar.
+
+### Character Browse and administrator generation
+
+Published characters are server-owned catalog records. Browsing supports search and newest,
+popularity, or name sorting. Importing a publication increments its import count and creates an
+independent private browser character; publishing a library character and administrator-generated
+publishing are separate workflows.
+
+Only administrators see the generation controls in Character Browse. They may select zero to 120
+existing public characters as anti-repetition references, choose any OpenRouter text model, and add
+an optional creative brief of up to 2,000 characters. The model is initialized from the current chat
+model for convenience, but changing it in the generation dialog does not change chat settings. The
+server reloads every selected record from SQLite and places all of its creative fields—including the
+greeting and system prompt—into the prompt as untrusted quoted reference data. Ownership, metrics,
+timestamps, and media metadata are excluded.
+
+OpenRouter returns one complete fictional adult character as JSON. The server accepts raw or fenced
+JSON, normalizes it into `GeneratedCharacterDraft`, and does not retry malformed or incomplete
+responses. The draft contains `name`, `avatar`, `description`, `appearance`, `background`, `greeting`,
+`systemPrompt`, and `contextMessageCount`. The administrator reviews and may edit every field before
+publishing; publication requires a name and system prompt, assigns a server-generated `ai-` source
+ID, and stores the character under the administrator's account. A successful publication clears the
+reference selection and returns Browse to the unfiltered newest listing.
+
+This workflow creates no portrait, private browser copy, or generation-history record and does not
+charge app credits. Originality is best-effort from the reference prompt and administrator review.
 
 ## Image generation
 
@@ -206,6 +235,7 @@ Generator assets must reference already stored `/app/media/` URLs before their m
 The main tables are:
 
 - `users`: username, bcrypt password hash, credits, admin flag, and creation time;
+- `public_characters`: creator-owned catalog profiles, prompts, context limit, import count, and publication timestamps;
 - `generator_jobs`: user, batch, provider, status, prompts, model, request/result metadata, errors, credits charged, and timestamps;
 - `generator_assets`: job/user ownership, media URL/type, dimensions, source, metadata, and creation time.
 
@@ -253,6 +283,8 @@ Login attempts are rate-limited in memory. Session cookies are HTTP-only, SameSi
 
 - `GET /api/admin/users`: list users for an administrator.
 - `PATCH /api/admin/users/:userId/credits`: replace a user's credit balance.
+- `POST /api/admin/characters/generate`: validate an administrator's model, optional brief, and up to 120 unique public-character reference IDs; forward the provided OpenRouter key for one generation request and return an unsaved `GeneratedCharacterDraft`.
+- `POST /api/admin/characters/publish`: validate an administrator-edited draft, assign an `ai-<UUID>` source character ID, insert the administrator-owned public character, and return it.
 
 ## Configuration
 
@@ -263,7 +295,7 @@ Server environment variables:
 - `COOKIE_SECURE`: set to `true` only when requests arrive over HTTPS.
 - `DEFAULT_USER_CREDITS`: credits assigned to new users, default `100`.
 
-Provider URLs, keys, models, generation defaults, TTS voice, context limit, and prompt-language settings are configured in the React Settings panel and persisted in the browser.
+Provider URLs, keys, models, generation defaults, TTS voice, context limit, and prompt-language settings are configured in the React Settings panel and persisted in the browser. Administrator character generation starts with the selected text model but keeps its operation-specific model choice in dialog state.
 
 ## Build and delivery
 
@@ -329,6 +361,7 @@ When adding a server endpoint:
 - Passwords are bcrypt-hashed; plaintext passwords are not stored.
 - Session cookies are HTTP-only and server sessions live in SQLite.
 - Chat data and provider keys remain in browser storage for the current origin.
+- The OpenRouter key sent to administrator character generation is request-scoped and is not persisted, returned, or logged by the server.
 - Media and generator records are scoped by authenticated user ID.
 - Admin APIs require both authentication and the database admin flag.
 - Remote media and provider proxy inputs are validated before server-side requests.

@@ -60,6 +60,17 @@ export interface PublicCharacter {
     updatedAt: string;
 }
 
+export interface GeneratedCharacterDraft {
+    name: string;
+    avatar: string;
+    description: string;
+    appearance: string;
+    background: string;
+    greeting: string;
+    systemPrompt: string;
+    contextMessageCount: number;
+}
+
 export interface ModernSettings {
     textProvider: string;
     openrouterKey: string;

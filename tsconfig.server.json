@@ -8,5 +8,5 @@
         "outDir": "dist",
         "types": ["node", "express", "express-session", "multer"]
     },
-    "include": ["src/server.ts", "src/character-card-import.ts"]
+    "include": ["src/server.ts", "src/character-card-import.ts", "src/character-generation.ts"]
 }
