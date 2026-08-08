@@ -212,7 +212,7 @@ function AppSidebar({
             <aside className={`m-sidebar ${open ? 'is-open' : ''}`}>
                 <div className="m-brand">
                     <span className="m-brand__mark">
-                        <Sparkles size={20} />
+                        <img src="/favicon.png" alt="" />
                     </span>
                     <div>
                         <strong>EroChat</strong>
