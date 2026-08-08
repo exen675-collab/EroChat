@@ -13,13 +13,11 @@ import {
     GalleryHorizontalEnd,
     Heart,
     Image as ImageIcon,
-    LayoutGrid,
     LoaderCircle,
     LogOut,
     Menu,
     MessageCircle,
     MoreHorizontal,
-    PanelLeftClose,
     Plus,
     RefreshCw,
     Save,
@@ -45,8 +43,8 @@ import {
     type PointerEvent as ReactPointerEvent,
     type ReactNode
 } from 'react';
+import type { BootstrapUser } from '../auth.js';
 import { getAssistantVisibleText } from '../utils.js';
-import { switchUiMode, type BootstrapUser } from '../ui-mode.js';
 import {
     createGeneratorJob,
     fetchAdminUsers,
@@ -538,7 +536,7 @@ function ChatView({ controller }: { controller: ModernController }) {
     const composerHeightRef = useRef(composerHeight);
     const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
     useEffect(() => {
-        endRef.current?.scrollIntoView({ block: 'end' });
+        endRef.current?.scrollIntoView?.({ block: 'end' });
     }, [controller.messages.length]);
     useEffect(() => {
         if (!resizeRef.current) {
@@ -1848,9 +1846,7 @@ function SettingsPanel({
     controller: ModernController;
     onClose: () => void;
 }) {
-    const [tab, setTab] = useState<'providers' | 'generation' | 'account' | 'appearance' | 'admin'>(
-        'providers'
-    );
+    const [tab, setTab] = useState<'providers' | 'generation' | 'account' | 'admin'>('providers');
     const [settings, setSettings] = useState<ModernSettings>({ ...controller.data.settings });
     const [models, setModels] = useState<string[]>([]);
     const [modelSearch, setModelSearch] = useState('');
@@ -1932,12 +1928,6 @@ function SettingsPanel({
                         onClick={() => setTab('account')}
                     >
                         <UserRoundCog size={18} /> Account
-                    </button>
-                    <button
-                        className={tab === 'appearance' ? 'is-active' : ''}
-                        onClick={() => setTab('appearance')}
-                    >
-                        <LayoutGrid size={18} /> Appearance
                     </button>
                     {controller.user.isAdmin && (
                         <button
@@ -2399,38 +2389,6 @@ function SettingsPanel({
                                 </Button>
                             </SettingsSection>
                         </>
-                    )}
-                    {tab === 'appearance' && (
-                        <SettingsSection
-                            title="Interface version"
-                            description="Both versions use the same saved chats, characters, settings, and gallery."
-                        >
-                            <div className="m-mode-cards">
-                                <article className="is-active">
-                                    <span>
-                                        <Sparkles size={22} />
-                                    </span>
-                                    <div>
-                                        <strong>Modern studio</strong>
-                                        <p>Cinematic, responsive React interface.</p>
-                                    </div>
-                                    <Check size={20} />
-                                </article>
-                                <button onClick={() => switchUiMode(controller.user.id, 'legacy')}>
-                                    <span>
-                                        <PanelLeftClose size={22} />
-                                    </span>
-                                    <div>
-                                        <strong>Legacy interface</strong>
-                                        <p>The original DOM-driven workspace.</p>
-                                    </div>
-                                    <ChevronDown size={20} />
-                                </button>
-                            </div>
-                            <p className="m-note">
-                                Switching reloads the workspace after your current state is saved.
-                            </p>
-                        </SettingsSection>
                     )}
                     {tab === 'admin' && controller.user.isAdmin && (
                         <SettingsSection

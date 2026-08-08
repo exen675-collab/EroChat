@@ -12,6 +12,7 @@
         "src/**/*.ts",
         "src/**/*.tsx",
         "tests/**/*.ts",
+        "tests/**/*.tsx",
         "eslint.config.mjs",
         "vite.config.mjs",
         "vitest.config.mjs"

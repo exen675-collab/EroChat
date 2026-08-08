@@ -1,4 +1,4 @@
-import type { BootstrapUser } from '../ui-mode.js';
+import type { BootstrapUser } from '../auth.js';
 
 export type ViewId = 'chat' | 'characters' | 'generator' | 'gallery' | 'stats';
 export type ImageProvider = 'swarm' | 'comfy' | 'nanogpt';

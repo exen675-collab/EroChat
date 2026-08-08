@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { BootstrapUser } from '../auth.js';
 import { getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
-import type { BootstrapUser } from '../ui-mode.js';
 import {
     createChatPreview,
     fetchGeneratorHistory,
@@ -40,8 +40,10 @@ function viewFromHash(): ViewId | null {
 
 function imagePromptFromContent(content: string): string {
     const xmlMatch = content.match(/<image_prompt>([\s\S]*?)<\/image_prompt>/i);
-    const legacyMatch = content.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/i);
-    return xmlMatch?.[1]?.trim() || legacyMatch?.[1]?.trim() || '';
+    const delimitedMatch = content.match(
+        /---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/i
+    );
+    return xmlMatch?.[1]?.trim() || delimitedMatch?.[1]?.trim() || '';
 }
 
 const TEXT_UPGRADE_MODEL = 'deepseek/deepseek-v4-flash';

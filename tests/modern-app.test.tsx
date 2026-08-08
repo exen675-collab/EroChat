@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModernApp } from '../src/client/modern/ModernApp.js';
@@ -25,7 +25,10 @@ describe('ModernApp', () => {
         );
     });
 
-    afterEach(() => vi.unstubAllGlobals());
+    afterEach(() => {
+        cleanup();
+        vi.unstubAllGlobals();
+    });
 
     it('renders the modern chat and navigates between primary views', async () => {
         render(<ModernApp user={user} />);
@@ -39,12 +42,13 @@ describe('ModernApp', () => {
         ).toBeInTheDocument();
     });
 
-    it('opens settings with the modern interface selected', async () => {
+    it('shows only the current settings sections', async () => {
         render(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
-        await userEvent.click(screen.getByRole('button', { name: /Appearance/i }));
-        expect(screen.getByText('Modern studio')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Legacy interface/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Providers/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Generation/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Account/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Appearance/i })).not.toBeInTheDocument();
     });
 
     it('keeps character creation manual and limited to the supported fields', async () => {

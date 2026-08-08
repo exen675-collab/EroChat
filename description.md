@@ -1,577 +1,331 @@
-# EroChat Project Description
+# EroChat Architecture Guide
 
-This document is an AI-agent-oriented guide to the EroChat codebase. It summarizes the app purpose, runtime architecture, important files, data flow, storage model, APIs, tests, and development conventions.
+This document describes the current EroChat codebase for maintainers and coding agents. EroChat has one React client, a Node.js/Express server, browser-persisted chat state, and SQLite-backed authentication, generator history, and media metadata.
 
-## High-Level Summary
+## Product overview
 
-EroChat is a private browser app for AI roleplay chat with optional automatic image generation. It has:
+EroChat is an authenticated AI roleplay workspace with five primary views:
 
-- A Node.js/Express backend in `server.js`.
-- SQLite-backed username/password authentication, sessions, credits, generator jobs, and generator assets.
-- A static frontend served from `index.html`, `css/styles.css`, and ES modules in `js/`.
-- Login and signup UI in `login.html`.
-- Local browser storage for per-user chat state, settings, characters, gallery metadata, generator preferences, and statistics.
-- Media persistence under `data/media/`, served only to authenticated users through `/app/media/...`.
-- External integrations with OpenRouter for text, SwarmUI and ComfyUI for image generation, and Grok TTS for message playback.
+- Chat: character conversations, message actions, request preview, memory compression, suggestions, text upgrades, text-to-speech, and optional reply images.
+- Characters: character creation, editing, deletion, selection, thumbnails, and Character Card V2 import.
+- Create: standalone image generation with presets, provider controls, batches, seeds, and job history.
+- Gallery: chat images and persisted generator assets with search, filters, sorting, lightbox actions, and character-thumbnail assignment.
+- Insights: local activity, character usage, model usage, favorites, and recent-model statistics.
 
-The project is intentionally simple: there is no bundler or frontend framework. The browser loads `index.html`, Tailwind from CDN, `css/styles.css`, and `js/main.js` as an ES module.
+The client talks directly to OpenRouter, SwarmUI, and ComfyUI where appropriate. NanoGPT image calls, authenticated media persistence, account management, generator history, and admin operations go through the Express server.
 
-## Runtime Entry Points
+## Technology stack
 
-- `server.js` is the backend entry point and the `npm start` target.
-- `login.html` is served at `/`, `/login`, and `/signin`.
-- `index.html` is served at `/app` and `/app/` after authentication.
-- `index.html` loads `js/main.js`, which initializes the frontend app.
-- Static frontend assets are exposed under authenticated paths:
-    - `/app/css` -> `css/`
-    - `/app/js` -> `js/`
-    - `/app/media` -> `data/media/`
+- React 19 and React DOM for the client UI.
+- TypeScript for client modules, server source, and tests.
+- Vite for the `/app/` client bundle.
+- Express 4 for HTTP routes and static delivery.
+- SQLite for users, sessions, generator jobs, and generator assets.
+- `express-session` with `connect-sqlite3` for cookie-backed sessions.
+- `bcryptjs` for password hashing.
+- Vitest, JSDOM, and Testing Library for automated tests.
+- ESLint and Prettier for static checks and formatting.
 
-## Development Commands
+## Runtime topology
 
-Use these commands from the repository root:
-
-```bash
-npm install
-npm start
-npm run lint
-npm run lint:fix
-npm run format
-npm run format:check
-npm run test
-npm run test:watch
+```text
+Browser
+  |-- GET / ----------------------> login.html
+  |-- GET /app/ ------------------> authenticated Vite bundle
+  |-- OpenRouter -----------------> chat, utility requests, and TTS
+  |-- SwarmUI / ComfyUI ----------> local image generation
+  `-- Express JSON/file APIs
+        |-- authentication/admin --> SQLite users + sessions
+        |-- generator history ----> SQLite jobs + assets
+        |-- media ----------------> data/media/
+        `-- NanoGPT proxy --------> configured NanoGPT endpoint
 ```
 
-The default server port is `20121`, so the app runs at:
+The server listens on port `20121` by default. `/app/` and `/app/media/` require an authenticated session. The Vite build uses `/app/` as its base URL and writes client output to `dist/client/`.
 
-- Login/signup: `http://localhost:20121/`
-- App: `http://localhost:20121/app/`
-
-Docker is also supported:
-
-```bash
-docker compose up -d --build
-```
-
-## Environment Variables
-
-`server.js` reads:
-
-- `PORT`: HTTP port. Defaults to `20121`.
-- `SESSION_SECRET`: Express session secret. Defaults to `change-this-secret`; set a real secret in production.
-- `COOKIE_SECURE`: set to `true` when behind HTTPS.
-- `DEFAULT_USER_CREDITS`: initial credits for newly created users. Defaults to `100`.
-
-The default admin account is created or reset on startup:
-
-- Username: `admin`
-- Password: `admin`
-
-Important: `ensureDefaultAdminAccount()` always hashes and writes the default admin password on startup. If this app is exposed beyond local/private use, change this behavior or credentials.
-
-## Full Source File Structure
-
-Generated dependency and runtime directories are summarized, not expanded file-by-file.
+## Repository layout
 
 ```text
 EroChat/
-|-- .dockerignore
-|-- .gitignore
-|-- .prettierignore
-|-- character-card-import.cjs
-|-- description.md
-|-- docker-compose.yml
-|-- Dockerfile
-|-- eslint.config.mjs
-|-- index.html
-|-- login.html
-|-- package-lock.json
-|-- package.json
-|-- prettier.config.mjs
-|-- README.md
-|-- server.js
+|-- src/
+|   |-- server.ts                    # Express server, SQLite, auth, media, jobs
+|   |-- character-card-import.ts     # Character Card V2 JSON/PNG parser
+|   `-- client/
+|       |-- main.tsx                 # Authenticated React bootstrap
+|       |-- auth.ts                  # Current-user type and /api/auth/me loader
+|       |-- config.ts                # Default character, settings, generator prefs
+|       |-- chat-request.ts          # Pure OpenRouter request/preview builders
+|       |-- static-prompts.ts        # Protected prompt blocks and prompt helpers
+|       |-- utils.ts                 # Shared normalization and message helpers
+|       |-- vite-env.d.ts
+|       `-- modern/
+|           |-- ModernApp.tsx        # Views, panels, dialogs, and UI components
+|           |-- useModernController.ts # React state and application actions
+|           |-- api.ts               # Provider and Express API calls
+|           |-- storage.ts           # Per-user localStorage hydration/persistence
+|           |-- types.ts             # Client domain and persisted-state types
+|           |-- character-thumbnails.ts
+|           |-- message-format.ts
+|           `-- modern.css
+|-- tests/                            # Vitest unit and React component tests
+|-- public/                           # Public favicon/login imagery
+|-- data/                             # Runtime SQLite/media data; gitignored
+|-- index.html                        # Vite client entry document
+|-- login.html                        # Sign-in/sign-up page served by Express
+|-- vite.config.mjs
 |-- vitest.config.mjs
-|-- css/
-|   `-- styles.css
-|-- data/
-|   |-- erochat.sqlite
-|   |-- sessions.sqlite
-|   `-- media/
-|       |-- generated/stored user media files
-|       |-- current snapshot observed: 496 .png, 5 .jpg, 1 .mp4
-|       `-- filenames are timestamp plus UUID, for example <timestamp>-<uuid>.png
-|-- js/
-|   |-- admin.js
-|   |-- api-comfyui.js
-|   |-- api-generator.js
-|   |-- api-image.js
-|   |-- api-openrouter.js
-|   |-- api-swarmui.js
-|   |-- character-import.js
-|   |-- characters.js
-|   |-- chat-request.js
-|   |-- config.js
-|   |-- dom.js
-|   |-- events.js
-|   |-- gallery-search.js
-|   |-- generator.js
-|   |-- main.js
-|   |-- media.js
-|   |-- messages.js
-|   |-- notifications.js
-|   |-- prompt-helper.js
-|   |-- state.js
-|   |-- stats.js
-|   |-- storage.js
-|   |-- suggestions.js
-|   |-- tts.js
-|   |-- ui.js
-|   `-- utils.js
-|-- node_modules/
-|   `-- installed npm dependencies, not source
-`-- tests/
-    |-- character-card-import-server.test.js
-    |-- character-import.test.js
-    |-- chat-request.test.js
-    |-- config.test.js
-    |-- gallery-search.test.js
-    |-- message-editing.test.js
-    |-- notifications.test.js
-    |-- stats.test.js
-    `-- utils.test.js
+|-- tsconfig.*.json
+|-- Dockerfile
+|-- docker-compose.yml
+`-- package.json
 ```
 
-## Backend Architecture
+`dist/` is generated by `npm run build` and is not source code.
 
-`server.js` is a CommonJS Express server. It handles:
+## Client startup
 
-- App bootstrapping and SQLite initialization.
-- Login/signup/logout/session middleware.
-- Admin user listing and credit management.
-- Media upload, Base64 media storage, remote media import, and authenticated media serving.
-- Character Card V2 import via `character-card-import.cjs`.
-- Generator job and asset CRUD endpoints for the frontend generator workspace.
-- Static serving for the app shell and frontend modules.
+1. Vite loads `src/client/main.tsx` into the `#root` element from `index.html`.
+2. The bootstrap helper requests `GET /api/auth/me` with the current session cookie.
+3. An unauthenticated browser is redirected to `/`.
+4. An authenticated browser renders `ModernApp` with `{ id, username, credits, isAdmin }`.
+5. `useModernController` hydrates that user's browser state and loads recent generator jobs/assets from the server.
+6. The selected view is synchronized with `#chat`, `#characters`, `#generator`, `#gallery`, or `#stats`.
 
-Important backend constants:
+`ModernApp.tsx` owns presentation and view-local UI state such as open dialogs, panel tabs, form drafts, and lightboxes. `useModernController.ts` owns cross-view data and actions.
 
-- JSON request limit: `25mb`.
-- Inline Base64 media limit: `10mb`.
-- Uploaded media limit: `80mb`.
-- Remote imported media limit: `80mb`.
-- Login rate limit: 20 attempts per 15 minutes per client IP.
-- Allowed generator mode: `image_generate`.
-- Allowed generator providers: `swarm`, `comfy`.
-- Allowed generator statuses: `queued`, `running`, `polling`, `succeeded`, `failed`, `interrupted`.
+## Client state and persistence
 
-### Backend Routes
+The persisted client state contains:
 
-Public/auth routes:
+- provider settings and API credentials;
+- characters, messages, memory snapshots, and the selected character;
+- chat-generated gallery items and gallery filters;
+- the current primary view;
+- standalone generator preferences and prompt presets;
+- local usage statistics and recent/favorite model data.
 
-- `GET /`: login page.
-- `GET /login`, `GET /signin`: login page.
-- `POST /api/auth/signup`: create account.
-- `POST /api/auth/login`: log in.
-- `POST /api/auth/logout`: destroy session.
-- `GET /api/auth/me`: return current user if logged in.
+State is stored as JSON in `localStorage` under:
 
-Authenticated app/media routes:
+```text
+erochat_data_user_<userId>
+```
 
-- `GET /app`, `GET /app/`: main app.
-- `GET /api/credits/me`: current user credits and cost map.
+The user ID prevents accounts using the same browser from sharing chat data. `storage.ts` merges parsed data with defaults, normalizes character collections and view IDs, and returns defaults if the stored JSON cannot be parsed. Controller state is persisted after changes.
+
+Chats, settings, characters, chat-gallery entries, and statistics are browser-owned data. They are not stored in the server database. Provider API keys also remain in that per-user browser record. Clearing site storage removes that local data.
+
+Generator jobs and generated assets are different: their history and metadata are server-owned and scoped by the authenticated user ID.
+
+## Chat request flow
+
+1. The controller appends the user's draft to the active character's messages.
+2. `chat-request.ts` builds the OpenRouter request from the character system prompt, accepted memory snapshots, active context messages, model settings, reasoning options, and session identifier.
+3. `modern/api.ts` sends the request directly to OpenRouter using the browser-stored API key.
+4. The assistant response is added to the character conversation.
+5. If image generation is enabled and the response contains a supported image-prompt block, the selected image provider generates one image.
+6. Generated media is copied into authenticated server storage and attached to the assistant message and chat gallery.
+7. Usage statistics and browser state are updated.
+
+The request-preview UI uses the same pure builder as the real request. Changes to request construction should therefore be made in `chat-request.ts`, with tests covering both messages and preview output.
+
+### Context and memory
+
+Each character can override the global context-message count. Messages marked outside the active context remain visible in the transcript but are omitted from later model requests.
+
+Memory compression sends an early block of active messages to an OpenRouter utility request. The result is held as a draft until the user accepts it. Acceptance creates a memory snapshot and associates the summarized message IDs with that snapshot. Accepted snapshots are included in future chat context.
+
+### Message and writing tools
+
+The controller supports editing, deleting, branching from, and regenerating images for messages. It also provides:
+
+- three short next-message suggestions from recent context;
+- minimal, normal, and full draft upgrades;
+- OpenRouter text-to-speech playback;
+- per-message visibility rules for narrative text and image-prompt markup.
+
+## Characters
+
+Characters contain an ID, name, avatar or thumbnail, system prompt, descriptive fields, messages, memory snapshots, context limit, and an OpenRouter session ID. The selected character determines the active transcript and request context.
+
+Character Card V2 imports accept JSON files or PNG files containing `chara` metadata. The server validates and parses the card, stores the PNG as a thumbnail when present, and returns normalized card data. The React client maps supported card fields into an EroChat character and substitutes character/user template tokens.
+
+Thumbnail resolution prefers an explicitly assigned thumbnail, then suitable gallery media for that character, then the character avatar.
+
+## Image generation
+
+The same provider settings support automatic chat images and the standalone Create view.
+
+### SwarmUI
+
+The browser obtains a SwarmUI session, loads models, and calls `GenerateText2Image`. The request includes prompt, negative prompt, model, dimensions, steps, CFG scale, sampler, scheduler, batch size, and seed behavior.
+
+### ComfyUI
+
+The browser loads checkpoint names, submits a text-to-image workflow to `/prompt`, polls `/history/<promptId>`, and resolves the resulting `/view` URL. ComfyUI must allow requests from the EroChat origin.
+
+### NanoGPT
+
+The browser sends the configured base URL, API key, and image payload to authenticated Express proxy routes. The server validates the target and forwards model-list and image-generation requests.
+
+### Standalone generator lifecycle
+
+1. The Create view creates a queued server job with provider, prompt, model, and request settings.
+2. The client marks it running and invokes the selected provider.
+3. Each result is copied into `data/media/` if needed.
+4. The client marks the job succeeded and submits its asset metadata.
+5. The server inserts user-scoped `generator_assets` records linked to the job.
+6. The client refreshes job and asset history for the Create and Gallery views.
+
+Allowed job statuses are `queued`, `running`, `polling`, `succeeded`, `failed`, and `interrupted`. The current generator mode is `image_generate`; providers are `swarm`, `comfy`, and `nanogpt`.
+
+## Media storage
+
+Authenticated media endpoints store files beneath `data/media/` and return URLs under `/app/media/`. Supported inputs include uploaded files, Base64 data URLs, remote HTTP(S) resources, provider results, and PNG thumbnails extracted during card import.
+
+Important server limits:
+
+- JSON request body: 25 MB;
+- inline Base64 media: 10 MiB;
+- uploaded media: 80 MiB;
+- remotely imported media: 80 MiB.
+
+Generator assets must reference already stored `/app/media/` URLs before their metadata can be attached to a job.
+
+## Server and database
+
+`src/server.ts` initializes three persistent areas inside `data/`:
+
+- `erochat.sqlite`: users, generator jobs, and generator assets;
+- `sessions.sqlite`: `express-session` data;
+- `media/`: persisted image and video files.
+
+The main tables are:
+
+- `users`: username, bcrypt password hash, credits, admin flag, and creation time;
+- `generator_jobs`: user, batch, provider, status, prompts, model, request/result metadata, errors, credits charged, and timestamps;
+- `generator_assets`: job/user ownership, media URL/type, dimensions, source, metadata, and creation time.
+
+Job and asset reads always filter by the authenticated user. Admin-only middleware protects user listing and credit updates.
+
+The current startup path ensures an `admin` account and resets its password to `admin`. Do not expose the service publicly until that bootstrap credential behavior has been replaced or secured.
+
+New databases are created with the current schema. Startup does not alter older `users` tables, so an existing deployment must be upgraded to include the current `credits` and `is_admin` columns before this version starts.
+
+## HTTP routes
+
+### Pages and authentication
+
+- `GET /`: serve the login/sign-up page, or redirect an authenticated session to `/app/`.
+- `POST /api/auth/signup`: create an account and session.
+- `POST /api/auth/login`: verify credentials and create a session.
+- `POST /api/auth/logout`: destroy the session.
+- `GET /api/auth/me`: return the authenticated user bootstrap payload.
+- `PATCH /api/auth/profile`: update username and optionally password.
+- `GET /app/`: serve the authenticated React application.
+
+Login attempts are rate-limited in memory. Session cookies are HTTP-only, SameSite=Lax, valid for 14 days, and named `erochat_auth_sid`.
+
+### Media and imports
+
 - `POST /api/media/store`: persist a Base64 data URL.
-- `POST /api/media/upload`: upload one media file with `multipart/form-data`.
-- `POST /api/media/import-remote`: fetch and store remote HTTP/HTTPS media.
-- `POST /api/characters/import-card`: upload and parse `.png` or `.json` SillyTavern Character Card V2 files.
-- `GET /app/css/*`, `GET /app/js/*`, `GET /app/media/*`: authenticated static assets.
-
-Admin routes:
-
-- `GET /api/admin/users`: list users, credits, admin flag, created date.
-- `PATCH /api/admin/users/:userId/credits`: update a user's credit balance.
-
-Generator routes:
-
-- `GET /api/generator/jobs`: paginated jobs for the current user.
-- `POST /api/generator/jobs`: create one or more queued generator jobs.
-- `PATCH /api/generator/jobs/:jobId`: update job status, provider request id, request JSON, errors, credits, completion time, and created assets.
-- `GET /api/generator/assets`: paginated generated assets for the current user.
-
-### SQLite Schema
-
-The app uses two SQLite files in `data/`:
-
-- `data/erochat.sqlite`: app data.
-- `data/sessions.sqlite`: Express session store created by `connect-sqlite3`.
-
-`server.js` creates or migrates these app tables:
-
-```text
-users
-- id INTEGER PRIMARY KEY AUTOINCREMENT
-- username TEXT UNIQUE COLLATE NOCASE
-- password_hash TEXT
-- credits INTEGER DEFAULT DEFAULT_USER_CREDITS
-- is_admin INTEGER DEFAULT 0
-- created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-
-generator_jobs
-- id INTEGER PRIMARY KEY AUTOINCREMENT
-- user_id INTEGER
-- batch_id TEXT
-- mode TEXT
-- provider TEXT
-- status TEXT
-- prompt TEXT
-- negative_prompt TEXT
-- source_asset_ids TEXT JSON array
-- provider_model TEXT
-- provider_request_id TEXT
-- request_json TEXT JSON object
-- result_asset_ids TEXT JSON array
-- error_message TEXT
-- credits_charged INTEGER
-- created_at DATETIME
-- updated_at DATETIME
-- completed_at DATETIME
-
-generator_assets
-- id INTEGER PRIMARY KEY AUTOINCREMENT
-- job_id INTEGER
-- user_id INTEGER
-- media_type TEXT, image or video
-- url TEXT, must be stored under /app/media/
-- thumbnail_url TEXT
-- width INTEGER
-- height INTEGER
-- duration_seconds INTEGER
-- source TEXT
-- metadata_json TEXT JSON object
-- created_at DATETIME
-```
-
-Indexes:
-
-- `idx_generator_jobs_user_created`
-- `idx_generator_jobs_user_status_updated`
-- `idx_generator_assets_user_created`
-- `idx_generator_assets_job`
-
-## Frontend Architecture
-
-The frontend is a static browser app using ES modules, shared mutable state, DOM references, and localStorage.
-
-The root module is `js/main.js`. Startup flow:
-
-1. Install toast-based alert/confirm overrides.
-2. Register DOM event listeners.
-3. Fetch `/api/auth/me`; redirect to `/` if unauthenticated.
-4. Update user/credit UI and admin visibility.
-5. Load per-user browser state from localStorage.
-6. Initialize generator history and resume pending jobs.
-7. Sync the visible view from the URL hash.
-8. Auto-fetch provider models when credentials/URLs are configured.
-
-Views in `index.html`:
-
-- `chatView`: main chat workspace.
-- `generatorView`: standalone image generator workspace.
-- `galleryView`: merged chat/generated media gallery.
-- `statsView`: usage and activity dashboard.
-
-Primary modals/overlays:
-
-- Settings/sidebar panel.
-- Advanced settings panel.
-- Request preview modal.
-- Assistant message edit modal.
-- Character edit/import modal.
-- Gallery lightbox.
-
-### Frontend State Shape
-
-`js/state.js` exports a single shared `state` object:
-
-```text
-currentUser
-adminUsers
-creditCosts
-currentView
-messages
-galleryImages
-gallerySearchQuery
-gallerySortOrder
-gallerySourceFilter
-galleryFilterCharacterId
-generatorJobs
-generatorAssets
-generatorActiveBatchId
-generatorPrefs
-sessionId
-isGenerating
-currentCharacterId
-characters
-settings
-statistics
-```
-
-`state.messages` is the active character conversation. Character-specific histories live in `state.characters[*].messages`.
-
-### Frontend Persistence
-
-`js/storage.js` persists data to browser localStorage. Storage keys:
-
-- Legacy key: `erochat_data`.
-- Per-user key: `erochat_data_user_<userId>`.
-- Legacy migration marker: `erochat_data_legacy_migrated`.
-
-Persisted fields:
-
-- `settings`
-- `characters`
-- `currentCharacterId`
-- `galleryImages`
-- `gallerySearchQuery`
-- `gallerySortOrder`
-- `galleryFilterCharacterId`
-- `gallerySourceFilter`
-- `currentView`
-- `generatorPrefs`
-- `statistics`
-
-Top-level messages are no longer persisted directly; messages are synced into the selected character before saving. The loader includes migration behavior for older saved top-level messages and older gallery data embedded in assistant messages.
-
-When localStorage quota is exceeded, `storage.js` prunes old gallery entries, inline data URLs, message media, and thumbnails before retrying.
-
-## JavaScript Module Responsibilities
-
-- `js/admin.js`: admin panel visibility, user list fetching/rendering, and user credit edits.
-- `js/api-comfyui.js`: ComfyUI model loading, workflow creation, prompt queueing, history polling, and image URL extraction.
-- `js/api-generator.js`: bridge between local generator jobs/assets endpoints and provider execution. Creates jobs, updates jobs, persists generated media, and dispatches to SwarmUI or ComfyUI.
-- `js/api-image.js`: provider-agnostic image generation wrapper used by chat and thumbnail flows.
-- `js/api-openrouter.js`: OpenRouter model fetching/search UI, chat completion calls, and system prompt generation for characters.
-- `js/api-swarmui.js`: SwarmUI model loading, session handling, payload construction, and image generation.
-- `js/character-import.js`: client-side normalization of imported SillyTavern Character Card V2 payloads into EroChat character objects.
-- `js/characters.js`: character list rendering, selection, create/edit/delete modal logic, thumbnail generation, and system prompt helper integration.
-- `js/chat-request.js`: pure helpers for building chat API messages and request preview data.
-- `js/config.js`: default character, app settings, and generator preferences.
-- `js/dom.js`: central map of DOM elements by id/query selector.
-- `js/events.js`: central DOM event wiring for settings, navigation, chat controls, gallery filters, generator controls, character import, admin panel, and modals.
-- `js/gallery-search.js`: pure search parser/scorer for gallery free text and field filters.
-- `js/generator.js`: standalone generator workspace UI, queue building, prompt presets/templates, source image selection, job execution, retries, history loading, and pending job resume.
-- `js/main.js`: frontend bootstrap, view hash sync, current-user loading, chat send flow, AI response handling, image prompt extraction, and auto model fetching.
-- `js/media.js`: uploads/persists generated, remote, blob, and data URL media to backend storage.
-- `js/messages.js`: chat message rendering, assistant image/video rendering, gallery additions, image regeneration, context exclusion, and assistant message editing.
-- `js/notifications.js`: toast system, confirmation prompts, and replacement for blocking `alert`.
-- `js/prompt-helper.js`: prompt template groups and OpenRouter-powered prompt improve/negative-prompt helper actions.
-- `js/state.js`: shared state object and default statistics factory.
-- `js/stats.js`: statistics normalization, event tracking, daily activity, usage summaries, and dashboard rendering.
-- `js/storage.js`: localStorage save/load, migration, UI syncing, and storage pruning.
-- `js/suggestions.js`: AI-generated next-message suggestions.
-- `js/tts.js`: Grok TTS voice selection, speech fetch/cache, playback state, and per-message TTS controls.
-- `js/ui.js`: sidebar/modal/view/gallery rendering and layout helpers.
-- `js/utils.js`: IDs, HTML escaping, message formatting, provider URL normalization, sampler/voice normalization, image prompt stripping, context window helpers.
-
-## Character Card Import
-
-`character-card-import.cjs` is shared server-side parsing logic for imported character cards. It supports:
-
-- `.json` Character Card V2 files.
-- `.png` Character Card V2 files with `chara` metadata in `tEXt`, `zTXt`, or `iTXt` chunks.
-- Direct JSON or Base64-encoded JSON payloads.
-
-It validates:
-
-- `spec` must be `chara_card_v2`.
-- `spec_version` must start with `2` if present.
-- `data.name` must exist.
-
-PNG imports keep the PNG as the character thumbnail by storing it through the backend media pipeline.
-
-## Chat Flow
-
-The normal chat flow is:
-
-1. User writes a message in `messageInput`.
-2. `main.sendMessage()` validates configured text provider/model and optional image provider/model.
-3. `chat-request.js` builds the OpenRouter-compatible request preview from:
-    - current character system prompt,
-    - recent context messages,
-    - pending user draft.
-4. User message is added to `state.messages`, rendered, tracked in stats, and saved.
-5. `api-openrouter.js` sends the chat completion request.
-6. Assistant response is added to state/UI and saved.
-7. If image generation is enabled, `main.js` extracts:
-
-```text
----IMAGE_PROMPT START---
-...
----IMAGE_PROMPT END---
-```
-
-8. `api-image.js` dispatches image generation to SwarmUI or ComfyUI.
-9. `media.js` persists returned media through the backend.
-10. `messages.js` updates the assistant message image and adds the image to the gallery.
-
-## Generator Workspace Flow
-
-The standalone generator is managed by `js/generator.js` and `js/api-generator.js`.
-
-Typical flow:
-
-1. User configures prompt, provider, batch count, source assets, dimensions, sampler, seed, and presets.
-2. `generator.js` builds one or more job requests.
-3. `api-generator.createGeneratorJobs()` posts jobs to `/api/generator/jobs`.
-4. `generator.js` processes the queue.
-5. `api-generator.executeGeneratorJob()` dispatches provider work:
-    - `swarm` -> `api-swarmui.generateLocalImages()`
-    - `comfy` -> `api-comfyui.generateComfyImages()`
-6. Generated media is persisted via `media.js`.
-7. Jobs are patched with status/assets through `/api/generator/jobs/:jobId`.
-8. Results are rendered in the generator view and included in the gallery.
-
-Generator jobs are server-persisted; frontend generator preferences are localStorage-persisted.
-
-## Media Model
-
-Media can originate from:
-
-- Chat image generation.
-- Standalone generator.
-- Uploaded local files.
-- Remote HTTP/HTTPS imports.
-- Character card PNG thumbnails.
-
-Allowed stored MIME types:
-
-- `image/png`
-- `image/jpeg` / `image/jpg`
-- `image/webp`
-- `image/gif`
-- `video/mp4`
-- `video/webm`
-- `video/quicktime`
-
-Stored URLs always look like:
-
-```text
-/app/media/<timestamp>-<uuid>.<ext>
-```
-
-Remote imports block localhost, private IP ranges, link-local hosts, `.local`, and non-HTTP(S) protocols.
-
-## Styling and UI
-
-- `index.html` and `login.html` use Tailwind via CDN.
-- `css/styles.css` contains the custom app styling for layout, chat bubbles, settings panels, generator workspace, gallery, stats dashboard, responsive behavior, and animations.
-- There is no CSS build step.
-- DOM ids in `index.html` are tightly coupled to `js/dom.js`; when adding/changing UI elements, update `dom.js` and event wiring in `events.js`.
-
-## Tests
-
-Vitest runs in `jsdom` with tests under `tests/**/*.test.js`.
-
-Current tests cover:
-
-- Server-side Character Card V2 parsing and PNG metadata extraction.
-- Client-side imported character normalization.
-- Chat request preview/message construction.
-- Default config stability.
-- Gallery search parsing/filtering/sorting.
-- Assistant message editing and context removal.
-- Toasts, confirmations, and alert override behavior.
-- Statistics tracking and rendering.
-- Utility helpers for URLs, providers, samplers, TTS voices, formatting, escaping, and context windows.
-
-Run all tests with:
-
-```bash
-npm run test
-```
-
-## Linting and Formatting
-
-- ESLint config: `eslint.config.mjs`.
-- Prettier config: `prettier.config.mjs`.
-- Formatting uses 4 spaces, single quotes, no trailing commas, and print width 100.
-- ESLint ignores `coverage/**`, `data/**`, and `node_modules/**`.
-- Server code is CommonJS.
-- Frontend/test/config files are ES modules.
-
-## Deployment Files
-
-- `Dockerfile`: Node 20 Alpine image, installs production dependencies, copies the repo, exposes port `20121`, and runs `npm start`.
-- `docker-compose.yml`: builds the app, maps `20121:20121`, sets default env vars, persists `./data:/app/data`, and restarts unless stopped.
-- `.dockerignore`: excludes files from Docker build context.
-- `.gitignore`: should keep generated/dependency artifacts out of version control.
-- `.prettierignore`: Prettier ignore list.
-
-## Important Coding Notes for Future Agents
-
-- This is not a React/Vite app. Do not introduce a build system unless the user explicitly asks.
-- Keep backend work in `server.js` unless there is a strong reason to split modules.
-- Keep frontend work aligned with the current module boundaries listed above.
-- If you add an element in `index.html`, add it to `js/dom.js` if any JS needs it.
-- If you add persistent settings/state, update:
-    - `js/config.js` defaults,
-    - `js/state.js` state shape if needed,
-    - `js/storage.js` save/load/migration,
-    - `js/events.js` event wiring,
-    - `js/ui.js` or relevant renderer,
-    - tests when the behavior is non-trivial.
-- If you add backend-persisted entities, update `initDb()` in `server.js`, route handlers, and tests or docs.
-- Avoid storing large Base64 media in localStorage. Use `media.js` and backend media endpoints to store files under `data/media/`.
-- `data/` is runtime state, not application source. Be careful before editing or deleting database/media files.
-- Authenticated media URLs are not public; they depend on the user's session.
-- The frontend calls OpenRouter directly from the browser using the user's API key stored in localStorage.
-- SwarmUI and ComfyUI are expected to run separately and be reachable from the browser.
-- Many UI strings and the default character prompt contain adult roleplay context. Preserve intended app behavior unless the user asks to change it.
-- The default character prompt in `js/config.js` appears mojibake when printed in some terminals, likely due to encoding/display mismatch. Check in an editor before doing broad text edits.
-
-## Common Change Patterns
-
-Adding a new setting:
-
-1. Add default value in `js/config.js`.
-2. Add matching input/control in `index.html`.
-3. Add DOM reference in `js/dom.js`.
-4. Load/save/sync it in `js/storage.js`.
-5. Wire events in `js/events.js`.
-6. Use it in the relevant feature module.
-7. Update tests if default or helper behavior changes.
-
-Adding a new provider:
-
-1. Add provider defaults and normalization in `js/config.js` and `js/utils.js`.
-2. Add settings UI in `index.html`.
-3. Add DOM references in `js/dom.js`.
-4. Add API module or extend existing API wrapper.
-5. Dispatch from `js/api-image.js` and/or `js/api-generator.js`.
-6. Persist provider settings through `js/storage.js`.
-7. Add model fetching and event wiring through `events.js` and startup behavior if needed.
-
-Adding generator fields:
-
-1. Add UI controls in the generator section of `index.html`.
-2. Add references in `js/dom.js`.
-3. Extend `defaultGeneratorPrefs` in `js/config.js`.
-4. Update `generator.js` read/apply/render logic.
-5. Include the value in job `requestJson` if it affects provider execution.
-6. Update provider payload construction in `api-swarmui.js` or `api-comfyui.js`.
-
-Adding backend media behavior:
-
-1. Reuse `storeMediaBuffer()` where possible.
-2. Keep MIME normalization and size checks.
-3. Only return `/app/media/...` URLs for stored media.
-4. Keep `requireApiAuth` on write/import endpoints.
-5. Avoid allowing local/private remote URLs in import flows.
-
-## Known Sharp Edges
-
-- The default admin password reset on every server start is convenient locally but unsafe for production.
-- Browser localStorage is still important even though media files and generator records are server-persisted.
-- The backend `credits` support exists, but most generation cost enforcement is currently minimal: `/api/credits/me` returns an empty `costs` object and generator job creation does not appear to reserve credits.
-- The app depends on external services being CORS-compatible from the browser, especially local SwarmUI/ComfyUI and OpenRouter.
-- The frontend uses global `window.*` handlers for some inline/on-click style interactions; check `main.js` before removing or renaming exported functions used by markup.
-- `index.html` is large and id-heavy. Small DOM id changes can break module references.
+- `POST /api/media/upload`: persist a multipart upload.
+- `POST /api/media/import-remote`: download and persist a remote media URL.
+- `POST /api/characters/import-card`: parse a Character Card V2 JSON or PNG upload.
+- `GET /app/media/*`: serve authenticated stored media.
+
+### Provider proxy
+
+- `POST /api/nanogpt/images/models`: proxy a NanoGPT image-model request.
+- `POST /api/nanogpt/images`: proxy NanoGPT image generation.
+
+### Generator history
+
+- `GET /api/generator/jobs`: list user-scoped jobs with cursor pagination and optional status filtering.
+- `POST /api/generator/jobs`: create up to 20 validated jobs.
+- `PATCH /api/generator/jobs/:jobId`: update a user-owned job and attach stored assets.
+- `GET /api/generator/assets`: list user-scoped assets with cursor pagination.
+
+### Administration
+
+- `GET /api/admin/users`: list users for an administrator.
+- `PATCH /api/admin/users/:userId/credits`: replace a user's credit balance.
+
+## Configuration
+
+Server environment variables:
+
+- `PORT`: HTTP port, default `20121`.
+- `SESSION_SECRET`: session signing secret; change it in production.
+- `COOKIE_SECURE`: set to `true` only when requests arrive over HTTPS.
+- `DEFAULT_USER_CREDITS`: credits assigned to new users, default `100`.
+
+Provider URLs, keys, models, generation defaults, TTS voice, context limit, and prompt-language settings are configured in the React Settings panel and persisted in the browser.
+
+## Build and delivery
+
+`npm run build` performs two steps:
+
+1. `tsc -p tsconfig.server.json` compiles `server.ts` and `character-card-import.ts` to `dist/` as CommonJS.
+2. `vite build` bundles the React client to `dist/client/` with a base URL of `/app/`.
+
+`npm start` runs `dist/server.js`. The Docker image installs dependencies, builds both targets, prunes development dependencies, and starts the same server. Docker Compose maps port `20121` and mounts `./data` at `/app/data`.
+
+`npm run dev` starts the Vite client development server only; the Vite configuration does not define an Express API proxy.
+
+## Verification
+
+- `npm run test`: run Vitest unit and React component tests.
+- `npm run typecheck`: type-check server, client, configuration, and tests without emitting files.
+- `npm run lint`: run ESLint across source, tests, and configuration.
+- `npm run build`: compile the production server and client.
+- `npm run format:check`: check repository formatting with Prettier.
+
+Vitest uses JSDOM by default. Server-side card-parser tests opt into the Node environment. Pure logic should remain separate from JSX so request building, state normalization, formatting, search behavior, and parsing can be tested without rendering the application.
+
+## Change map
+
+When adding or changing a primary view:
+
+1. Extend `ViewId` in `modern/types.ts`.
+2. Add navigation and rendering in `ModernApp.tsx`.
+3. Add cross-view actions to `useModernController.ts` only when needed.
+4. Add styles to `modern.css` and cover navigation/rendering in the React test.
+
+When changing persisted state:
+
+1. Update the interfaces in `modern/types.ts`.
+2. Update defaults and normalization in `modern/storage.ts`.
+3. Keep malformed or partial browser data safe to hydrate.
+4. Add storage tests for defaults, round trips, and invalid shapes.
+
+When changing chat requests:
+
+1. Update the pure builders in `chat-request.ts`.
+2. Keep request preview and actual dispatch on the same builder.
+3. Test system prompts, memory snapshots, archived messages, context limits, reasoning options, and headers.
+
+When adding a provider:
+
+1. Extend provider types and default settings.
+2. Add settings controls and model loading in the React client.
+3. Implement generation in `modern/api.ts`.
+4. Add an Express proxy only when browser-direct access is unsuitable.
+5. Normalize every result through authenticated media persistence.
+6. Extend server job validation if the provider participates in generator history.
+
+When adding a server endpoint:
+
+1. Decide whether it is public, authenticated, or administrator-only.
+2. Validate body, query, ownership, size, and URL inputs before I/O.
+3. Keep returned field names in the client-facing camelCase shape.
+4. Add focused tests and update this route inventory.
+
+## Security and privacy boundaries
+
+- Passwords are bcrypt-hashed; plaintext passwords are not stored.
+- Session cookies are HTTP-only and server sessions live in SQLite.
+- Chat data and provider keys remain in browser storage for the current origin.
+- Media and generator records are scoped by authenticated user ID.
+- Admin APIs require both authentication and the database admin flag.
+- Remote media and provider proxy inputs are validated before server-side requests.
+- Use HTTPS, a strong `SESSION_SECRET`, secure cookies, and non-default administrator credentials in production.

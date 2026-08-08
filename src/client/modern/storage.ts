@@ -2,7 +2,6 @@ import { defaultCharacter, defaultGeneratorPrefs, defaultSettings } from '../con
 import type { ModernCharacter, ModernPersistedState, ModernSettings, ViewId } from './types.js';
 
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
-const LEGACY_STORAGE_KEY = 'erochat_data';
 const VIEWS: ViewId[] = ['chat', 'characters', 'generator', 'gallery', 'stats'];
 
 export function getModernStorageKey(userId: number | string): string {
@@ -65,8 +64,7 @@ export function hydrateModernState(
     storage: Storage = localStorage
 ): ModernPersistedState {
     const defaults = createModernDefaultState();
-    let raw = storage.getItem(getModernStorageKey(userId));
-    if (!raw) raw = storage.getItem(LEGACY_STORAGE_KEY);
+    const raw = storage.getItem(getModernStorageKey(userId));
     if (!raw) return defaults;
 
     try {

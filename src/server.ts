@@ -276,11 +276,6 @@ function clearRateLimit(req) {
     loginAttempts.delete(getClientIp(req));
 }
 
-async function getUserCredits(userId) {
-    const row = await get('SELECT credits FROM users WHERE id = ?', [userId]);
-    return Number.isFinite(row?.credits) ? row.credits : 0;
-}
-
 function normalizePositiveInt(value, fallback, min = 1, max = 100) {
     const parsed = Number.parseInt(value, 10);
     if (!Number.isFinite(parsed)) return fallback;
@@ -591,24 +586,6 @@ async function initDb() {
     )
   `);
 
-    try {
-        await run(
-            `ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT ${DEFAULT_USER_CREDITS}`
-        );
-    } catch (error) {
-        if (!String(error?.message || '').includes('duplicate column')) {
-            throw error;
-        }
-    }
-
-    try {
-        await run('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
-    } catch (error) {
-        if (!String(error?.message || '').includes('duplicate column')) {
-            throw error;
-        }
-    }
-
     await run(`
     CREATE TABLE IF NOT EXISTS generator_jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -670,12 +647,7 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.json({ limit: MAX_JSON_BODY_BYTES }));
 app.use((req, res, next) => {
-    if (
-        req.path === '/' ||
-        req.path === '/login' ||
-        req.path === '/signin' ||
-        req.path.startsWith('/app')
-    ) {
+    if (req.path === '/' || req.path.startsWith('/app')) {
         res.set('Cache-Control', 'no-store');
     }
     next();
@@ -706,13 +678,7 @@ app.get('/', (req, res) => {
         return;
     }
 
-    res.clearCookie('erochat.sid');
-    res.clearCookie('connect.sid');
     res.sendFile(path.join(ROOT_DIR, 'login.html'));
-});
-
-app.get(['/login', '/signin'], (req, res) => {
-    res.redirect('/');
 });
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -737,7 +703,6 @@ app.post('/api/auth/signup', async (req, res) => {
         );
 
         req.session.userId = result.lastID;
-        req.session.username = username;
         req.session.isAdmin = false;
 
         res.status(201).json({ ok: true, username, credits: DEFAULT_USER_CREDITS, isAdmin: false });
@@ -784,7 +749,6 @@ app.post('/api/auth/login', async (req, res) => {
 
         clearRateLimit(req);
         req.session.userId = user.id;
-        req.session.username = user.username;
         req.session.isAdmin = Number.parseInt(user.is_admin, 10) === 1;
 
         res.json({
@@ -834,7 +798,6 @@ app.get('/api/auth/me', async (req, res) => {
         }
 
         const isAdmin = Number.parseInt(user.is_admin, 10) === 1;
-        req.session.username = user.username;
         req.session.isAdmin = isAdmin;
 
         res.json({
@@ -920,7 +883,6 @@ app.patch('/api/auth/profile', requireApiAuth, async (req, res) => {
             [userId]
         );
         const isAdmin = Number.parseInt(updated.is_admin, 10) === 1;
-        req.session.username = updated.username;
         req.session.isAdmin = isAdmin;
 
         res.json({
@@ -935,19 +897,6 @@ app.patch('/api/auth/profile', requireApiAuth, async (req, res) => {
     } catch (error) {
         console.error('Profile update failed:', error);
         res.status(500).json({ error: 'Failed to update profile.' });
-    }
-});
-
-app.get('/api/credits/me', requireApiAuth, async (req, res) => {
-    try {
-        const credits = await getUserCredits(req.session.userId);
-        res.json({
-            credits,
-            costs: {}
-        });
-    } catch (error) {
-        console.error('Failed to load credits:', error);
-        res.status(500).json({ error: 'Failed to load credits.' });
     }
 });
 

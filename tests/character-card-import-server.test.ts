@@ -118,13 +118,13 @@ describe('server-side character card import parsing', () => {
 
         expect(() =>
             parseCharacterCardImportFile({
-                originalname: 'legacy.json',
+                originalname: 'unsupported.json',
                 mimetype: 'application/json',
                 buffer: Buffer.from(
                     JSON.stringify({
                         spec: 'chara_card_v1',
                         spec_version: '1.0',
-                        data: { name: 'Legacy' }
+                        data: { name: 'Unsupported card' }
                     }),
                     'utf8'
                 )

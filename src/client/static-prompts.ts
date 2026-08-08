@@ -105,11 +105,3 @@ export function buildSystemPromptWithStaticBlocks(
     const editablePrompt = stripProtectedSystemPromptBlocks(systemPrompt);
     return [editablePrompt, getProtectedSystemPromptBlock(language)].filter(Boolean).join('\n\n');
 }
-
-export function renderProtectedSystemPromptBlocks(
-    target,
-    language = DEFAULT_PROTECTED_IMAGE_PROMPT_LANGUAGE
-) {
-    if (!target) return;
-    target.textContent = getProtectedSystemPromptBlock(language);
-}

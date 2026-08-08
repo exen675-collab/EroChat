@@ -107,7 +107,9 @@ export function buildChatRequestPreview({
         max_tokens: maxTokens
     };
 
-    const normalizedSessionId = String(openrouterSessionId || '').trim().slice(0, 256);
+    const normalizedSessionId = String(openrouterSessionId || '')
+        .trim()
+        .slice(0, 256);
     if (normalizedSessionId) {
         body.session_id = normalizedSessionId;
     }

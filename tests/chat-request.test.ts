@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
     buildChatApiMessages,
@@ -246,55 +246,5 @@ hidden image prompt
             role: 'assistant',
             content: rawAssistantContent
         });
-    });
-});
-
-describe('request preview modal helpers', () => {
-    beforeEach(() => {
-        vi.resetModules();
-        document.body.innerHTML = `
-            <div id="settingsPanel" class="-translate-x-full"></div>
-            <div id="requestPreviewModal" class="hidden"></div>
-            <button id="copyRequestPreviewBtn" type="button">Copy request</button>
-            <button id="closeRequestPreviewBtn" type="button"></button>
-            <div id="requestPreviewProvider"></div>
-            <code id="requestPreviewEndpoint"></code>
-            <pre id="requestPreviewHeaders"></pre>
-            <pre id="requestPreviewBody"></pre>
-        `;
-        Object.defineProperty(globalThis, 'navigator', {
-            value: {
-                clipboard: {
-                    writeText: vi.fn().mockResolvedValue()
-                }
-            },
-            configurable: true
-        });
-    });
-
-    it('renders and copies the current request preview', async () => {
-        const ui = await import('../src/client/ui.ts');
-        const preview = buildChatRequestPreview({
-            textProvider: 'openrouter',
-            draftMessage: 'Inspect me',
-            systemPrompt: 'System prompt',
-            openrouterKey: 'sk-test',
-            openrouterModel: 'openai/gpt-4.1-mini'
-        });
-
-        ui.showChatRequestPreview(preview);
-
-        expect(document.getElementById('requestPreviewModal').classList.contains('hidden')).toBe(
-            false
-        );
-        expect(document.getElementById('requestPreviewEndpoint').textContent).toBe(
-            'POST https://openrouter.ai/api/v1/chat/completions'
-        );
-        expect(document.getElementById('requestPreviewBody').textContent).toContain('Inspect me');
-
-        await ui.copyCurrentChatRequestPreview();
-
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(preview.displayText);
-        expect(document.getElementById('copyRequestPreviewBtn').textContent).toBe('Copied!');
     });
 });

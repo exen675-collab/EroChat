@@ -43,7 +43,7 @@ export default tseslint.config(
         }
     },
     {
-        files: ['tests/**/*.ts', 'eslint.config.mjs', 'vite.config.mjs', 'vitest.config.mjs'],
+        files: ['tests/**/*.{ts,tsx}', 'eslint.config.mjs', 'vite.config.mjs', 'vitest.config.mjs'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',

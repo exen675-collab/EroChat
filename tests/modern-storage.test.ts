@@ -6,7 +6,7 @@ import {
     persistModernState
 } from '../src/client/modern/storage.js';
 
-describe('modern and legacy storage compatibility', () => {
+describe('per-user app storage', () => {
     beforeEach(() => localStorage.clear());
 
     it('hydrates the existing per-user schema without discarding data', () => {
@@ -36,7 +36,7 @@ describe('modern and legacy storage compatibility', () => {
         expect(hydrated.currentView).toBe('gallery');
     });
 
-    it('writes the same top-level persisted fields used by legacy mode', () => {
+    it('writes the complete current state', () => {
         const state = createModernDefaultState();
         state.gallerySearchQuery = 'portrait';
         expect(persistModernState(4, state)).toBe(true);
@@ -45,5 +45,17 @@ describe('modern and legacy storage compatibility', () => {
         expect(stored.characters).toBeDefined();
         expect(stored.generatorPrefs).toBeDefined();
         expect(stored.gallerySearchQuery).toBe('portrait');
+    });
+
+    it('does not load unscoped data', () => {
+        localStorage.setItem(
+            'erochat_data',
+            JSON.stringify({ characters: [{ id: 'old', name: 'Old data' }] })
+        );
+
+        const hydrated = hydrateModernState(5);
+
+        expect(hydrated.currentCharacterId).toBe('default');
+        expect(hydrated.characters[0].id).toBe('default');
     });
 });

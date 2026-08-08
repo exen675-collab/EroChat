@@ -30,19 +30,35 @@ body,
     min-height: 100%;
     margin: 0;
 }
-body:has(.modern-app) {
+body {
     overflow: hidden;
     background: var(--m-bg);
+    line-height: 1.5;
 }
 button,
 input,
 select,
 textarea {
+    margin: 0;
     font: inherit;
+    color: inherit;
+}
+button {
+    padding: 0;
+    border: 0;
+    background: none;
 }
 button,
 a {
     -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled) {
+    cursor: pointer;
+}
+img,
+svg,
+video {
+    display: block;
 }
 button:focus-visible,
 a:focus-visible,
@@ -1654,45 +1670,6 @@ textarea:focus-visible {
 .m-account-summary small {
     color: var(--m-faint);
 }
-.m-mode-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-.m-mode-cards article,
-.m-mode-cards button {
-    min-height: 115px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: start;
-    gap: 10px;
-    padding: 15px;
-    border: 1px solid var(--m-border);
-    border-radius: 13px;
-    color: var(--m-text);
-    background: var(--m-bg);
-    text-align: left;
-}
-.m-mode-cards article.is-active {
-    border-color: rgba(195, 93, 243, 0.45);
-    background: rgba(195, 93, 243, 0.07);
-}
-.m-mode-cards button {
-    cursor: pointer;
-}
-.m-mode-cards strong {
-    display: block;
-}
-.m-mode-cards p {
-    margin-top: 4px;
-    color: var(--m-faint);
-    font-size: 11px;
-    line-height: 1.5;
-}
-.m-note {
-    color: var(--m-faint);
-    font-size: 11px;
-}
 .m-admin-list {
     display: grid;
     gap: 7px;
@@ -1811,9 +1788,6 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
-    body:has(.modern-app) {
-        overflow: hidden;
-    }
     .modern-app {
         display: block;
         height: 100dvh;
@@ -2176,9 +2150,6 @@ textarea:focus-visible {
     }
     .m-settings-section {
         padding: 14px;
-    }
-    .m-mode-cards {
-        grid-template-columns: 1fr;
     }
     .m-admin-list article {
         grid-template-columns: 1fr 85px;
