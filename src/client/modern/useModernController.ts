@@ -319,7 +319,9 @@ export function useModernController(user: BootstrapUser) {
                                         ? data.settings.swarmModel
                                         : data.settings.imageProvider === 'comfy'
                                           ? data.settings.comfyModel
-                                          : data.settings.nanogptModel,
+                                          : data.settings.imageProvider === 'nanogpt'
+                                            ? data.settings.nanogptModel
+                                            : data.settings.openrouterImageModel,
                                 prompt: imagePrompt
                             });
                         }

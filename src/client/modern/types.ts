@@ -1,7 +1,7 @@
 import type { BootstrapUser } from '../auth.js';
 
 export type ViewId = 'chat' | 'characters' | 'browse' | 'generator' | 'gallery' | 'stats';
-export type ImageProvider = 'swarm' | 'comfy' | 'nanogpt';
+export type ImageProvider = 'swarm' | 'comfy' | 'nanogpt' | 'openrouter';
 
 export interface ModernMessage {
     id: string;
@@ -77,6 +77,7 @@ export interface ModernSettings {
     nanogptKey: string;
     nanogptModel: string;
     nanogptQuality: string;
+    openrouterImageModel: string;
     imageProvider: ImageProvider;
     protectedImagePromptLanguage: 'pl' | 'en' | 'none';
     enableImageGeneration: boolean;

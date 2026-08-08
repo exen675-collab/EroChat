@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModernApp } from '../src/client/modern/ModernApp.js';
@@ -50,6 +50,68 @@ describe('ModernApp', () => {
         expect(screen.getByRole('button', { name: /Generation/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Account/i })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Appearance/i })).not.toBeInTheDocument();
+    });
+
+    it('keeps loaded OpenRouter text and image models in separate selectors', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                const url = String(input);
+                if (url.includes('/api/generator/jobs')) {
+                    return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
+                }
+                if (url.includes('/api/generator/assets')) {
+                    return new Response(JSON.stringify({ assets: [] }), { status: 200 });
+                }
+                if (url.endsWith('/api/v1/images/models')) {
+                    return new Response(JSON.stringify({ data: [{ id: 'image/test-model' }] }), {
+                        status: 200
+                    });
+                }
+                if (url.endsWith('/api/v1/models')) {
+                    return new Response(JSON.stringify({ data: [{ id: 'text/test-model' }] }), {
+                        status: 200
+                    });
+                }
+                return new Response(JSON.stringify({}), { status: 200 });
+            })
+        );
+
+        render(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.type(screen.getByLabelText('OpenRouter API key'), 'sk-test');
+        await userEvent.selectOptions(screen.getByLabelText('Active provider'), 'openrouter');
+
+        const imageBox = screen.getByText('OpenRouter connection').closest('.m-provider-box');
+        const textSection = screen
+            .getByRole('heading', { name: 'Text provider' })
+            .closest('section');
+        expect(imageBox).not.toBeNull();
+        expect(textSection).not.toBeNull();
+
+        await userEvent.click(
+            within(imageBox as HTMLElement).getByRole('button', { name: /Load models/i })
+        );
+        expect(
+            await within(imageBox as HTMLElement).findByRole('option', {
+                name: 'image/test-model'
+            })
+        ).toBeInTheDocument();
+        expect(
+            within(textSection as HTMLElement).queryByRole('option', { name: 'image/test-model' })
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(
+            within(textSection as HTMLElement).getByRole('button', { name: /Load models/i })
+        );
+        expect(
+            await within(textSection as HTMLElement).findByRole('option', {
+                name: 'text/test-model'
+            })
+        ).toBeInTheDocument();
+        expect(
+            within(imageBox as HTMLElement).queryByRole('option', { name: 'text/test-model' })
+        ).not.toBeInTheDocument();
     });
 
     it('keeps character creation manual and limited to the supported fields', async () => {

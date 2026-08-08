@@ -130,10 +130,11 @@ npm run test:watch
 ### Image provider (optional)
 
 1. Enable image generation if you want automatic reply images.
-2. Choose `SwarmUI`, `ComfyUI`, or `NanoGPT` in **Settings > Providers**.
+2. Choose `SwarmUI`, `ComfyUI`, `NanoGPT`, or `OpenRouter` in **Settings > Providers**.
 3. For `SwarmUI`, start the service, enter its URL, and select a loaded model.
 4. For `ComfyUI`, start it with CORS enabled for the EroChat origin, enter its URL, and select a checkpoint.
 5. For `NanoGPT`, enter the endpoint, API key, and image model.
+6. For `OpenRouter`, reuse the text-provider API key, load the dedicated image models, and select one.
 
 If image generation is disabled, chat works without image provider setup.
 

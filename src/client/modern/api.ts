@@ -146,6 +146,18 @@ export async function fetchProviderModels(
     provider: string,
     settings: ModernSettings
 ): Promise<string[]> {
+    if (provider === 'openrouter') {
+        if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key first.');
+        const response = await fetch('https://openrouter.ai/api/v1/images/models', {
+            cache: 'no-store',
+            headers: { Authorization: `Bearer ${settings.openrouterKey}` }
+        });
+        const payload = await responsePayload(response);
+        return (payload?.data || [])
+            .map((model: any) => String(model?.id || ''))
+            .filter(Boolean)
+            .sort((a: string, b: string) => a.localeCompare(b));
+    }
     if (provider === 'comfy') {
         const response = await fetch(`${normalizeBaseUrl(settings.comfyUrl)}/models/checkpoints`, {
             cache: 'no-store'
@@ -376,10 +388,46 @@ async function generateNanoGpt(settings: ModernSettings, options: GenerateOption
         }));
 }
 
+async function generateOpenRouter(settings: ModernSettings, options: GenerateOptions) {
+    if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key first.');
+    const model = options.model || settings.openrouterImageModel;
+    if (!model) throw new Error('Select an OpenRouter image model first.');
+
+    const results: Array<{ url: string }> = [];
+    const batchCount = Math.max(1, Number(options.batchCount) || 1);
+    for (let index = 0; index < batchCount; index += 1) {
+        const response = await fetch('https://openrouter.ai/api/v1/images', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${settings.openrouterKey}`,
+                'HTTP-Referer': window.location.href,
+                'X-Title': 'EroChat'
+            },
+            body: JSON.stringify({ model, prompt: options.prompt, n: 1 })
+        });
+        const payload = await responsePayload(response);
+        const images = Array.isArray(payload?.data) ? payload.data : [];
+        for (const image of images) {
+            const value = typeof image === 'string' ? image : image?.url || image?.b64_json;
+            if (!value) continue;
+            results.push({
+                url:
+                    String(value).startsWith('http') || String(value).startsWith('data:')
+                        ? String(value)
+                        : `data:${image?.media_type || 'image/png'};base64,${value}`
+            });
+        }
+    }
+    if (!results.length) throw new Error('OpenRouter returned no images.');
+    return results;
+}
+
 export async function generateImages(settings: ModernSettings, options: GenerateOptions) {
     const provider = settings.imageProvider;
     if (provider === 'comfy') return generateComfy(settings, options);
     if (provider === 'nanogpt') return generateNanoGpt(settings, options);
+    if (provider === 'openrouter') return generateOpenRouter(settings, options);
     return generateSwarm(settings, options);
 }
 

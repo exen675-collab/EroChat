@@ -32,6 +32,7 @@ export const defaultSettings = {
     nanogptKey: '',
     nanogptModel: '',
     nanogptQuality: 'medium',
+    openrouterImageModel: '',
     imageProvider: 'swarm',
     protectedImagePromptLanguage: 'pl',
     enableImageGeneration: true,

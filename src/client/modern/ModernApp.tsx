@@ -70,6 +70,7 @@ import {
 } from './api.js';
 import type {
     GalleryItem,
+    ImageProvider,
     ModernCharacter,
     ModernMessage,
     ModernSettings,
@@ -1446,7 +1447,9 @@ function GeneratorView({ controller }: { controller: ModernController }) {
                         ? settings.swarmModel
                         : provider === 'comfy'
                           ? settings.comfyModel
-                          : settings.nanogptModel,
+                          : provider === 'nanogpt'
+                            ? settings.nanogptModel
+                            : settings.openrouterImageModel,
                 sourceAssetIds: [],
                 requestJson: request
             });
@@ -1518,6 +1521,7 @@ function GeneratorView({ controller }: { controller: ModernController }) {
                             <option value="swarm">SwarmUI</option>
                             <option value="comfy">ComfyUI</option>
                             <option value="nanogpt">NanoGPT</option>
+                            <option value="openrouter">OpenRouter</option>
                         </select>
                     </label>
                     <label className="m-field">
@@ -2290,7 +2294,8 @@ function SettingsPanel({
 }) {
     const [tab, setTab] = useState<'providers' | 'generation' | 'account' | 'admin'>('providers');
     const [settings, setSettings] = useState<ModernSettings>({ ...controller.data.settings });
-    const [models, setModels] = useState<string[]>([]);
+    const [textModels, setTextModels] = useState<string[]>([]);
+    const [imageModels, setImageModels] = useState<Partial<Record<ImageProvider, string[]>>>({});
     const [modelSearch, setModelSearch] = useState('');
     const [loading, setLoading] = useState('');
     const [profile, setProfile] = useState({
@@ -2303,14 +2308,23 @@ function SettingsPanel({
     const [credits, setCredits] = useState<Record<number, number>>({});
     const update = (patch: Partial<ModernSettings>) =>
         setSettings((current) => ({ ...current, ...patch }));
-    async function loadModels(provider: string) {
-        setLoading(provider);
+    async function loadTextModels() {
+        setLoading('openrouter');
         try {
-            const list =
-                provider === 'openrouter'
-                    ? await fetchOpenRouterModels(settings)
-                    : await fetchProviderModels(provider, settings);
-            setModels(list);
+            const list = await fetchOpenRouterModels(settings);
+            setTextModels(list);
+            controller.notify(`Loaded ${list.length} models.`, 'success');
+        } catch (error) {
+            controller.notify((error as Error).message, 'error');
+        } finally {
+            setLoading('');
+        }
+    }
+    async function loadImageModels(provider: ImageProvider) {
+        setLoading(`${provider}-images`);
+        try {
+            const list = await fetchProviderModels(provider, settings);
+            setImageModels((current) => ({ ...current, [provider]: list }));
             controller.notify(`Loaded ${list.length} models.`, 'success');
         } catch (error) {
             controller.notify((error as Error).message, 'error');
@@ -2334,7 +2348,7 @@ function SettingsPanel({
         controller.updateSettings(settings);
         controller.notify('Settings saved.', 'success');
     }
-    const filteredModels = models
+    const filteredModels = textModels
         .filter((model) => model.toLowerCase().includes(modelSearch.toLowerCase()))
         .slice(0, 300);
     return (
@@ -2418,10 +2432,10 @@ function SettingsPanel({
                                             onChange={(event) => setModelSearch(event.target.value)}
                                         />
                                         <Button
-                                            onClick={() => void loadModels('openrouter')}
+                                            onClick={() => void loadTextModels()}
                                             disabled={loading === 'openrouter'}
                                         >
-                                            {loading ? (
+                                            {loading === 'openrouter' ? (
                                                 <LoaderCircle className="spin" size={16} />
                                             ) : (
                                                 <RefreshCw size={16} />
@@ -2535,31 +2549,40 @@ function SettingsPanel({
                                         <option value="swarm">SwarmUI</option>
                                         <option value="comfy">ComfyUI</option>
                                         <option value="nanogpt">NanoGPT</option>
+                                        <option value="openrouter">OpenRouter</option>
                                     </select>
                                 </label>
                                 <ProviderSettings
                                     provider="swarm"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadModels('swarm')}
-                                    loading={loading === 'swarm'}
-                                    models={models}
+                                    onLoad={() => void loadImageModels('swarm')}
+                                    loading={loading === 'swarm-images'}
+                                    models={imageModels.swarm || []}
                                 />
                                 <ProviderSettings
                                     provider="comfy"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadModels('comfy')}
-                                    loading={loading === 'comfy'}
-                                    models={models}
+                                    onLoad={() => void loadImageModels('comfy')}
+                                    loading={loading === 'comfy-images'}
+                                    models={imageModels.comfy || []}
                                 />
                                 <ProviderSettings
                                     provider="nanogpt"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadModels('nanogpt')}
-                                    loading={loading === 'nanogpt'}
-                                    models={models}
+                                    onLoad={() => void loadImageModels('nanogpt')}
+                                    loading={loading === 'nanogpt-images'}
+                                    models={imageModels.nanogpt || []}
+                                />
+                                <ProviderSettings
+                                    provider="openrouter"
+                                    settings={settings}
+                                    update={update}
+                                    onLoad={() => void loadImageModels('openrouter')}
+                                    loading={loading === 'openrouter-images'}
+                                    models={imageModels.openrouter || []}
                                 />
                             </SettingsSection>
                         </>
@@ -2935,27 +2958,44 @@ function ProviderSettings({
     loading,
     models
 }: {
-    provider: 'swarm' | 'comfy' | 'nanogpt';
+    provider: 'swarm' | 'comfy' | 'nanogpt' | 'openrouter';
     settings: ModernSettings;
     update: (patch: Partial<ModernSettings>) => void;
     onLoad: () => void;
     loading: boolean;
     models: string[];
 }) {
+    const [modelSearch, setModelSearch] = useState('');
     if (settings.imageProvider !== provider) return null;
-    const labels = { swarm: 'SwarmUI', comfy: 'ComfyUI', nanogpt: 'NanoGPT' };
+    const labels = {
+        swarm: 'SwarmUI',
+        comfy: 'ComfyUI',
+        nanogpt: 'NanoGPT',
+        openrouter: 'OpenRouter'
+    };
     const urlKey = `${provider}Url` as keyof ModernSettings;
-    const modelKey = `${provider}Model` as keyof ModernSettings;
+    const modelKey = (
+        provider === 'openrouter' ? 'openrouterImageModel' : `${provider}Model`
+    ) as keyof ModernSettings;
+    const selectedModel = String(settings[modelKey] || '');
+    const filteredModels = models
+        .filter((model) => model.toLowerCase().includes(modelSearch.toLowerCase()))
+        .slice(0, 300);
     return (
         <div className="m-provider-box">
             <span className="m-eyebrow">{labels[provider]} connection</span>
-            <label className="m-field">
-                <span>Base URL</span>
-                <input
-                    value={String(settings[urlKey] || '')}
-                    onChange={(event) => update({ [urlKey]: event.target.value })}
-                />
-            </label>
+            {provider !== 'openrouter' && (
+                <label className="m-field">
+                    <span>Base URL</span>
+                    <input
+                        value={String(settings[urlKey] || '')}
+                        onChange={(event) => update({ [urlKey]: event.target.value })}
+                    />
+                </label>
+            )}
+            {provider === 'openrouter' && (
+                <p className="m-muted">Uses the OpenRouter API key configured for text above.</p>
+            )}
             {provider === 'nanogpt' && (
                 <>
                     <label className="m-field">
@@ -2979,29 +3019,36 @@ function ProviderSettings({
                     </label>
                 </>
             )}
-            <label className="m-field">
+            <div className="m-field">
                 <span>Model</span>
                 <div className="m-inline">
                     <input
-                        list={`${provider}-models`}
-                        value={String(settings[modelKey] || '')}
-                        onChange={(event) => update({ [modelKey]: event.target.value })}
+                        placeholder="Search loaded models"
+                        value={modelSearch}
+                        onChange={(event) => setModelSearch(event.target.value)}
                     />
-                    <datalist id={`${provider}-models`}>
-                        {models.map((model) => (
-                            <option key={model} value={model} />
-                        ))}
-                    </datalist>
                     <Button onClick={onLoad} disabled={loading}>
                         {loading ? (
                             <LoaderCircle className="spin" size={16} />
                         ) : (
                             <RefreshCw size={16} />
                         )}{' '}
-                        Load
+                        Load models
                     </Button>
                 </div>
-            </label>
+                <select
+                    size={Math.min(8, Math.max(2, filteredModels.length))}
+                    value={selectedModel}
+                    onChange={(event) => update({ [modelKey]: event.target.value })}
+                >
+                    <option value={selectedModel}>{selectedModel || 'Select a model'}</option>
+                    {filteredModels
+                        .filter((model) => model !== selectedModel)
+                        .map((model) => (
+                            <option key={model}>{model}</option>
+                        ))}
+                </select>
+            </div>
         </div>
     );
 }

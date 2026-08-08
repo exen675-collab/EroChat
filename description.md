@@ -167,6 +167,10 @@ The browser loads checkpoint names, submits a text-to-image workflow to `/prompt
 
 The browser sends the configured base URL, API key, and image payload to authenticated Express proxy routes. The server validates the target and forwards model-list and image-generation requests.
 
+### OpenRouter
+
+The browser reuses the configured OpenRouter API key, loads models from the dedicated image-model catalog, and sends prompts to the OpenRouter Images API with the separately selected image model.
+
 ### Standalone generator lifecycle
 
 1. The Create view creates a queued server job with provider, prompt, model, and request settings.

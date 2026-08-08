@@ -32,7 +32,7 @@ const DEFAULT_ADMIN_PASSWORD = 'admin';
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
 const GENERATOR_ALLOWED_MODES = new Set(['image_generate']);
-const GENERATOR_ALLOWED_PROVIDERS = new Set(['swarm', 'comfy', 'nanogpt']);
+const GENERATOR_ALLOWED_PROVIDERS = new Set(['swarm', 'comfy', 'nanogpt', 'openrouter']);
 const GENERATOR_ALLOWED_STATUSES = new Set([
     'queued',
     'running',
