@@ -17,7 +17,7 @@ export default defineConfig({
         proxy: {
             '/api': backendTarget,
             '/app/media': backendTarget,
-            '^/$': backendTarget
+            '^/(?!app(?:/|$))': backendTarget
         }
     },
     build: {

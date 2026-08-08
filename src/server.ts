@@ -1732,7 +1732,12 @@ app.use((error, req, res, next) => {
 });
 
 app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' });
+    if (req.path.startsWith('/api/')) {
+        res.status(404).json({ error: 'Not found' });
+        return;
+    }
+
+    res.status(404).sendFile(path.join(ROOT_DIR, 'public', '404.html'));
 });
 
 initDb()
