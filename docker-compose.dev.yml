@@ -1,0 +1,25 @@
+services:
+    erochat:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        container_name: erochat-dev
+        ports:
+            - '20121:5173'
+        environment:
+            PORT: 20122
+            VITE_PORT: 5173
+            VITE_BACKEND_TARGET: http://127.0.0.1:20122
+            VITE_USE_POLLING: 'true'
+            SESSION_SECRET: change-this-secret
+            COOKIE_SECURE: 'false'
+            DEFAULT_USER_CREDITS: 100
+        volumes:
+            - .:/app
+            - erochat_node_modules:/app/node_modules
+            - ./data:/app/data
+        init: true
+        restart: unless-stopped
+
+volumes:
+    erochat_node_modules:

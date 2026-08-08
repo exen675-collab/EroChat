@@ -73,6 +73,28 @@ Open:
 
 - `http://localhost:20121/`
 
+## Development with Docker and hot reload
+
+Build the development image once and start both the Express and Vite watchers:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Open `http://localhost:20121/`. Changes under `src/client/` are applied through Vite
+HMR, while changes to the server automatically restart Express. The project and
+`data/` directories are mounted into the container, so ordinary source changes do
+not require `docker compose down` or another image build.
+
+For later starts, when dependencies have not changed, use:
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+Rebuild the development image after changing `package.json` or `package-lock.json`.
+The original `docker-compose.yml` and `Dockerfile` remain the production setup.
+
 ## Development scripts
 
 ```bash
@@ -87,7 +109,9 @@ npm run test
 npm run test:watch
 ```
 
-- `dev` starts the Vite React client dev server
+- `dev` starts the Express watcher and Vite React client dev server
+- `dev:server` starts Express with polling-based automatic restarts that also work with Docker bind mounts
+- `dev:client` starts the Vite React client dev server
 - `lint` checks the server, frontend modules, config files, and tests with ESLint
 - `typecheck` runs TypeScript across the server, browser modules, and tests
 - `build` compiles the server and bundles the React client into `dist/`
