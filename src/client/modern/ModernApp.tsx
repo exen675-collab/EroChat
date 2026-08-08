@@ -71,6 +71,7 @@ import type {
 } from './types.js';
 import { useModernController, type ModernController } from './useModernController.js';
 import { parseNarrativeSegments } from './message-format.js';
+import { getCharacterThumbnailUrl } from './character-thumbnails.js';
 import './modern.css';
 
 const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessageCircle }> = [
@@ -156,19 +157,38 @@ function Modal({
 
 function Avatar({
     character,
+    galleryImages,
     size = 'normal'
 }: {
     character?: ModernCharacter;
+    galleryImages: GalleryItem[];
     size?: 'small' | 'normal' | 'large';
 }) {
+    const thumbnailUrl = getCharacterThumbnailUrl(character, galleryImages);
+
     return (
         <span className={`m-avatar m-avatar--${size}`}>
-            {character?.thumbnail ? (
-                <img src={character.thumbnail} alt="" />
+            {thumbnailUrl ? (
+                <img src={thumbnailUrl} alt="" />
             ) : (
                 <span>{character?.avatar || '✨'}</span>
             )}
         </span>
+    );
+}
+
+function CharacterVisual({
+    character,
+    galleryImages
+}: {
+    character: ModernCharacter;
+    galleryImages: GalleryItem[];
+}) {
+    const thumbnailUrl = getCharacterThumbnailUrl(character, galleryImages);
+    return thumbnailUrl ? (
+        <img src={thumbnailUrl} alt="" />
+    ) : (
+        <span>{character.avatar || '✨'}</span>
     );
 }
 
@@ -243,7 +263,11 @@ function AppSidebar({
                 <div className="m-sidebar__character">
                     <span className="m-eyebrow">Active character</span>
                     <button onClick={() => controller.setView('characters')}>
-                        <Avatar character={controller.currentCharacter} size="small" />
+                        <Avatar
+                            character={controller.currentCharacter}
+                            galleryImages={controller.data.galleryImages}
+                            size="small"
+                        />
                         <span>
                             <strong>{controller.currentCharacter?.name}</strong>
                             <small>{controller.messages.length} messages</small>
@@ -327,7 +351,11 @@ function MessageCard({
         >
             <div className="m-message__avatar">
                 {assistant ? (
-                    <Avatar character={controller.currentCharacter} size="small" />
+                    <Avatar
+                        character={controller.currentCharacter}
+                        galleryImages={controller.data.galleryImages}
+                        size="small"
+                    />
                 ) : (
                     <span className="m-avatar m-avatar--small">
                         <CircleUserRound size={20} />
@@ -566,7 +594,11 @@ function ChatView({ controller }: { controller: ModernController }) {
             <div className="m-chat__stream">
                 {controller.messages.length === 0 && (
                     <div className="m-chat-empty">
-                        <Avatar character={controller.currentCharacter} size="large" />
+                        <Avatar
+                            character={controller.currentCharacter}
+                            galleryImages={controller.data.galleryImages}
+                            size="large"
+                        />
                         <span className="m-eyebrow">A new scene begins</span>
                         <h2>Start a conversation with {controller.currentCharacter?.name}</h2>
                         <p>
@@ -586,7 +618,11 @@ function ChatView({ controller }: { controller: ModernController }) {
                 ))}
                 {controller.busy === 'chat' && (
                     <div className="m-typing">
-                        <Avatar character={controller.currentCharacter} size="small" />
+                        <Avatar
+                            character={controller.currentCharacter}
+                            galleryImages={controller.data.galleryImages}
+                            size="small"
+                        />
                         <span>
                             <i />
                             <i />
@@ -1081,11 +1117,10 @@ function CharactersView({ controller }: { controller: ModernController }) {
                             className="m-character-card__visual"
                             onClick={() => controller.selectCharacter(character.id)}
                         >
-                            {character.thumbnail ? (
-                                <img src={character.thumbnail} alt="" />
-                            ) : (
-                                <span>{character.avatar || '✨'}</span>
-                            )}
+                            <CharacterVisual
+                                character={character}
+                                galleryImages={controller.data.galleryImages}
+                            />
                             <i>{character.messages.length} messages</i>
                         </button>
                         <div className="m-character-card__body">
@@ -1857,7 +1892,11 @@ function StatsView({ controller }: { controller: ModernController }) {
                             .sort((a, b) => b.messages.length - a.messages.length)
                             .map((character) => (
                                 <div key={character.id}>
-                                    <Avatar character={character} size="small" />
+                                    <Avatar
+                                        character={character}
+                                        galleryImages={controller.data.galleryImages}
+                                        size="small"
+                                    />
                                     <span>
                                         <strong>{character.name}</strong>
                                         <small>{character.messages.length} messages</small>
