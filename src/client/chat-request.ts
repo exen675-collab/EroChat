@@ -4,7 +4,7 @@ import { getActiveRawMessages } from './utils.js';
 
 export const CHAT_REQUEST_DEFAULTS = Object.freeze({
     temperature: 0.9,
-    maxTokens: 2000,
+    maxTokens: 10000,
     reasoningEffort: 'medium'
 });
 

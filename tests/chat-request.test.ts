@@ -39,7 +39,7 @@ describe('chat request preview builder', () => {
         expect(preview.body).toMatchObject({
             model: 'openai/gpt-4.1-mini',
             temperature: 0.9,
-            max_tokens: 2000
+            max_tokens: 10000
         });
         expect(preview.body.reasoning).toBeUndefined();
         expect(preview.body.messages.at(-1)).toEqual({

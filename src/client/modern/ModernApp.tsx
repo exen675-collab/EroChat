@@ -36,7 +36,15 @@ import {
     X,
     Zap
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type KeyboardEvent as ReactKeyboardEvent,
+    type PointerEvent as ReactPointerEvent,
+    type ReactNode
+} from 'react';
 import { getAssistantVisibleText } from '../utils.js';
 import { switchUiMode, type BootstrapUser } from '../ui-mode.js';
 import {
@@ -62,6 +70,7 @@ import type {
     ViewId
 } from './types.js';
 import { useModernController, type ModernController } from './useModernController.js';
+import { parseNarrativeSegments } from './message-format.js';
 import './modern.css';
 
 const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessageCircle }> = [
@@ -71,6 +80,9 @@ const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessageCircle }
     { id: 'gallery', label: 'Gallery', icon: GalleryHorizontalEnd },
     { id: 'stats', label: 'Insights', icon: Activity }
 ];
+
+const MIN_COMPOSER_HEIGHT = 100;
+const MAX_COMPOSER_HEIGHT = 360;
 
 function Button({
     children,
@@ -333,7 +345,21 @@ function MessageCard({
                 </div>
                 <div className="m-message__text">
                     {visible.split('\n').map((line, index) => (
-                        <p key={index}>{line || <br />}</p>
+                        <p key={index}>
+                            {line ? (
+                                parseNarrativeSegments(line).map((segment, segmentIndex) =>
+                                    segment.narrative ? (
+                                        <em className="m-message__narration" key={segmentIndex}>
+                                            {segment.text}
+                                        </em>
+                                    ) : (
+                                        <span key={segmentIndex}>{segment.text}</span>
+                                    )
+                                )
+                            ) : (
+                                <br />
+                            )}
+                        </p>
                     ))}
                 </div>
                 {message.imageUrl && (
@@ -467,10 +493,57 @@ function ChatView({ controller }: { controller: ModernController }) {
     const [preview, setPreview] = useState<any>(null);
     const [editing, setEditing] = useState<ModernMessage | null>(null);
     const [lightbox, setLightbox] = useState<{ url: string; video?: boolean } | null>(null);
+    const [composerHeight, setComposerHeight] = useState(
+        controller.data.settings.messageInputHeight
+    );
     const endRef = useRef<HTMLDivElement>(null);
+    const composerHeightRef = useRef(composerHeight);
+    const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
     useEffect(() => {
         endRef.current?.scrollIntoView({ block: 'end' });
     }, [controller.messages.length]);
+    useEffect(() => {
+        if (!resizeRef.current) {
+            composerHeightRef.current = controller.data.settings.messageInputHeight;
+            setComposerHeight(controller.data.settings.messageInputHeight);
+        }
+    }, [controller.data.settings.messageInputHeight]);
+    function setInputHeight(height: number, persist = false) {
+        const nextHeight = Math.max(
+            MIN_COMPOSER_HEIGHT,
+            Math.min(MAX_COMPOSER_HEIGHT, Math.round(height))
+        );
+        composerHeightRef.current = nextHeight;
+        setComposerHeight(nextHeight);
+        if (persist) {
+            controller.updateSettings({ messageInputHeight: nextHeight });
+        }
+    }
+    function startComposerResize(event: ReactPointerEvent<HTMLDivElement>) {
+        resizeRef.current = {
+            startY: event.clientY,
+            startHeight: composerHeightRef.current
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    }
+    function resizeComposer(event: ReactPointerEvent<HTMLDivElement>) {
+        if (!resizeRef.current) return;
+        setInputHeight(resizeRef.current.startHeight + resizeRef.current.startY - event.clientY);
+    }
+    function finishComposerResize(event: ReactPointerEvent<HTMLDivElement>) {
+        if (!resizeRef.current) return;
+        resizeRef.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        controller.updateSettings({ messageInputHeight: composerHeightRef.current });
+    }
+    function resizeComposerWithKeyboard(event: ReactKeyboardEvent<HTMLDivElement>) {
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+        event.preventDefault();
+        setInputHeight(composerHeightRef.current + (event.key === 'ArrowUp' ? 16 : -16), true);
+    }
     async function submit() {
         if (await controller.sendMessage(draft)) {
             setDraft('');
@@ -525,6 +598,23 @@ function ChatView({ controller }: { controller: ModernController }) {
                     </div>
                 )}
                 <div className="m-composer">
+                    <div
+                        className="m-composer__resize-handle"
+                        role="separator"
+                        tabIndex={0}
+                        aria-label="Resize message input"
+                        aria-orientation="horizontal"
+                        aria-valuemin={MIN_COMPOSER_HEIGHT}
+                        aria-valuemax={MAX_COMPOSER_HEIGHT}
+                        aria-valuenow={composerHeight}
+                        onPointerDown={startComposerResize}
+                        onPointerMove={resizeComposer}
+                        onPointerUp={finishComposerResize}
+                        onPointerCancel={finishComposerResize}
+                        onKeyDown={resizeComposerWithKeyboard}
+                    >
+                        <span />
+                    </div>
                     <select
                         aria-label="Quick model"
                         value={controller.data.settings.openrouterModel}
@@ -545,7 +635,7 @@ function ChatView({ controller }: { controller: ModernController }) {
                         aria-label="Message"
                         placeholder={`Message ${controller.currentCharacter?.name || 'your character'}…`}
                         value={draft}
-                        style={{ height: controller.data.settings.messageInputHeight }}
+                        style={{ height: composerHeight }}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={(event) => {
                             if (event.key === 'Enter' && !event.shiftKey) {
