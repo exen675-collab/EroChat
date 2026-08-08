@@ -451,6 +451,9 @@ textarea:focus-visible {
     margin-right: 0;
     margin-left: auto;
 }
+.m-message.has-media {
+    width: min(1180px, 92%);
+}
 .m-message.is-user .m-message__avatar {
     grid-column: 2;
     grid-row: 1;
@@ -504,6 +507,17 @@ textarea:focus-visible {
     color: #c77dff;
     font-style: italic;
 }
+.m-message.has-media .m-message__body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+    align-items: start;
+    gap: 18px;
+}
+.m-message__media-column {
+    min-width: 0;
+    display: grid;
+    gap: 12px;
+}
 .m-message__media {
     width: min(100%, 520px);
     display: block;
@@ -514,6 +528,10 @@ textarea:focus-visible {
     border-radius: 15px;
     background: #08080d;
     cursor: zoom-in;
+}
+.m-message.has-media .m-message__media {
+    width: 100%;
+    margin-top: 0;
 }
 .m-message__media img,
 .m-message__media video {
@@ -1922,6 +1940,12 @@ textarea:focus-visible {
         grid-template-columns: 33px minmax(0, 1fr);
         gap: 8px;
         margin-bottom: 17px;
+    }
+    .m-message.has-media .m-message__body {
+        display: block;
+    }
+    .m-message.has-media .m-message__media-column {
+        margin-top: 15px;
     }
     .m-message.is-user {
         grid-template-columns: minmax(0, 1fr) 33px;

@@ -319,10 +319,11 @@ function MessageCard({
     onLightbox: (url: string, video?: boolean) => void;
 }) {
     const assistant = message.role === 'assistant';
+    const hasMedia = assistant && Boolean(message.imageUrl || message.videoUrl);
     const visible = assistant ? getAssistantVisibleText(message.content) : message.content;
     return (
         <article
-            className={`m-message ${assistant ? 'is-assistant' : 'is-user'} ${message.archivedFromModelContext ? 'is-archived' : ''}`}
+            className={`m-message ${assistant ? 'is-assistant' : 'is-user'} ${hasMedia ? 'has-media' : ''} ${message.archivedFromModelContext ? 'is-archived' : ''}`}
         >
             <div className="m-message__avatar">
                 {assistant ? (
@@ -343,41 +344,51 @@ function MessageCard({
                         </span>
                     )}
                 </div>
-                <div className="m-message__text">
-                    {visible.split('\n').map((line, index) => (
-                        <p key={index}>
-                            {line ? (
-                                parseNarrativeSegments(line).map((segment, segmentIndex) =>
-                                    segment.narrative ? (
-                                        <em className="m-message__narration" key={segmentIndex}>
-                                            {segment.text}
-                                        </em>
-                                    ) : (
-                                        <span key={segmentIndex}>{segment.text}</span>
+                <div className="m-message__body">
+                    <div className="m-message__text">
+                        {visible.split('\n').map((line, index) => (
+                            <p key={index}>
+                                {line ? (
+                                    parseNarrativeSegments(line).map((segment, segmentIndex) =>
+                                        segment.narrative ? (
+                                            <em className="m-message__narration" key={segmentIndex}>
+                                                {segment.text}
+                                            </em>
+                                        ) : (
+                                            <span key={segmentIndex}>{segment.text}</span>
+                                        )
                                     )
-                                )
-                            ) : (
-                                <br />
+                                ) : (
+                                    <br />
+                                )}
+                            </p>
+                        ))}
+                    </div>
+                    {(message.imageUrl || message.videoUrl) && (
+                        <div className="m-message__media-column">
+                            {message.imageUrl && (
+                                <button
+                                    className="m-message__media"
+                                    onClick={() => onLightbox(message.imageUrl!)}
+                                >
+                                    <img
+                                        src={message.imageUrl}
+                                        alt="Generated scene"
+                                        loading="lazy"
+                                    />
+                                </button>
                             )}
-                        </p>
-                    ))}
+                            {message.videoUrl && (
+                                <button
+                                    className="m-message__media"
+                                    onClick={() => onLightbox(message.videoUrl!, true)}
+                                >
+                                    <video src={message.videoUrl} muted playsInline />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
-                {message.imageUrl && (
-                    <button
-                        className="m-message__media"
-                        onClick={() => onLightbox(message.imageUrl!)}
-                    >
-                        <img src={message.imageUrl} alt="Generated scene" loading="lazy" />
-                    </button>
-                )}
-                {message.videoUrl && (
-                    <button
-                        className="m-message__media"
-                        onClick={() => onLightbox(message.videoUrl!, true)}
-                    >
-                        <video src={message.videoUrl} muted playsInline />
-                    </button>
-                )}
                 <div className="m-message__actions">
                     {assistant && (
                         <button onClick={() => void controller.playTts(message)}>
