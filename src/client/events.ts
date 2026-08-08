@@ -8,8 +8,6 @@ import {
     openCharacterModal,
     closeCharacterModal,
     saveCharacter,
-    generateThumbnail,
-    generateSystemPromptOnDemand,
     renderCharactersList,
     selectCharacter,
     editCharacter,
@@ -712,8 +710,6 @@ export function setupEventListeners() {
     elements.cancelCharBtn.addEventListener('click', closeCharacterModal);
     elements.deleteCharBtn?.addEventListener('click', deleteEditingCharacter);
     elements.saveCharBtn.addEventListener('click', saveCharacter);
-    elements.generateThumbnailBtn.addEventListener('click', generateThumbnail);
-    elements.generatePromptBtn.addEventListener('click', generateSystemPromptOnDemand);
 
     // Close modal on overlay click
     elements.characterModal.addEventListener('click', (e) => {

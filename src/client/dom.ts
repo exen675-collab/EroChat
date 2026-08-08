@@ -121,11 +121,7 @@ export const elements: Record<string, any> = {
     charAvatar: document.getElementById('charAvatar'),
     charSystemPrompt: document.getElementById('charSystemPrompt'),
     charProtectedSystemPromptBlock: document.getElementById('charProtectedSystemPromptBlock'),
-    charAppearance: document.getElementById('charAppearance'),
     charDescription: document.getElementById('charDescription'),
-    charBackground: document.getElementById('charBackground'),
-    charUserInfo: document.getElementById('charUserInfo'),
-    thumbnailPreview: document.getElementById('thumbnailPreview'),
     editMessageModal: document.getElementById('editMessageModal'),
     closeEditMessageBtn: document.getElementById('closeEditMessageBtn'),
     cancelEditMessageBtn: document.getElementById('cancelEditMessageBtn'),
@@ -141,8 +137,6 @@ export const elements: Record<string, any> = {
     memoryViewerModal: document.getElementById('memoryViewerModal'),
     closeMemoryViewerBtn: document.getElementById('closeMemoryViewerBtn'),
     memoryViewerBody: document.getElementById('memoryViewerBody'),
-    generateThumbnailBtn: document.getElementById('generateThumbnailBtn'),
-    generatePromptBtn: document.getElementById('generatePromptBtn'),
 
     // Buttons
     fetchModelsBtn: document.getElementById('fetchModelsBtn'),

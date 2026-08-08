@@ -3,9 +3,7 @@ import { state } from './state.js';
 import { defaultCharacter } from './config.js';
 import { elements } from './dom.js';
 import { saveToLocalStorage } from './storage.js';
-import { escapeHtml, normalizeContextMessageCount, normalizeImageProvider } from './utils.js';
-import { generateCharacterSystemPrompt } from './api-openrouter.js';
-import { persistImageForStorage } from './media.js';
+import { escapeHtml, normalizeContextMessageCount } from './utils.js';
 import { requestConfirmation, showToast } from './notifications.js';
 import {
     renderProtectedSystemPromptBlocks,
@@ -459,55 +457,23 @@ export function openCharacterModal(characterId = null) {
                 state.settings.protectedImagePromptLanguage
             );
             elements.charDescription.value = character.description || '';
-            elements.charBackground.value = character.background || '';
-            elements.charUserInfo.value = character.userInfo || '';
-            elements.charAppearance.value = character.appearance || '';
-
-            // Set current thumbnail for editing
-            currentThumbnail = character.thumbnail || null;
-
-            // Display existing thumbnail if available
-            if (character.thumbnail) {
-                elements.thumbnailPreview.innerHTML = `
-                    <img src="${character.thumbnail}" alt="${character.name}" class="w-full h-full object-cover">
-                `;
-            } else {
-                resetThumbnailPreview();
-            }
         }
     } else {
         elements.modalTitle.textContent = 'Create Character';
         elements.charName.value = '';
         elements.charAvatar.value = '🤖';
-        elements.charAppearance.value = '';
         elements.charDescription.value = '';
-        elements.charBackground.value = '';
-        elements.charUserInfo.value = '';
         elements.charSystemPrompt.value = '';
         renderProtectedSystemPromptBlocks(
             elements.charProtectedSystemPromptBlock,
             state.settings.protectedImagePromptLanguage
         );
-        currentThumbnail = null;
-        resetThumbnailPreview();
     }
 
     const canDelete = Boolean(characterId && characterId !== 'default');
     elements.deleteCharBtn?.classList.toggle('hidden', !canDelete);
 
     elements.characterModal.classList.remove('hidden');
-}
-
-// Reset thumbnail preview to default state
-function resetThumbnailPreview() {
-    elements.thumbnailPreview.innerHTML = `
-        <div class="text-center text-gray-500">
-            <svg class="w-16 h-16 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            <p class="text-sm">No thumbnail</p>
-        </div>
-    `;
 }
 
 // Close character modal
@@ -518,93 +484,12 @@ export function closeCharacterModal() {
     setCharacterFormStatus('');
 }
 
-// Generate system prompt on demand
-export async function generateSystemPromptOnDemand() {
-    const name = elements.charName.value.trim();
-    const description = elements.charDescription.value.trim();
-    const background = elements.charBackground.value.trim();
-    const userInfo = elements.charUserInfo.value.trim();
-
-    if (!name || !description || !userInfo) {
-        setCharacterFormStatus('Please fill in Name, Description, and User Info first.', true);
-        return;
-    }
-
-    const textProvider = elements.textProvider.value || state.settings.textProvider || 'premium';
-    if (
-        textProvider !== 'premium' &&
-        (!elements.openrouterKey.value || !elements.openrouterModel.value)
-    ) {
-        setCharacterFormStatus(
-            'Please enter your OpenRouter API key and select a model in settings.',
-            true,
-            {
-                actionLabel: 'Open settings',
-                onAction: () =>
-                    import('./ui.js').then((ui) => {
-                        ui.toggleAdvancedSettings(true);
-                    })
-            }
-        );
-        return;
-    }
-
-    const originalBtnContent = elements.generatePromptBtn.innerHTML;
-    elements.generatePromptBtn.disabled = true;
-    elements.generatePromptBtn.innerHTML = `
-        <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-        </svg>
-        Generating...
-    `;
-
-    try {
-        const systemPrompt = await generateCharacterSystemPrompt({
-            name,
-            description,
-            background,
-            userInfo
-        });
-
-        if (systemPrompt) {
-            elements.charSystemPrompt.value = stripProtectedSystemPromptBlocks(systemPrompt);
-            setCharacterFormStatus(
-                'System prompt generated successfully. Review it before saving.',
-                false
-            );
-            showToast('System prompt generated successfully.', {
-                type: 'success'
-            });
-        } else {
-            throw new Error('Model returned an empty prompt.');
-        }
-    } catch (error) {
-        console.error('Prompt generation error:', error);
-        setCharacterFormStatus(`Failed to generate prompt: ${error.message}`, true, {
-            actionLabel: 'Retry',
-            onAction: () => {
-                generateSystemPromptOnDemand();
-            }
-        });
-        showToast(`Failed to generate prompt: ${error.message}`, {
-            type: 'error'
-        });
-    } finally {
-        elements.generatePromptBtn.disabled = false;
-        elements.generatePromptBtn.innerHTML = originalBtnContent;
-    }
-}
-
 // Save character (create or update)
 export async function saveCharacter() {
     const name = elements.charName.value.trim();
     const avatar = elements.charAvatar.value.trim() || '🤖';
-    let systemPrompt = stripProtectedSystemPromptBlocks(elements.charSystemPrompt.value);
+    const systemPrompt = stripProtectedSystemPromptBlocks(elements.charSystemPrompt.value);
     const description = elements.charDescription.value.trim();
-    const background = elements.charBackground.value.trim();
-    const userInfo = elements.charUserInfo.value.trim();
-    const appearance = elements.charAppearance.value.trim();
-    const hasUsableSystemPrompt = Boolean(systemPrompt);
 
     if (!name) {
         setCharacterFormStatus('Please enter a character name.', true);
@@ -612,81 +497,16 @@ export async function saveCharacter() {
         return;
     }
 
-    if (!description && !hasUsableSystemPrompt) {
+    if (!description) {
         setCharacterFormStatus('Please enter a description / personality.', true);
         elements.charDescription.focus();
         return;
     }
 
-    if (!userInfo && !hasUsableSystemPrompt) {
-        setCharacterFormStatus('Please enter user info and description.', true);
-        elements.charUserInfo.focus();
-        return;
-    }
-
     if (!systemPrompt) {
-        if (editingCharacterId) {
-            setCharacterFormStatus('Please enter a system prompt.', true);
-            elements.charSystemPrompt.focus();
-            return;
-        }
-
-        const textProvider =
-            elements.textProvider.value || state.settings.textProvider || 'premium';
-        if (
-            textProvider !== 'premium' &&
-            (!elements.openrouterKey.value || !elements.openrouterModel.value)
-        ) {
-            setCharacterFormStatus(
-                'Please enter your OpenRouter API key and select a model in settings to auto-generate a system prompt.',
-                true,
-                {
-                    actionLabel: 'Open settings',
-                    onAction: () =>
-                        import('./ui.js').then((ui) => {
-                            ui.toggleAdvancedSettings(true);
-                        })
-                }
-            );
-            return;
-        }
-
-        const originalSaveLabel = elements.saveCharBtn.innerHTML;
-        elements.saveCharBtn.disabled = true;
-        elements.saveCharBtn.innerHTML = 'Generating Prompt...';
-
-        try {
-            systemPrompt = await generateCharacterSystemPrompt({
-                name,
-                description,
-                background,
-                userInfo
-            });
-
-            if (!systemPrompt) {
-                throw new Error('Model returned an empty system prompt.');
-            }
-
-            systemPrompt = stripProtectedSystemPromptBlocks(systemPrompt);
-            elements.charSystemPrompt.value = systemPrompt;
-        } catch (error) {
-            console.error('System prompt generation error:', error);
-            setCharacterFormStatus(`Failed to generate system prompt: ${error.message}`, true, {
-                actionLabel: 'Retry',
-                onAction: () => {
-                    saveCharacter();
-                }
-            });
-            showToast(`Failed to generate system prompt: ${error.message}`, {
-                type: 'error'
-            });
-            elements.saveCharBtn.disabled = false;
-            elements.saveCharBtn.innerHTML = originalSaveLabel;
-            return;
-        }
-
-        elements.saveCharBtn.disabled = false;
-        elements.saveCharBtn.innerHTML = originalSaveLabel;
+        setCharacterFormStatus('Please enter a system prompt.', true);
+        elements.charSystemPrompt.focus();
+        return;
     }
 
     if (editingCharacterId) {
@@ -698,15 +518,8 @@ export async function saveCharacter() {
                 name,
                 avatar,
                 systemPrompt,
-                description,
-                background,
-                userInfo,
-                appearance
+                description
             };
-            // Only update thumbnail if a new one was generated
-            if (currentThumbnail) {
-                updatedChar.thumbnail = currentThumbnail;
-            }
             state.characters[index] = updatedChar;
         }
     } else {
@@ -717,24 +530,14 @@ export async function saveCharacter() {
             avatar,
             systemPrompt,
             description,
-            background,
-            userInfo,
-            appearance,
             isDefault: false,
             messages: [],
             contextMessageCount: state.settings.contextMessageCount,
             memorySnapshots: [],
             openrouterSessionId: null
         };
-        // Add thumbnail if one was generated
-        if (currentThumbnail) {
-            newCharacter.thumbnail = currentThumbnail;
-        }
         state.characters.push(newCharacter);
     }
-
-    // Reset thumbnail for next character
-    currentThumbnail = null;
 
     renderCharactersList();
     renderCharactersWorkspace();
@@ -743,107 +546,4 @@ export async function saveCharacter() {
         type: 'success'
     });
     closeCharacterModal();
-}
-
-// Store the current thumbnail temporarily during generation
-let currentThumbnail = null;
-
-// Generate thumbnail for character
-export async function generateThumbnail() {
-    const description = elements.charAppearance.value.trim();
-    const name = elements.charName.value.trim();
-
-    if (!description) {
-        setCharacterFormStatus('Please enter a character appearance for image generation.', true);
-        elements.charAppearance.focus();
-        return;
-    }
-
-    const imageProvider = normalizeImageProvider(
-        elements.imageProvider.value || state.settings.imageProvider || 'swarm'
-    );
-    if (imageProvider === 'swarm' && !elements.swarmModel.value) {
-        setCharacterFormStatus('Please select a SwarmUI model first.', true);
-        return;
-    }
-
-    if (imageProvider === 'comfy' && !elements.comfyModel.value) {
-        setCharacterFormStatus('Please select a ComfyUI checkpoint first.', true);
-        return;
-    }
-
-    if (imageProvider === 'nanogpt' && !elements.nanogptKey.value) {
-        setCharacterFormStatus('Please enter your NanoGPT API key first.', true);
-        return;
-    }
-
-    if (imageProvider === 'nanogpt' && !elements.nanogptModel.value) {
-        setCharacterFormStatus('Please select a NanoGPT image model first.', true);
-        return;
-    }
-
-    // Import selected image provider API
-    const { generateImage } = await import('./api-image.js');
-
-    // Build the prompt
-    const prompt = `masterpiece, best quality, ultra-detailed, 8k, realistic, portrait, ${description}`;
-
-    // Show loading state
-    elements.generateThumbnailBtn.disabled = true;
-    elements.generateThumbnailBtn.innerHTML = `
-        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        Generating...
-    `;
-
-    try {
-        // Generate the image with portrait dimensions
-        const generatedThumbnail = await generateImage(prompt, 512, 768);
-        const thumbnailUrl = await persistImageForStorage(generatedThumbnail);
-
-        if (thumbnailUrl) {
-            currentThumbnail = thumbnailUrl;
-            setCharacterFormStatus('Thumbnail generated. Save the character to keep it.', false);
-
-            // Update preview
-            elements.thumbnailPreview.innerHTML = `
-                <img src="${thumbnailUrl}" alt="${name}" class="w-full h-full object-cover">
-            `;
-
-            // Save thumbnail to character if editing
-            if (editingCharacterId) {
-                const index = state.characters.findIndex((c) => c.id === editingCharacterId);
-                if (index !== -1) {
-                    state.characters[index].thumbnail = thumbnailUrl;
-                    saveToLocalStorage();
-                    renderCharactersList();
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Thumbnail generation error:', error);
-        setCharacterFormStatus(
-            'Failed to generate thumbnail. Check your image provider settings.',
-            true,
-            {
-                actionLabel: 'Retry',
-                onAction: () => {
-                    generateThumbnail();
-                }
-            }
-        );
-        showToast('Failed to generate thumbnail. Check your image provider settings.', {
-            type: 'error'
-        });
-    } finally {
-        // Reset button
-        elements.generateThumbnailBtn.disabled = false;
-        elements.generateThumbnailBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            Generate Thumbnail
-        `;
-    }
 }

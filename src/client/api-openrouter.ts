@@ -3,12 +3,7 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { CHAT_REQUEST_DEFAULTS, OPENROUTER_REASONING_EFFORTS } from './chat-request.js';
 import { getOpenRouterQuickAccessModels } from './stats.js';
-import {
-    buildSystemPromptWithStaticBlocks,
-    CHARACTER_SYSTEM_PROMPT_GENERATION_TEMPLATE,
-    CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS,
-    stripProtectedSystemPromptBlocks
-} from './static-prompts.js';
+import { buildSystemPromptWithStaticBlocks } from './static-prompts.js';
 
 // Store fetched models for filtering
 let fetchedModels = [];
@@ -301,58 +296,4 @@ export async function sendOpenRouterUtilityRequest({
 // Send chat completion request to selected provider
 export async function sendChatRequest(apiMessages) {
     return sendOpenRouterChatRequest(apiMessages);
-}
-
-// Generate a high-quality system prompt for a character using Claude 4.5 Sonnet via OpenRouter
-async function generateCharacterSystemPromptOpenRouter({
-    name,
-    description,
-    background,
-    userInfo
-}) {
-    const generatorModel = 'anthropic/claude-sonnet-4.5';
-    const roleplayTemplate = CHARACTER_SYSTEM_PROMPT_GENERATION_TEMPLATE;
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${elements.openrouterKey.value}`,
-            'HTTP-Referer': window.location.href,
-            'X-Title': 'EroChat'
-        },
-
-        body: JSON.stringify({
-            model: generatorModel,
-            messages: [
-                {
-                    role: 'system',
-                    content: CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS
-                },
-                {
-                    role: 'user',
-                    content: `TEMPLATE:${roleplayTemplate}---DANE POSTACI:- Imie agenta: ${name}- Opis: ${description} - Tlo fabularne: ${background}- Dane gracza: ${JSON.stringify(userInfo)}Wypelnij template powyzszymi danymi.`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 2200
-        })
-    });
-
-    if (!response.ok) {
-        let errorMessage = 'Failed to generate system prompt';
-        try {
-            const error = await response.json();
-            errorMessage = error.error?.message || errorMessage;
-        } catch {
-            // ignore json parsing failures
-        }
-        throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return stripProtectedSystemPromptBlocks(data.choices?.[0]?.message?.content?.trim() || '');
-}
-
-export async function generateCharacterSystemPrompt(payload) {
-    return generateCharacterSystemPromptOpenRouter(payload);
 }

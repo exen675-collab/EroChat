@@ -55,7 +55,6 @@ import {
     generateImages,
     importCharacterCard,
     logout,
-    persistRemoteMedia,
     saveGeneratedJobAssets,
     sendUtilityRequest,
     updateAdminCredits,
@@ -839,65 +838,13 @@ function CharacterEditor({
                   avatar: '✨',
                   systemPrompt: '',
                   description: '',
-                  appearance: '',
-                  background: '',
-                  greeting: '',
-                  userInfo: '',
                   messages: [],
                   memorySnapshots: [],
                   contextMessageCount: controller.data.settings.contextMessageCount
               }
     );
-    const [busy, setBusy] = useState('');
     const update = (patch: Partial<ModernCharacter>) =>
         setDraft((current) => ({ ...current, ...patch }));
-    async function generatePrompt() {
-        setBusy('prompt');
-        try {
-            const text = await sendUtilityRequest(
-                controller.data.settings,
-                [
-                    {
-                        role: 'system',
-                        content:
-                            'Create a detailed roleplay system prompt for the described character. Return only the prompt.'
-                    },
-                    {
-                        role: 'user',
-                        content: JSON.stringify({
-                            name: draft.name,
-                            appearance: draft.appearance,
-                            description: draft.description,
-                            background: draft.background,
-                            userInfo: draft.userInfo
-                        })
-                    }
-                ],
-                { maxTokens: 2200 }
-            );
-            update({ systemPrompt: text });
-        } catch (error) {
-            controller.notify((error as Error).message, 'error');
-        } finally {
-            setBusy('');
-        }
-    }
-    async function generateThumbnail() {
-        setBusy('thumbnail');
-        try {
-            const [result] = await generateImages(controller.data.settings, {
-                prompt: `Portrait character thumbnail of ${draft.name}. ${draft.appearance || draft.description}`,
-                width: 768,
-                height: 768,
-                batchCount: 1
-            });
-            update({ thumbnail: await persistRemoteMedia(result.url) });
-        } catch (error) {
-            controller.notify((error as Error).message, 'error');
-        } finally {
-            setBusy('');
-        }
-    }
     return (
         <Modal
             title={character ? `Edit ${character.name}` : 'Create character'}
@@ -906,22 +853,13 @@ function CharacterEditor({
         >
             <div className="m-character-editor">
                 <div className="m-character-editor__identity">
-                    <button
-                        className="m-thumbnail-editor"
-                        onClick={() => void generateThumbnail()}
-                        disabled={busy === 'thumbnail'}
-                    >
+                    <div className="m-thumbnail-editor" aria-label="Character avatar preview">
                         {draft.thumbnail ? (
                             <img src={draft.thumbnail} alt="Character thumbnail" />
                         ) : (
-                            <>
-                                <span>{draft.avatar || '✨'}</span>
-                                <small>
-                                    {busy === 'thumbnail' ? 'Generating…' : 'Generate portrait'}
-                                </small>
-                            </>
+                            <span>{draft.avatar || '✨'}</span>
                         )}
-                    </button>
+                    </div>
                     <div>
                         <label className="m-field">
                             <span>Name *</span>
@@ -940,57 +878,21 @@ function CharacterEditor({
                     </div>
                 </div>
                 <div className="m-form-grid">
-                    <label className="m-field">
-                        <span>Appearance</span>
-                        <textarea
-                            rows={4}
-                            value={draft.appearance || ''}
-                            onChange={(event) => update({ appearance: event.target.value })}
-                        />
-                    </label>
-                    <label className="m-field">
-                        <span>Description</span>
+                    <label className="m-field m-field--wide">
+                        <span>Description *</span>
                         <textarea
                             rows={4}
                             value={draft.description || ''}
                             onChange={(event) => update({ description: event.target.value })}
                         />
                     </label>
-                    <label className="m-field">
-                        <span>Background</span>
-                        <textarea
-                            rows={4}
-                            value={draft.background || ''}
-                            onChange={(event) => update({ background: event.target.value })}
-                        />
-                    </label>
-                    <label className="m-field">
-                        <span>User information</span>
-                        <textarea
-                            rows={4}
-                            value={draft.userInfo || ''}
-                            onChange={(event) => update({ userInfo: event.target.value })}
-                        />
-                    </label>
                     <label className="m-field m-field--wide">
-                        <span>Greeting</span>
-                        <textarea
-                            rows={3}
-                            value={draft.greeting || ''}
-                            onChange={(event) => update({ greeting: event.target.value })}
-                        />
-                    </label>
-                    <label className="m-field m-field--wide">
-                        <span>System prompt</span>
+                        <span>System prompt *</span>
                         <textarea
                             rows={12}
                             value={draft.systemPrompt || ''}
                             onChange={(event) => update({ systemPrompt: event.target.value })}
                         />
-                        <Button onClick={() => void generatePrompt()} disabled={busy === 'prompt'}>
-                            <Sparkles size={17} />{' '}
-                            {busy === 'prompt' ? 'Generating…' : 'Generate prompt'}
-                        </Button>
                     </label>
                 </div>
             </div>
@@ -1012,7 +914,11 @@ function CharacterEditor({
                 <Button onClick={onClose}>Cancel</Button>
                 <Button
                     variant="primary"
-                    disabled={!draft.name.trim()}
+                    disabled={
+                        !draft.name.trim() ||
+                        !draft.description?.trim() ||
+                        !draft.systemPrompt.trim()
+                    }
                     onClick={() => {
                         controller.saveCharacter({ ...draft, name: draft.name.trim() });
                         onClose();

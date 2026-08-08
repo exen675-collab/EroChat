@@ -46,4 +46,21 @@ describe('ModernApp', () => {
         expect(screen.getByText('Modern studio')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Legacy interface/i })).toBeInTheDocument();
     });
+
+    it('keeps character creation manual and limited to the supported fields', async () => {
+        render(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /New character/i }));
+
+        const dialog = screen.getByRole('dialog', { name: 'Create character' });
+        expect(dialog).toHaveTextContent('Name *');
+        expect(dialog).toHaveTextContent('Avatar');
+        expect(dialog).toHaveTextContent('Description *');
+        expect(dialog).toHaveTextContent('System prompt *');
+        expect(dialog).not.toHaveTextContent('Appearance');
+        expect(dialog).not.toHaveTextContent('Background');
+        expect(dialog).not.toHaveTextContent('User information');
+        expect(dialog).not.toHaveTextContent('Greeting');
+        expect(screen.queryByRole('button', { name: /Generate/i })).not.toBeInTheDocument();
+    });
 });

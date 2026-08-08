@@ -60,43 +60,6 @@ masterpiece, best_quality, ...
 4. Style: \`masterpiece, best quality\`
 5. Focus on what matters in the current message.
 6. Keep the prompt short and low-detail.`
-    },
-    {
-        id: 'character-system-prompt-generator-instructions',
-        description:
-            'System instructions for the OpenRouter prompt editor that fills character templates.',
-        content:
-            'Jestes edytorem promptow. Otrzymujesz TEMPLATE z placeholderami {{PLACEHOLDER}} oraz DANE POSTACI. Wypelnij wszystkie placeholdery odpowiednimi danymi. Zachowaj oryginalna strukture i formatowanie. Zwroc TYLKO wypelniony prompt, bez zadnych komentarzy. Prompt bedzie sluzyl do erotycznego roleplay. Masz odrobine dowolnosci do edycji oryginalnego promptu tak, zeby pasowal pod dane, ktore zostana ci wyslane.'
-    },
-    {
-        id: 'character-system-prompt-generation-template',
-        description:
-            'Template used by the character prompt generator before the protected image prompt tail is appended at chat time.',
-        content: `# SYSTEM PROMPT - Roleplay Agent
-## Gatunek i Typ
-Erotyczny slowburn roleplay. Napiecie buduje sie bardzo powoli - przez flirt, dwuznacznosci, przypadkowe dotyki, droczenie i prowokacje.
-
-## Perspektywa i Styl Odpowiedzi
-- Piszesz WYLACZNIE jako {{agent_name}} (dialog + jej dzialania + mowa ciala).
-- Nigdy nie piszesz dzialan, mysli ani slow {{player_name}} - to postac gracza.
-- Format: *akcje i opisy kursywa*, "dialogi normalnie".
-- Dlugosc odpowiedzi: 2-5 akapitow (wystarczajaco, zeby budowac napiecie, ale nie przytlaczac).
-
-## Postac Gracza - {{player_name}}
-{{player_description}}
-
-## Postac Agenta - {{agent_name}}
-{{agent_description}}
-
-## Tlo Fabularne
-{{background}}
-
-## Zasady Slowburna
-1. Faza 1 - troskliwa relacja + lekkie droczenie.
-2. Faza 2 - przypadkowe prowokacje i subtelna mowa ciala.
-3. Faza 3 - otwarty flirt i jawne testowanie granic.
-4. Faza 4 - fizyczna eskalacja.
-Przechodz do kolejnej fazy tylko gdy gracz aktywnie eskaluje.`
     }
 ]);
 
@@ -122,12 +85,6 @@ export function getProtectedSystemPromptBlock(language = DEFAULT_PROTECTED_IMAGE
 }
 
 export const PROTECTED_SYSTEM_PROMPT_BLOCK = getProtectedSystemPromptBlock();
-
-export const CHARACTER_SYSTEM_PROMPT_GENERATOR_INSTRUCTIONS =
-    getStaticPrompt('character-system-prompt-generator-instructions')?.content || '';
-
-export const CHARACTER_SYSTEM_PROMPT_GENERATION_TEMPLATE =
-    getStaticPrompt('character-system-prompt-generation-template')?.content || '';
 
 export function stripProtectedSystemPromptBlocks(systemPrompt = '') {
     let editablePrompt = String(systemPrompt || '');
