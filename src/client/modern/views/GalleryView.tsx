@@ -9,7 +9,10 @@ function mergedGallery(controller: ModernController): GalleryItem[] {
         id: `generator-${asset.id}`,
         imageUrl: asset.mediaType === 'image' ? asset.url : null,
         videoUrl: asset.mediaType === 'video' ? asset.url : null,
-        source: 'generator',
+        source: asset.source || 'manual',
+        characterId: asset.characterId,
+        messageId: asset.messageId,
+        prompt: asset.prompt,
         createdAt: asset.createdAt,
         metadata: asset.metadata
     }));
@@ -96,7 +99,7 @@ export function GalleryView({ controller }: { controller: ModernController }) {
                 >
                     <option value="all">All sources</option>
                     <option value="chat">Chat</option>
-                    <option value="generator">Generator</option>
+                    <option value="manual">Generator</option>
                     <option value="regenerate">Regenerated</option>
                 </select>
                 <select
@@ -135,7 +138,7 @@ export function GalleryView({ controller }: { controller: ModernController }) {
                             <div>
                                 <strong>
                                     {item.characterName ||
-                                        (item.source === 'generator' ? 'Generator' : 'Scene')}
+                                        (item.source === 'manual' ? 'Generator' : 'Scene')}
                                 </strong>
                                 <small>
                                     {item.createdAt

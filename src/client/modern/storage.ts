@@ -1,5 +1,11 @@
 import { defaultCharacter, defaultGeneratorPrefs, defaultSettings } from '../config.js';
-import type { ModernCharacter, ModernPersistedState, ModernSettings, ViewId } from './types.js';
+import type {
+    MediaGenerationPreset,
+    ModernCharacter,
+    ModernPersistedState,
+    ModernSettings,
+    ViewId
+} from './types.js';
 
 const USER_STORAGE_KEY_PREFIX = 'erochat_data_user_';
 const VIEWS: ViewId[] = ['chat', 'characters', 'browse', 'generator', 'gallery', 'stats'];
@@ -59,6 +65,76 @@ function normalizeCharacter(character: Partial<ModernCharacter>): ModernCharacte
     };
 }
 
+function legacyProviderModel(provider: string, settings: Record<string, any>): string {
+    if (provider === 'comfy') return String(settings.comfyModel || '');
+    if (provider === 'nanogpt') return String(settings.nanogptModel || '');
+    if (provider === 'openrouter') return String(settings.openrouterImageModel || '');
+    return String(settings.swarmModel || '');
+}
+
+function normalizePresets(
+    value: unknown,
+    settings: Record<string, any> = {},
+    generatorPrefs: Record<string, any> = {}
+): MediaGenerationPreset[] {
+    const defaults = defaultGeneratorPrefs.presets as MediaGenerationPreset[];
+    if (!Array.isArray(value) || value.length === 0) {
+        return defaults.map((preset) => {
+            const isChat = preset.id === 'chat-default';
+            const provider = String(
+                isChat
+                    ? settings.imageProvider || preset.provider
+                    : generatorPrefs.provider || settings.imageProvider || preset.provider
+            ) as MediaGenerationPreset['provider'];
+            return {
+                ...preset,
+                provider,
+                providerModel: legacyProviderModel(provider, settings),
+                width:
+                    Number(
+                        isChat ? settings.imgWidth : generatorPrefs.swarmWidth || settings.imgWidth
+                    ) || preset.width,
+                height:
+                    Number(
+                        isChat
+                            ? settings.imgHeight
+                            : generatorPrefs.swarmHeight || settings.imgHeight
+                    ) || preset.height,
+                steps:
+                    Number(isChat ? settings.steps : generatorPrefs.swarmSteps || settings.steps) ||
+                    preset.steps,
+                cfgScale:
+                    Number(
+                        isChat
+                            ? settings.cfgScale
+                            : generatorPrefs.swarmCfgScale || settings.cfgScale
+                    ) || preset.cfgScale,
+                sampler: String(
+                    (isChat ? settings.sampler : generatorPrefs.swarmSampler || settings.sampler) ||
+                        preset.sampler
+                ),
+                scheduler: String(
+                    (isChat
+                        ? settings.scheduler
+                        : generatorPrefs.swarmScheduler || settings.scheduler) || preset.scheduler
+                )
+            };
+        });
+    }
+    return value
+        .filter((preset) => preset && typeof preset === 'object')
+        .map((preset: Partial<MediaGenerationPreset>) => {
+            const fallback = defaults.find((item) => item.id === preset.id) || defaults[0];
+            return {
+                ...fallback,
+                ...preset,
+                id: String(preset.id || crypto.randomUUID()),
+                name: String(preset.name || 'Untitled preset'),
+                loras: Array.isArray(preset.loras) ? preset.loras : []
+            } as MediaGenerationPreset;
+        });
+}
+
 export function hydrateModernState(
     userId: number | string,
     storage: Storage = localStorage
@@ -91,13 +167,22 @@ export function hydrateModernState(
             characters: characters.length ? characters : defaults.characters,
             currentCharacterId,
             galleryImages: Array.isArray(parsed.galleryImages) ? parsed.galleryImages : [],
+            gallerySourceFilter:
+                parsed.gallerySourceFilter === 'generator'
+                    ? 'manual'
+                    : parsed.gallerySourceFilter || defaults.gallerySourceFilter,
             currentView: VIEWS.includes(parsed.currentView) ? parsed.currentView : 'chat',
             generatorPrefs: {
                 ...defaults.generatorPrefs,
                 ...(parsed.generatorPrefs || {}),
                 promptPresets: Array.isArray(parsed.generatorPrefs?.promptPresets)
                     ? parsed.generatorPrefs.promptPresets
-                    : []
+                    : [],
+                presets: normalizePresets(
+                    parsed.generatorPrefs?.presets,
+                    parsed.settings,
+                    parsed.generatorPrefs
+                )
             },
             statistics: { ...defaults.statistics, ...(parsed.statistics || {}) }
         };

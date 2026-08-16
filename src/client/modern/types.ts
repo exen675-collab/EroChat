@@ -2,6 +2,35 @@ import type { BootstrapUser } from '../auth.js';
 
 export type ViewId = 'chat' | 'characters' | 'browse' | 'generator' | 'gallery' | 'stats';
 export type ImageProvider = 'swarm' | 'comfy' | 'nanogpt' | 'openrouter';
+export type MediaType = 'image' | 'video';
+export type MediaJobSource = 'chat' | 'manual' | 'regenerate' | 'character-thumbnail';
+export type MediaJobStatus =
+    | 'queued'
+    | 'starting'
+    | 'loading'
+    | 'generating'
+    | 'completed'
+    | 'failed';
+export type MediaExecutionBackend = 'local' | 'runpod';
+
+export interface MediaGenerationPreset {
+    id: string;
+    name: string;
+    mediaType: MediaType;
+    provider: ImageProvider;
+    providerModel: string;
+    workflow?: string;
+    loras: Array<{ name: string; weight: number }>;
+    width: number;
+    height: number;
+    steps: number;
+    cfgScale: number;
+    sampler: string;
+    scheduler: string;
+    seedMode: 'random' | 'fixed' | 'increment';
+    baseSeed: number;
+    executionBackend: MediaExecutionBackend;
+}
 
 export interface ModernMessage {
     id: string;
@@ -9,6 +38,9 @@ export interface ModernMessage {
     content: string;
     imageUrl?: string | null;
     videoUrl?: string | null;
+    mediaJobId?: number | null;
+    mediaStatus?: MediaJobStatus | null;
+    mediaError?: string | null;
     editedAt?: string | null;
     archivedFromModelContext?: boolean;
     archivedMemorySnapshotId?: string;
@@ -37,6 +69,7 @@ export interface ModernCharacter {
     memorySnapshots?: MemorySnapshot[];
     contextMessageCount?: number;
     openrouterSessionId?: string | null;
+    generationPresetId?: string | null;
     isDefault?: boolean;
 }
 
@@ -136,6 +169,9 @@ export interface GeneratorPrefs {
     swarmSeedMode: string;
     swarmBaseSeed: number;
     promptPresets: Array<{ name: string; prompt: string; negativePrompt?: string }>;
+    presets: MediaGenerationPreset[];
+    selectedPresetId: string;
+    defaultChatPresetId: string;
     [key: string]: unknown;
 }
 
@@ -144,7 +180,13 @@ export interface GeneratorJob {
     batchId?: string;
     mode: string;
     provider: ImageProvider;
-    status: string;
+    status: MediaJobStatus;
+    source: MediaJobSource;
+    mediaType: MediaType;
+    presetId?: string | null;
+    executionBackend: MediaExecutionBackend;
+    characterId?: string | null;
+    messageId?: string | null;
     prompt: string;
     negativePrompt?: string;
     providerModel?: string;
@@ -160,7 +202,13 @@ export interface GeneratorAsset {
     thumbnailUrl?: string | null;
     width?: number | null;
     height?: number | null;
-    source?: string;
+    source?: MediaJobSource;
+    characterId?: string | null;
+    messageId?: string | null;
+    prompt?: string | null;
+    provider?: ImageProvider | null;
+    providerModel?: string;
+    jobStatus?: MediaJobStatus | null;
     metadata?: Record<string, unknown>;
     createdAt?: string;
 }

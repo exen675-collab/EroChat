@@ -21,6 +21,16 @@ describe('default config', () => {
         expect(defaultGeneratorPrefs.provider).toBe('swarm');
         expect(defaultGeneratorPrefs.batchCount).toBe(1);
         expect(defaultGeneratorPrefs.promptPresets).toEqual([]);
+        expect(defaultGeneratorPrefs.defaultChatPresetId).toBe('chat-default');
+        expect(defaultGeneratorPrefs.presets).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'chat-default',
+                    mediaType: 'image',
+                    executionBackend: 'local'
+                })
+            ])
+        );
     });
 
     it('provides a default character with message history initialized', () => {

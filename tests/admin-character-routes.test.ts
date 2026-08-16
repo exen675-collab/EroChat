@@ -160,7 +160,12 @@ describe.sequential('admin character routes', () => {
             ]);
         }
         if (temporaryDataDir) {
-            await rm(temporaryDataDir, { recursive: true, force: true });
+            await rm(temporaryDataDir, {
+                recursive: true,
+                force: true,
+                maxRetries: 5,
+                retryDelay: 100
+            });
         }
         if (openRouterServer) {
             await new Promise<void>((resolve) => openRouterServer.close(() => resolve()));
@@ -228,6 +233,68 @@ describe.sequential('admin character routes', () => {
         });
         expect(payload.character.sourceCharacterId).toMatch(/^ai-/);
         selectedReferenceId = payload.character.id;
+    });
+
+    it('persists shared media job source, preset, backend, linkage, and completed assets', async () => {
+        const createResponse = await post(
+            '/api/generator/jobs',
+            {
+                jobs: [
+                    {
+                        mode: 'image_generate',
+                        provider: 'openrouter',
+                        prompt: 'A linked chat scene',
+                        source: 'chat',
+                        mediaType: 'image',
+                        presetId: 'chat-default',
+                        executionBackend: 'local',
+                        characterId: 'character-1',
+                        messageId: 'message-1',
+                        requestJson: { width: 832, height: 1216 }
+                    }
+                ]
+            },
+            adminCookie
+        );
+        const createdPayload = await createResponse.json();
+        expect(createResponse.status, JSON.stringify(createdPayload)).toBe(201);
+        const job = createdPayload.jobs[0];
+
+        expect(job).toMatchObject({
+            status: 'queued',
+            source: 'chat',
+            mediaType: 'image',
+            presetId: 'chat-default',
+            executionBackend: 'local',
+            characterId: 'character-1',
+            messageId: 'message-1'
+        });
+
+        const completeResponse = await fetch(`${baseUrl}/api/generator/jobs/${job.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+            body: JSON.stringify({
+                status: 'completed',
+                assets: [
+                    {
+                        mediaType: 'image',
+                        url: '/app/media/integration.png',
+                        source: 'chat',
+                        width: 832,
+                        height: 1216
+                    }
+                ]
+            })
+        });
+        const completedPayload = await completeResponse.json();
+
+        expect(completeResponse.status).toBe(200);
+        expect(completedPayload.job.status).toBe('completed');
+        expect(completedPayload.assets[0]).toMatchObject({
+            source: 'chat',
+            characterId: 'character-1',
+            messageId: 'message-1'
+        });
     });
 
     it('sends only selected canonical profiles and returns a validated draft without publishing', async () => {

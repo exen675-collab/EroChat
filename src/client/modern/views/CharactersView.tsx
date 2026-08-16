@@ -90,6 +90,22 @@ function CharacterEditor({
                             onChange={(event) => update({ systemPrompt: event.target.value })}
                         />
                     </label>
+                    <label className="m-field m-field--wide">
+                        <span>Chat generation preset</span>
+                        <select
+                            value={draft.generationPresetId || ''}
+                            onChange={(event) =>
+                                update({ generationPresetId: event.target.value || null })
+                            }
+                        >
+                            <option value="">Use default chat preset</option>
+                            {controller.data.generatorPrefs.presets.map((preset) => (
+                                <option key={preset.id} value={preset.id}>
+                                    {preset.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                 </div>
             </div>
             <div className="m-modal-actions">

@@ -55,16 +55,24 @@ const ADMIN_CHARACTER_BRIEF_MAX_LENGTH = 2000;
 
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
-const GENERATOR_ALLOWED_MODES = new Set(['image_generate']);
+const GENERATOR_ALLOWED_MODES = new Set(['image_generate', 'video_generate']);
 const GENERATOR_ALLOWED_PROVIDERS = new Set(['swarm', 'comfy', 'nanogpt', 'openrouter']);
 const GENERATOR_ALLOWED_STATUSES = new Set([
     'queued',
+    'starting',
+    'loading',
+    'generating',
+    'completed',
+    'failed',
+    // Legacy states remain readable while persisted jobs migrate naturally.
     'running',
     'polling',
     'succeeded',
-    'failed',
     'interrupted'
 ]);
+const GENERATOR_ALLOWED_SOURCES = new Set(['chat', 'manual', 'regenerate', 'character-thumbnail']);
+const GENERATOR_ALLOWED_MEDIA_TYPES = new Set(['image', 'video']);
+const GENERATOR_ALLOWED_EXECUTION_BACKENDS = new Set(['local', 'runpod']);
 const PUBLIC_CHARACTER_SORTS = new Set(['newest', 'popular', 'name']);
 const loginAttempts = new Map();
 
@@ -128,6 +136,13 @@ function all(query, params = []) {
             resolve(rows || []);
         });
     });
+}
+
+async function ensureTableColumn(table, column, definition) {
+    const columns = await all(`PRAGMA table_info(${table})`);
+    if (!columns.some((item) => item.name === column)) {
+        await run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
 }
 
 function jsonOrNull(text) {
@@ -463,7 +478,12 @@ function normalizeGeneratorStatus(value) {
 }
 
 function isTerminalGeneratorStatus(status) {
-    return status === 'succeeded' || status === 'failed' || status === 'interrupted';
+    return (
+        status === 'completed' ||
+        status === 'succeeded' ||
+        status === 'failed' ||
+        status === 'interrupted'
+    );
 }
 
 function mapGeneratorJobRow(row) {
@@ -475,6 +495,12 @@ function mapGeneratorJobRow(row) {
         mode: row.mode,
         provider: row.provider,
         status: row.status,
+        source: row.source || 'manual',
+        mediaType: row.media_type || (row.mode === 'video_generate' ? 'video' : 'image'),
+        presetId: row.preset_id || null,
+        executionBackend: row.execution_backend || 'local',
+        characterId: row.character_id || null,
+        messageId: row.message_id || null,
         prompt: row.prompt || '',
         negativePrompt: row.negative_prompt || null,
         sourceAssetIds: normalizeIntegerArray(row.source_asset_ids),
@@ -502,7 +528,9 @@ function mapGeneratorAssetRow(row) {
         width: Number.isFinite(row.width) ? row.width : null,
         height: Number.isFinite(row.height) ? row.height : null,
         durationSeconds: Number.isFinite(row.duration_seconds) ? row.duration_seconds : null,
-        source: row.source || 'generator',
+        source: !row.source || row.source === 'generator' ? 'manual' : row.source,
+        characterId: row.job_character_id || null,
+        messageId: row.job_message_id || null,
         createdAt: row.created_at,
         metadata: parseJsonObject(row.metadata_json),
         prompt: row.job_prompt || null,
@@ -535,7 +563,9 @@ async function getGeneratorAssetsByIds(userId, assetIds) {
         j.prompt AS job_prompt,
         j.mode AS job_mode,
         j.provider AS job_provider,
-                j.provider_model AS job_provider_model,
+        j.provider_model AS job_provider_model,
+        j.character_id AS job_character_id,
+        j.message_id AS job_message_id,
         j.status AS job_status,
         j.batch_id
       FROM generator_assets a
@@ -749,6 +779,12 @@ async function initDb() {
       mode TEXT NOT NULL,
       provider TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'queued',
+      source TEXT NOT NULL DEFAULT 'manual',
+      media_type TEXT NOT NULL DEFAULT 'image',
+      preset_id TEXT,
+      execution_backend TEXT NOT NULL DEFAULT 'local',
+      character_id TEXT,
+      message_id TEXT,
       prompt TEXT NOT NULL,
       negative_prompt TEXT,
       source_asset_ids TEXT NOT NULL DEFAULT '[]',
@@ -764,6 +800,13 @@ async function initDb() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
+
+    await ensureTableColumn('generator_jobs', 'source', "TEXT NOT NULL DEFAULT 'manual'");
+    await ensureTableColumn('generator_jobs', 'media_type', "TEXT NOT NULL DEFAULT 'image'");
+    await ensureTableColumn('generator_jobs', 'preset_id', 'TEXT');
+    await ensureTableColumn('generator_jobs', 'execution_backend', "TEXT NOT NULL DEFAULT 'local'");
+    await ensureTableColumn('generator_jobs', 'character_id', 'TEXT');
+    await ensureTableColumn('generator_jobs', 'message_id', 'TEXT');
 
     await run(`
     CREATE TABLE IF NOT EXISTS generator_assets (
@@ -1695,6 +1738,19 @@ app.post('/api/generator/jobs', requireApiAuth, async (req, res) => {
             const mode = normalizeGeneratorMode(inputJob?.mode);
             const provider = normalizeGeneratorProvider(inputJob?.provider);
             const prompt = typeof inputJob?.prompt === 'string' ? inputJob.prompt.trim() : '';
+            const source = GENERATOR_ALLOWED_SOURCES.has(inputJob?.source)
+                ? inputJob.source
+                : 'manual';
+            const mediaType = GENERATOR_ALLOWED_MEDIA_TYPES.has(inputJob?.mediaType)
+                ? inputJob.mediaType
+                : mode === 'video_generate'
+                  ? 'video'
+                  : 'image';
+            const executionBackend = GENERATOR_ALLOWED_EXECUTION_BACKENDS.has(
+                inputJob?.executionBackend
+            )
+                ? inputJob.executionBackend
+                : 'local';
 
             if (!mode || !provider || !prompt) {
                 res.status(400).json({
@@ -1722,6 +1778,18 @@ app.post('/api/generator/jobs', requireApiAuth, async (req, res) => {
                 : [];
             const providerModel =
                 typeof inputJob?.providerModel === 'string' ? inputJob.providerModel.trim() : '';
+            const presetId =
+                typeof inputJob?.presetId === 'string' && inputJob.presetId.trim()
+                    ? inputJob.presetId.trim()
+                    : null;
+            const characterId =
+                typeof inputJob?.characterId === 'string' && inputJob.characterId.trim()
+                    ? inputJob.characterId.trim()
+                    : null;
+            const messageId =
+                typeof inputJob?.messageId === 'string' && inputJob.messageId.trim()
+                    ? inputJob.messageId.trim()
+                    : null;
             const requestJson =
                 inputJob?.requestJson &&
                 typeof inputJob.requestJson === 'object' &&
@@ -1737,18 +1805,30 @@ app.post('/api/generator/jobs', requireApiAuth, async (req, res) => {
             mode,
             provider,
             status,
+            source,
+            media_type,
+            preset_id,
+            execution_backend,
+            character_id,
+            message_id,
             prompt,
             negative_prompt,
             source_asset_ids,
             provider_model,
             request_json
-          ) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
                 [
                     userId,
                     batchId,
                     mode,
                     provider,
+                    source,
+                    mediaType,
+                    presetId,
+                    executionBackend,
+                    characterId,
+                    messageId,
                     prompt,
                     negativePrompt,
                     stringifyJson(sourceAssetIds, []),
@@ -1864,6 +1944,9 @@ app.patch('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
                 !Array.isArray(assetInput.metadata)
                     ? assetInput.metadata
                     : {};
+            const source = GENERATOR_ALLOWED_SOURCES.has(assetInput?.source)
+                ? assetInput.source
+                : existing.source || 'manual';
 
             const result = await run(
                 `
@@ -1878,7 +1961,7 @@ app.patch('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
             duration_seconds,
             source,
             metadata_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'generator', ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
                 [
                     jobId,
@@ -1889,6 +1972,7 @@ app.patch('/api/generator/jobs/:jobId', requireApiAuth, async (req, res) => {
                     width,
                     height,
                     durationSeconds,
+                    source,
                     stringifyJson(metadata, {})
                 ]
             );
@@ -1971,7 +2055,9 @@ app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
       j.prompt AS job_prompt,
       j.mode AS job_mode,
       j.provider AS job_provider,
-            j.provider_model AS job_provider_model,
+      j.provider_model AS job_provider_model,
+      j.character_id AS job_character_id,
+      j.message_id AS job_message_id,
       j.status AS job_status,
       j.batch_id
     FROM generator_assets a

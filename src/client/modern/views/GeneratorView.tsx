@@ -11,15 +11,11 @@ import {
     X
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import {
-    createGeneratorJob,
-    generateImages,
-    saveGeneratedJobAssets,
-    sendUtilityRequest,
-    updateGeneratorJob
-} from '../api.js';
+import { sendUtilityRequest } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
-import type { ModernSettings } from '../types.js';
+import { runMediaGeneration } from '../media-generation.js';
+import { findMediaPreset } from '../media-presets.js';
+import type { MediaGenerationPreset } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 
 const PROMPT_CHIPS = [
@@ -35,18 +31,25 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     const prefs = controller.data.generatorPrefs;
     const [prompt, setPrompt] = useState(prefs.prompt || '');
     const [negative, setNegative] = useState(prefs.negativePrompt || '');
-    const [provider, setProvider] = useState(prefs.provider || 'swarm');
     const [batch, setBatch] = useState(Number(prefs.batchCount) || 1);
     const [sources, setSources] = useState<string[]>([]);
     const [presetName, setPresetName] = useState('');
-    const [selectedPreset, setSelectedPreset] = useState('');
     const [busy, setBusy] = useState(false);
     const uploadRef = useRef<HTMLInputElement>(null);
+    const mediaPresets = prefs.presets || [];
+    const selectedPreset = findMediaPreset(prefs, prefs.selectedPresetId);
     function patchPrefs(patch: Record<string, unknown>) {
         controller.setData((current) => ({
             ...current,
             generatorPrefs: { ...current.generatorPrefs, ...patch }
         }));
+    }
+    function patchPreset(patch: Partial<MediaGenerationPreset>) {
+        patchPrefs({
+            presets: mediaPresets.map((preset) =>
+                preset.id === selectedPreset.id ? { ...preset, ...patch } : preset
+            )
+        });
     }
     async function helper(action: string) {
         try {
@@ -65,53 +68,33 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     async function run() {
         if (!prompt.trim()) return;
         setBusy(true);
-        const settings = { ...controller.data.settings, imageProvider: provider } as ModernSettings;
-        const request = {
-            batchCount: batch,
-            width: Number(prefs.swarmWidth),
-            height: Number(prefs.swarmHeight),
-            steps: Number(prefs.swarmSteps),
-            cfgScale: Number(prefs.swarmCfgScale),
-            sampler: String(prefs.swarmSampler),
-            scheduler: String(prefs.swarmScheduler),
-            seedMode: String(prefs.swarmSeedMode),
-            baseSeed: Number(prefs.swarmBaseSeed)
-        };
         try {
-            const jobs = await createGeneratorJob({
-                batchId: crypto.randomUUID(),
-                mode: 'image_generate',
-                provider,
+            const result = await runMediaGeneration({
+                settings: controller.data.settings,
+                preset: selectedPreset,
                 prompt,
                 negativePrompt: negative,
-                providerModel:
-                    provider === 'swarm'
-                        ? settings.swarmModel
-                        : provider === 'comfy'
-                          ? settings.comfyModel
-                          : provider === 'nanogpt'
-                            ? settings.nanogptModel
-                            : settings.openrouterImageModel,
-                sourceAssetIds: [],
-                requestJson: request
+                source: 'manual',
+                batchCount: batch,
+                onJobChange: (job) =>
+                    controller.setGeneratorJobs((current) => [
+                        job,
+                        ...current.filter((item) => item.id !== job.id)
+                    ])
             });
-            const job = jobs[0];
-            controller.setGeneratorJobs((current) => [job, ...current]);
-            await updateGeneratorJob(job.id, { status: 'running' });
-            const results = await generateImages(settings, {
-                prompt,
-                negativePrompt: negative,
-                ...request
-            });
-            await saveGeneratedJobAssets(job, results, request);
-            await controller.refreshGenerator();
+            controller.setGeneratorAssets((current) => [
+                ...result.assets,
+                ...current.filter(
+                    (asset) => !result.assets.some((created) => created.id === asset.id)
+                )
+            ]);
             controller.recordUsage('generator', {
-                model: job.providerModel,
+                model: result.job.providerModel,
                 prompt,
-                count: results.length
+                count: result.assets.length
             });
             controller.notify(
-                `Generated ${results.length} image${results.length === 1 ? '' : 's'}.`,
+                `Generated ${result.assets.length} ${selectedPreset.mediaType}${result.assets.length === 1 ? '' : 's'}.`,
                 'success'
             );
         } catch (error) {
@@ -120,13 +103,12 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
             setBusy(false);
         }
     }
-    const presets = prefs.promptPresets || [];
     return (
         <div className="m-generator">
             <section className="m-generator__form">
                 <div className="m-page-hero compact">
                     <div>
-                        <span className="m-eyebrow">Image generator</span>
+                        <span className="m-eyebrow">Media generator</span>
                         <h2>Shape the scene.</h2>
                         <p>Create outside chat with the same providers and settings.</p>
                     </div>
@@ -146,18 +128,23 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                 <div className="m-generator__controls">
                     <label className="m-field">
                         <span>Mode</span>
-                        <select>
-                            <option>Create image</option>
+                        <select
+                            value={selectedPreset.mediaType}
+                            onChange={(event) =>
+                                patchPreset({ mediaType: event.target.value as 'image' | 'video' })
+                            }
+                        >
+                            <option value="image">Create image</option>
+                            <option value="video">Create video</option>
                         </select>
                     </label>
                     <label className="m-field">
                         <span>Provider</span>
                         <select
-                            value={provider}
+                            value={selectedPreset.provider}
                             onChange={(event) => {
                                 const value = event.target.value as any;
-                                setProvider(value);
-                                patchPrefs({ provider: value });
+                                patchPreset({ provider: value, providerModel: '' });
                             }}
                         >
                             <option value="swarm">SwarmUI</option>
@@ -243,9 +230,9 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <span>Width</span>
                             <input
                                 type="number"
-                                value={Number(prefs.swarmWidth)}
+                                value={selectedPreset.width}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmWidth: Number(event.target.value) })
+                                    patchPreset({ width: Number(event.target.value) })
                                 }
                             />
                         </label>
@@ -253,9 +240,9 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <span>Height</span>
                             <input
                                 type="number"
-                                value={Number(prefs.swarmHeight)}
+                                value={selectedPreset.height}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmHeight: Number(event.target.value) })
+                                    patchPreset({ height: Number(event.target.value) })
                                 }
                             />
                         </label>
@@ -263,9 +250,9 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <span>Steps</span>
                             <input
                                 type="number"
-                                value={Number(prefs.swarmSteps)}
+                                value={selectedPreset.steps}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmSteps: Number(event.target.value) })
+                                    patchPreset({ steps: Number(event.target.value) })
                                 }
                             />
                         </label>
@@ -274,19 +261,17 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <input
                                 type="number"
                                 step="0.5"
-                                value={Number(prefs.swarmCfgScale)}
+                                value={selectedPreset.cfgScale}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmCfgScale: Number(event.target.value) })
+                                    patchPreset({ cfgScale: Number(event.target.value) })
                                 }
                             />
                         </label>
                         <label className="m-field">
                             <span>Sampler</span>
                             <select
-                                value={String(prefs.swarmSampler)}
-                                onChange={(event) =>
-                                    patchPrefs({ swarmSampler: event.target.value })
-                                }
+                                value={selectedPreset.sampler}
+                                onChange={(event) => patchPreset({ sampler: event.target.value })}
                             >
                                 <option value="euler_ancestral">Euler ancestral</option>
                                 <option value="euler">Euler</option>
@@ -297,10 +282,8 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                         <label className="m-field">
                             <span>Scheduler</span>
                             <select
-                                value={String(prefs.swarmScheduler)}
-                                onChange={(event) =>
-                                    patchPrefs({ swarmScheduler: event.target.value })
-                                }
+                                value={selectedPreset.scheduler}
+                                onChange={(event) => patchPreset({ scheduler: event.target.value })}
                             >
                                 <option value="karras">Karras</option>
                                 <option value="normal">Normal</option>
@@ -310,9 +293,9 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                         <label className="m-field">
                             <span>Seed mode</span>
                             <select
-                                value={String(prefs.swarmSeedMode)}
+                                value={selectedPreset.seedMode}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmSeedMode: event.target.value })
+                                    patchPreset({ seedMode: event.target.value as any })
                                 }
                             >
                                 <option value="random">Random</option>
@@ -324,11 +307,72 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <span>Base seed</span>
                             <input
                                 type="number"
-                                value={Number(prefs.swarmBaseSeed)}
+                                value={selectedPreset.baseSeed}
                                 onChange={(event) =>
-                                    patchPrefs({ swarmBaseSeed: Number(event.target.value) })
+                                    patchPreset({ baseSeed: Number(event.target.value) })
                                 }
                             />
+                        </label>
+                        <label className="m-field">
+                            <span>Provider model</span>
+                            <input
+                                value={selectedPreset.providerModel}
+                                onChange={(event) =>
+                                    patchPreset({ providerModel: event.target.value })
+                                }
+                                placeholder="Use provider setting"
+                            />
+                        </label>
+                        <label className="m-field">
+                            <span>Workflow</span>
+                            <input
+                                value={selectedPreset.workflow || ''}
+                                onChange={(event) => patchPreset({ workflow: event.target.value })}
+                                placeholder="Optional workflow name"
+                            />
+                        </label>
+                        <label className="m-field">
+                            <span>LoRAs</span>
+                            <input
+                                value={selectedPreset.loras
+                                    .map((lora) => `${lora.name}:${lora.weight}`)
+                                    .join(', ')}
+                                onChange={(event) =>
+                                    patchPreset({
+                                        loras: event.target.value
+                                            .split(',')
+                                            .map((item) => item.trim())
+                                            .filter(Boolean)
+                                            .map((item) => {
+                                                const separator = item.lastIndexOf(':');
+                                                const weight = Number(item.slice(separator + 1));
+                                                return {
+                                                    name:
+                                                        separator > 0
+                                                            ? item.slice(0, separator).trim()
+                                                            : item,
+                                                    weight:
+                                                        separator > 0 && Number.isFinite(weight)
+                                                            ? weight
+                                                            : 1
+                                                };
+                                            })
+                                    })
+                                }
+                                placeholder="portrait-style:0.8, detail:1"
+                            />
+                        </label>
+                        <label className="m-field">
+                            <span>Execution backend</span>
+                            <select
+                                value={selectedPreset.executionBackend}
+                                onChange={(event) =>
+                                    patchPreset({ executionBackend: event.target.value as any })
+                                }
+                            >
+                                <option value="local">Local / provider API</option>
+                                <option value="runpod">RunPod Serverless</option>
+                            </select>
                         </label>
                     </div>
                 </details>
@@ -378,19 +422,27 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                 </section>
                 <section className="m-preset-row">
                     <select
-                        value={selectedPreset}
-                        onChange={(event) => {
-                            setSelectedPreset(event.target.value);
-                            const preset = presets.find((item) => item.name === event.target.value);
-                            if (preset) {
-                                setPrompt(preset.prompt);
-                                setNegative(preset.negativePrompt || '');
-                            }
-                        }}
+                        aria-label="Generation preset"
+                        value={selectedPreset.id}
+                        onChange={(event) => patchPrefs({ selectedPresetId: event.target.value })}
                     >
-                        <option value="">Load a prompt preset…</option>
-                        {presets.map((preset) => (
-                            <option key={preset.name}>{preset.name}</option>
+                        {mediaPresets.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                                {preset.name}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        aria-label="Default chat generation preset"
+                        value={prefs.defaultChatPresetId}
+                        onChange={(event) =>
+                            patchPrefs({ defaultChatPresetId: event.target.value })
+                        }
+                    >
+                        {mediaPresets.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                                Chat: {preset.name}
+                            </option>
                         ))}
                     </select>
                     <input
@@ -401,11 +453,14 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     <Button
                         onClick={() => {
                             if (!presetName.trim()) return;
+                            const newPreset = {
+                                ...selectedPreset,
+                                id: crypto.randomUUID(),
+                                name: presetName.trim()
+                            };
                             patchPrefs({
-                                promptPresets: [
-                                    ...presets.filter((item) => item.name !== presetName),
-                                    { name: presetName, prompt, negativePrompt: negative }
-                                ]
+                                presets: [...mediaPresets, newPreset],
+                                selectedPresetId: newPreset.id
                             });
                             setPresetName('');
                             controller.notify('Preset saved.', 'success');
@@ -431,16 +486,20 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                 <div className="m-result-grid">
                     {controller.generatorAssets.map((asset) => (
                         <article key={asset.id}>
-                            <img
-                                src={asset.thumbnailUrl || asset.url}
-                                alt="Generated result"
-                                loading="lazy"
-                            />
+                            {asset.mediaType === 'video' ? (
+                                <video src={asset.url} controls preload="metadata" />
+                            ) : (
+                                <img
+                                    src={asset.thumbnailUrl || asset.url}
+                                    alt="Generated result"
+                                    loading="lazy"
+                                />
+                            )}
                             <div>
                                 <span>
                                     {asset.width && asset.height
                                         ? `${asset.width} × ${asset.height}`
-                                        : 'Generated image'}
+                                        : `Generated ${asset.mediaType}`}
                                 </span>
                                 <a href={asset.url} target="_blank" rel="noreferrer">
                                     <Download size={15} />
@@ -462,7 +521,7 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             <span>
                                 <strong>{job.prompt}</strong>
                                 <small>
-                                    {job.provider} · {job.status}
+                                    {job.source} · {job.provider} · {job.status}
                                 </small>
                             </span>
                         </article>

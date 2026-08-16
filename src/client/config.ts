@@ -68,5 +68,45 @@ export const defaultGeneratorPrefs = {
     swarmScheduler: 'karras',
     swarmSeedMode: 'random',
     swarmBaseSeed: 1,
-    promptPresets: []
+    promptPresets: [],
+    selectedPresetId: 'manual-default',
+    defaultChatPresetId: 'chat-default',
+    presets: [
+        {
+            id: 'chat-default',
+            name: 'Default chat',
+            mediaType: 'image',
+            provider: 'swarm',
+            providerModel: '',
+            workflow: '',
+            loras: [],
+            width: 832,
+            height: 1216,
+            steps: 25,
+            cfgScale: 7,
+            sampler: 'euler_ancestral',
+            scheduler: 'karras',
+            seedMode: 'random',
+            baseSeed: 1,
+            executionBackend: 'local'
+        },
+        {
+            id: 'manual-default',
+            name: 'Default generator',
+            mediaType: 'image',
+            provider: 'swarm',
+            providerModel: '',
+            workflow: '',
+            loras: [],
+            width: 832,
+            height: 1216,
+            steps: 25,
+            cfgScale: 7,
+            sampler: 'euler_ancestral',
+            scheduler: 'karras',
+            seedMode: 'random',
+            baseSeed: 1,
+            executionBackend: 'local'
+        }
+    ]
 };

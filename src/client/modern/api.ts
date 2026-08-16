@@ -218,7 +218,7 @@ export async function uploadMedia(file: File): Promise<string> {
     return (await responsePayload(response)).url;
 }
 
-interface GenerateOptions {
+export interface GenerateOptions {
     prompt: string;
     negativePrompt?: string;
     batchCount?: number;
@@ -461,20 +461,22 @@ export async function updateGeneratorJob(id: number, patch: Record<string, unkno
 export async function saveGeneratedJobAssets(
     job: GeneratorJob,
     results: Array<{ url: string; seed?: number }>,
-    request: Record<string, unknown>
+    request: Record<string, unknown>,
+    options: { mediaType?: 'image' | 'video'; source?: string } = {}
 ) {
     const assets = [];
     for (const result of results) {
         assets.push({
-            mediaType: 'image',
+            mediaType: options.mediaType || 'image',
             url: await persistRemoteMedia(result.url),
             width: request.width,
             height: request.height,
+            source: options.source || job.source,
             metadata: { seed: result.seed, model: job.providerModel || '' }
         });
     }
     return updateGeneratorJob(job.id, {
-        status: 'succeeded',
+        status: 'completed',
         completedAt: new Date().toISOString(),
         assets
     });

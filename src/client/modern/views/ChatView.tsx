@@ -93,8 +93,22 @@ function MessageCard({
                             </p>
                         ))}
                     </div>
-                    {(message.imageUrl || message.videoUrl) && (
+                    {(message.imageUrl || message.videoUrl || message.mediaStatus) && (
                         <div className="m-message__media-column">
+                            {!message.imageUrl &&
+                                !message.videoUrl &&
+                                message.mediaStatus &&
+                                message.mediaStatus !== 'failed' && (
+                                    <div className="m-empty-inline" role="status">
+                                        <LoaderCircle className="spin" size={18} /> Media{' '}
+                                        {message.mediaStatus}…
+                                    </div>
+                                )}
+                            {message.mediaStatus === 'failed' && !message.imageUrl && (
+                                <div className="m-empty-inline is-error" role="status">
+                                    Media failed: {message.mediaError || 'Unknown error'}
+                                </div>
+                            )}
                             {message.imageUrl && (
                                 <button
                                     className="m-message__media"
@@ -131,7 +145,12 @@ function MessageCard({
                     )}
                     {assistant && (
                         <button
-                            disabled={controller.busy === `image:${message.id}`}
+                            disabled={
+                                controller.busy === `image:${message.id}` ||
+                                ['queued', 'starting', 'loading', 'generating'].includes(
+                                    message.mediaStatus || ''
+                                )
+                            }
                             onClick={() => void controller.regenerateMessageImage(message.id)}
                         >
                             <RefreshCw size={15} /> Image

@@ -4,20 +4,20 @@ import { getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
 import {
     createChatPreview,
     fetchGeneratorHistory,
-    generateImages,
     generateSpeech,
-    persistRemoteMedia,
     sendModernChat,
     sendUtilityRequest
 } from './api.js';
+import { runMediaGeneration } from './media-generation.js';
+import { chatMediaPreset } from './media-presets.js';
 import { hydrateModernState, persistModernState } from './storage.js';
 import type {
-    GalleryItem,
     MemorySnapshot,
     ModernCharacter,
     ModernMessage,
     ModernPersistedState,
     ModernSettings,
+    MediaJobSource,
     ViewId
 } from './types.js';
 
@@ -277,6 +277,100 @@ export function useModernController(user: BootstrapUser) {
         []
     );
 
+    const upsertGeneratorJob = useCallback((job: any) => {
+        setGeneratorJobs((current) => [job, ...current.filter((item) => item.id !== job.id)]);
+    }, []);
+
+    const updateMessageMedia = useCallback(
+        (characterId: string, messageId: string, patch: Partial<ModernMessage>) => {
+            setData((current) => ({
+                ...current,
+                characters: current.characters.map((character) =>
+                    character.id === characterId
+                        ? {
+                              ...character,
+                              messages: character.messages.map((message) =>
+                                  message.id === messageId ? { ...message, ...patch } : message
+                              )
+                          }
+                        : character
+                )
+            }));
+        },
+        []
+    );
+
+    const generateMessageMedia = useCallback(
+        async (
+            character: ModernCharacter,
+            messageId: string,
+            prompt: string,
+            source: MediaJobSource
+        ) => {
+            const preset = chatMediaPreset(data.generatorPrefs, character);
+            updateMessageMedia(character.id, messageId, {
+                mediaStatus: 'queued',
+                mediaError: null
+            });
+            try {
+                const result = await runMediaGeneration({
+                    settings: data.settings,
+                    preset,
+                    prompt,
+                    source,
+                    characterId: character.id,
+                    messageId,
+                    onJobChange: (job) => {
+                        upsertGeneratorJob(job);
+                        updateMessageMedia(character.id, messageId, {
+                            mediaJobId: job.id,
+                            mediaStatus: job.status,
+                            mediaError: job.errorMessage || null
+                        });
+                    }
+                });
+                const asset = result.assets[0];
+                if (!asset) throw new Error('The media job completed without an asset.');
+                updateMessageMedia(character.id, messageId, {
+                    imageUrl: asset.mediaType === 'image' ? asset.url : null,
+                    videoUrl: asset.mediaType === 'video' ? asset.url : null,
+                    mediaJobId: result.job.id,
+                    mediaStatus: 'completed',
+                    mediaError: null
+                });
+                setGeneratorAssets((current) => [
+                    ...result.assets,
+                    ...current.filter(
+                        (item) => !result.assets.some((assetItem) => assetItem.id === item.id)
+                    )
+                ]);
+                recordUsage('image', {
+                    model: result.job.providerModel,
+                    prompt,
+                    count: result.assets.length
+                });
+            } catch (error) {
+                const message = (error as Error).message;
+                updateMessageMedia(character.id, messageId, {
+                    mediaStatus: 'failed',
+                    mediaError: message
+                });
+                notify(
+                    source === 'chat' ? `Reply created, but its media failed: ${message}` : message,
+                    source === 'chat' ? 'warning' : 'error'
+                );
+            }
+        },
+        [
+            data.generatorPrefs,
+            data.settings,
+            notify,
+            recordUsage,
+            updateMessageMedia,
+            upsertGeneratorJob
+        ]
+    );
+
     const sendMessage = useCallback(
         async (draft: string) => {
             const content = draft.trim();
@@ -305,50 +399,9 @@ export function useModernController(user: BootstrapUser) {
                 };
                 recordUsage('assistant', { model: data.settings.openrouterModel });
                 const imagePrompt = imagePromptFromContent(raw);
-                if (data.settings.enableImageGeneration && imagePrompt) {
-                    try {
-                        const [image] = await generateImages(data.settings, {
-                            prompt: imagePrompt,
-                            batchCount: 1
-                        });
-                        if (image?.url) {
-                            assistant.imageUrl = await persistRemoteMedia(image.url);
-                            recordUsage('image', {
-                                model:
-                                    data.settings.imageProvider === 'swarm'
-                                        ? data.settings.swarmModel
-                                        : data.settings.imageProvider === 'comfy'
-                                          ? data.settings.comfyModel
-                                          : data.settings.imageProvider === 'nanogpt'
-                                            ? data.settings.nanogptModel
-                                            : data.settings.openrouterImageModel,
-                                prompt: imagePrompt
-                            });
-                        }
-                    } catch (error) {
-                        notify(
-                            `Reply created, but its image failed: ${(error as Error).message}`,
-                            'warning'
-                        );
-                    }
-                }
                 appendMessages([assistant]);
-                if (assistant.imageUrl) {
-                    const galleryItem: GalleryItem = {
-                        id: id(),
-                        imageUrl: assistant.imageUrl,
-                        characterId: currentCharacter.id,
-                        characterName: currentCharacter.name,
-                        characterAvatar: currentCharacter.avatar,
-                        source: 'chat',
-                        messageId: assistant.id,
-                        createdAt: new Date().toISOString(),
-                        prompt: imagePrompt
-                    };
-                    setData((current) => ({
-                        ...current,
-                        galleryImages: [galleryItem, ...current.galleryImages]
-                    }));
+                if (data.settings.enableImageGeneration && imagePrompt) {
+                    void generateMessageMedia(currentCharacter, assistant.id, imagePrompt, 'chat');
                 }
                 return true;
             } catch (error) {
@@ -358,7 +411,16 @@ export function useModernController(user: BootstrapUser) {
                 setBusy(null);
             }
         },
-        [appendMessages, busy, currentCharacter, data.settings, messages, notify, recordUsage]
+        [
+            appendMessages,
+            busy,
+            currentCharacter,
+            data.settings,
+            generateMessageMedia,
+            messages,
+            notify,
+            recordUsage
+        ]
     );
 
     const editMessage = useCallback((messageId: string, content: string) => {
@@ -416,39 +478,14 @@ export function useModernController(user: BootstrapUser) {
                 imagePromptFromContent(message.content) || getAssistantVisibleText(message.content);
             setBusy(`image:${messageId}`);
             try {
-                const [result] = await generateImages(data.settings, { prompt, batchCount: 1 });
-                const imageUrl = await persistRemoteMedia(result.url);
-                setData((current) => {
-                    const character = current.characters.find(
-                        (item) => item.id === current.currentCharacterId
-                    );
-                    const next = (character?.messages || []).map((item) =>
-                        item.id === messageId ? { ...item, imageUrl } : item
-                    );
-                    return {
-                        ...syncCurrentMessages(current, next),
-                        galleryImages: [
-                            {
-                                id: id(),
-                                imageUrl,
-                                characterId: character?.id,
-                                characterName: character?.name,
-                                source: 'regenerate',
-                                messageId,
-                                prompt,
-                                createdAt: new Date().toISOString()
-                            },
-                            ...current.galleryImages
-                        ]
-                    };
-                });
-            } catch (error) {
-                notify((error as Error).message, 'error');
+                if (currentCharacter) {
+                    await generateMessageMedia(currentCharacter, messageId, prompt, 'regenerate');
+                }
             } finally {
                 setBusy(null);
             }
         },
-        [data.settings, messages, notify]
+        [currentCharacter, generateMessageMedia, messages]
     );
 
     const upgradeDraft = useCallback(
