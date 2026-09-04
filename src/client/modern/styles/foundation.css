@@ -16,10 +16,39 @@
     --m-danger: #f2748b;
     --m-radius: 18px;
     --m-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+    --m-scrollbar: #51425f;
+    --m-scrollbar-hover: #79608b;
 }
 
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--m-scrollbar) transparent;
+}
+
+/* Fallback for browsers using WebKit scrollbar styling. */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--m-scrollbar);
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--m-scrollbar-hover);
+}
+
+@media (forced-colors: active) {
+    * {
+        scrollbar-color: auto;
+    }
 }
 html,
 body,
