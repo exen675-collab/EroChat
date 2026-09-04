@@ -26,6 +26,7 @@ export function StatsView({ controller }: { controller: ModernController }) {
     ).length;
     const insights = buildStatsInsights(controller.data.statistics);
     const rankedCharacters = controller.data.characters
+        .filter((character) => character.messages.length > 0)
         .slice()
         .sort((a, b) => b.messages.length - a.messages.length)
         .slice(0, 5);
@@ -34,6 +35,7 @@ export function StatsView({ controller }: { controller: ModernController }) {
         ...rankedCharacters.map((item) => item.messages.length)
     );
     const activityMax = Math.max(1, ...insights.activity.map((day) => day.total));
+    const recentTotal = insights.activity.reduce((total, day) => total + day.total, 0);
     const lastUpdated = insights.lastUpdatedAt
         ? new Date(insights.lastUpdatedAt).toLocaleString(undefined, {
               dateStyle: 'medium',
@@ -67,14 +69,14 @@ export function StatsView({ controller }: { controller: ModernController }) {
         }
     ];
     return (
-        <div className="m-page">
-            <section className="m-page-hero">
+        <div className="m-page m-stats-page">
+            <section className="m-page-hero m-stats-hero">
                 <div>
                     <span className="m-eyebrow">Personal insights</span>
                     <h2>Your creative rhythm.</h2>
                     <p>
-                        Statistics stay in this browser profile and update as you use chat and
-                        generation.
+                        A little perspective on your conversations, creations, and everyday
+                        inspiration.
                     </p>
                     <div className="m-stats-meta">
                         <CalendarDays size={14} />
@@ -83,13 +85,24 @@ export function StatsView({ controller }: { controller: ModernController }) {
                             : 'No tracked activity yet'}
                     </div>
                 </div>
+                <div className="m-stats-streak">
+                    <Flame size={22} aria-hidden="true" />
+                    <div>
+                        <strong>{insights.currentStreak.toLocaleString()} day streak</strong>
+                        <span>
+                            {insights.currentStreak
+                                ? 'Keep your creativity flowing'
+                                : 'Start something creative today'}
+                        </span>
+                    </div>
+                </div>
             </section>
             <section className="m-stat-grid">
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
                         <article key={card.label}>
-                            <span>
+                            <span aria-hidden="true">
                                 <Icon size={20} />
                             </span>
                             <strong>{card.value.toLocaleString()}</strong>
@@ -101,21 +114,31 @@ export function StatsView({ controller }: { controller: ModernController }) {
             </section>
             <section className="m-insight-grid">
                 <article className="m-insight-panel wide">
-                    <header>
+                    <header className="m-activity-heading">
                         <div>
                             <span className="m-eyebrow">Recent activity</span>
-                            <h3>Last 14 days</h3>
+                            <h3>Activity over time</h3>
+                        </div>
+                        <span className="m-stats-period">
+                            <CalendarDays size={14} aria-hidden="true" />
+                            Last 14 days
+                        </span>
+                    </header>
+                    <div className="m-activity-overview">
+                        <div className="m-activity-total">
+                            <strong>{recentTotal.toLocaleString()}</strong>
+                            <span>tracked activities</span>
                         </div>
                         {insights.busiestDay && (
                             <div className="m-panel-summary">
                                 <TrendingUp size={16} />
                                 <span>
-                                    Busiest: <strong>{insights.busiestDay.label}</strong> ·{' '}
+                                    All-time peak: <strong>{insights.busiestDay.label}</strong> ·{' '}
                                     {insights.busiestDay.total.toLocaleString()} activities
                                 </span>
                             </div>
                         )}
-                    </header>
+                    </div>
                     {insights.activity.some((day) => day.total > 0) ? (
                         <>
                             <div className="m-chart-legend" aria-label="Activity chart legend">
@@ -153,9 +176,10 @@ export function StatsView({ controller }: { controller: ModernController }) {
                             </div>
                         </>
                     ) : (
-                        <div className="m-empty-inline">
-                            <Activity size={22} /> Activity appears after you chat or generate
-                            media.
+                        <div className="m-stats-chart-empty">
+                            <Activity size={28} aria-hidden="true" />
+                            <strong>Your next idea starts the chart</strong>
+                            <span>Chat or create media to see your activity here.</span>
                         </div>
                     )}
                 </article>
@@ -165,6 +189,11 @@ export function StatsView({ controller }: { controller: ModernController }) {
                         <h3>Conversation split</h3>
                     </header>
                     <div className="m-ranking">
+                        {!rankedCharacters.length && (
+                            <div className="m-empty-inline">
+                                Start a conversation to see your character breakdown.
+                            </div>
+                        )}
                         {rankedCharacters.map((character) => (
                             <div key={character.id}>
                                 <Avatar
