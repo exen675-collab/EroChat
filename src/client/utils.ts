@@ -34,6 +34,7 @@ const IMAGE_SCHEDULER_ALIASES: Record<string, string> = {
 
 const IMAGE_PROMPT_BLOCK_PATTERN =
     /(?:---IMAGE_PROMPT START---[\s\S]*?---IMAGE_PROMPT END---|<image_prompt>[\s\S]*?<\/image_prompt>)/gi;
+const IMAGE_PROMPT_START_MARKERS = ['---IMAGE_PROMPT START---', '<image_prompt>'];
 const ACTION_SEGMENT_PATTERN = /\*([^*]+)\*/g;
 
 export function normalizeBaseUrl(value: unknown): string {
@@ -63,7 +64,37 @@ export function normalizeImageScheduler(value: unknown, fallback = 'karras'): st
 }
 
 export function stripImagePromptBlocks(value: unknown): string {
-    return String(value ?? '').replace(IMAGE_PROMPT_BLOCK_PATTERN, '');
+    let text = String(value ?? '').replace(IMAGE_PROMPT_BLOCK_PATTERN, '');
+
+    const unfinishedBlockIndex = IMAGE_PROMPT_START_MARKERS.reduce((earliest, marker) => {
+        const index = text.toLowerCase().indexOf(marker.toLowerCase());
+        return index >= 0 && (earliest < 0 || index < earliest) ? index : earliest;
+    }, -1);
+    if (unfinishedBlockIndex >= 0) {
+        text = text.slice(0, unfinishedBlockIndex);
+    }
+
+    // Streaming can split the opening marker itself. Avoid briefly exposing that
+    // protocol text while waiting for the remainder of the next SSE chunk.
+    const lowerText = text.toLowerCase();
+    const partialMarkerLength = IMAGE_PROMPT_START_MARKERS.reduce((longest, marker) => {
+        const lowerMarker = marker.toLowerCase();
+        for (let length = lowerMarker.length - 1; length >= 4; length -= 1) {
+            if (lowerText.endsWith(lowerMarker.slice(0, length))) {
+                return Math.max(longest, length);
+            }
+        }
+        return longest;
+    }, 0);
+
+    return partialMarkerLength > 0 ? text.slice(0, -partialMarkerLength) : text;
+}
+
+export function extractImagePrompt(value: unknown): string {
+    const text = String(value ?? '');
+    const xmlMatch = text.match(/<image_prompt>([\s\S]*?)<\/image_prompt>/i);
+    const delimitedMatch = text.match(/---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/i);
+    return xmlMatch?.[1]?.trim() || delimitedMatch?.[1]?.trim() || '';
 }
 
 interface AssistantTextOptions {

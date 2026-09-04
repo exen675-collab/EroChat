@@ -137,7 +137,7 @@ function normalizePresets(
 
 export function hydrateModernState(
     userId: number | string,
-    storage: Storage = localStorage
+    storage: Pick<Storage, 'getItem'> = localStorage
 ): ModernPersistedState {
     const defaults = createModernDefaultState();
     const raw = storage.getItem(getModernStorageKey(userId));
@@ -191,16 +191,55 @@ export function hydrateModernState(
     }
 }
 
-export function persistModernState(
+export function serializeModernState(state: ModernPersistedState): string {
+    return JSON.stringify({
+        ...state,
+        characters: state.characters.map((character) => ({
+            ...character,
+            messages: character.messages.filter((message) => !message.isStreaming)
+        }))
+    });
+}
+
+async function stateRequest(path: string, method: string, body: unknown) {
+    const response = await fetch(`/api/user-state${path}`, {
+        method,
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const result = await response.json();
+    if (!response.ok)
+        throw new Error(result.error || `Database request failed (${response.status}).`);
+    if (!Number.isSafeInteger(result.revision))
+        throw new Error('Invalid database response. Your data has not been saved.');
+    return result;
+}
+
+export async function loadModernState(
     userId: number | string,
+    storage: Pick<Storage, 'getItem'> = localStorage
+) {
+    // Never clear or rewrite the legacy entry, even after successful migration.
+    const result = await stateRequest('/load', 'POST', {
+        localState: storage.getItem(getModernStorageKey(userId))
+    });
+    const state =
+        result.state == null
+            ? createModernDefaultState()
+            : hydrateModernState(userId, {
+                  getItem: () => JSON.stringify(result.state)
+              });
+    return { state, revision: result.revision as number };
+}
+
+export async function persistModernState(
     state: ModernPersistedState,
-    storage: Storage = localStorage
-): boolean {
-    try {
-        storage.setItem(getModernStorageKey(userId), JSON.stringify(state));
-        return true;
-    } catch (error) {
-        console.error('Failed to persist modern app state:', error);
-        return false;
-    }
+    revision: number
+): Promise<number> {
+    const result = await stateRequest('', 'PUT', {
+        state: JSON.parse(serializeModernState(state)),
+        revision
+    });
+    return result.revision;
 }

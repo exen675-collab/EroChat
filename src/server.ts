@@ -16,6 +16,7 @@ const {
     parseGeneratedCharacterDraft
 } = require('./character-generation');
 
+const { initUserState, registerUserState } = require('./user-state');
 const app = express();
 const SQLiteStore = SQLiteStoreFactory(session);
 
@@ -771,6 +772,8 @@ async function initDb() {
     )
   `);
 
+    await initUserState({ run, get, all });
+
     await run(`
     CREATE TABLE IF NOT EXISTS generator_jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -897,6 +900,8 @@ app.use(
         }
     })
 );
+
+registerUserState(app, requireApiAuth, { run, get, all });
 
 app.get('/', (req, res) => {
     if (req.session?.userId) {

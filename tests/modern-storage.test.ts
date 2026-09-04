@@ -3,7 +3,7 @@ import {
     createModernDefaultState,
     getModernStorageKey,
     hydrateModernState,
-    persistModernState
+    serializeModernState
 } from '../src/client/modern/storage.js';
 
 describe('per-user app storage', () => {
@@ -41,12 +41,24 @@ describe('per-user app storage', () => {
     it('writes the complete current state', () => {
         const state = createModernDefaultState();
         state.gallerySearchQuery = 'portrait';
-        expect(persistModernState(4, state)).toBe(true);
-        const stored = JSON.parse(localStorage.getItem(getModernStorageKey(4)) || '{}');
+        const stored = JSON.parse(serializeModernState(state));
         expect(stored.settings).toBeDefined();
         expect(stored.characters).toBeDefined();
         expect(stored.generatorPrefs).toBeDefined();
         expect(stored.gallerySearchQuery).toBe('portrait');
+    });
+
+    it('does not persist an incomplete assistant stream', () => {
+        const state = createModernDefaultState();
+        state.characters[0].messages = [
+            { id: 'u1', role: 'user', content: 'Hello' },
+            { id: 'a1', role: 'assistant', content: 'Part', isStreaming: true }
+        ];
+
+        const stored = JSON.parse(serializeModernState(state));
+        expect(stored.characters[0].messages).toEqual([
+            { id: 'u1', role: 'user', content: 'Hello' }
+        ]);
     });
 
     it('migrates legacy chat and generator render settings into shared presets', () => {

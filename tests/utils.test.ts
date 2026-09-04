@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    extractImagePrompt,
     getActiveRawMessages,
     getAssistantReadableText,
     getAssistantVisibleText,
@@ -33,6 +34,25 @@ anime prompt
 
         expect(stripImagePromptBlocks(delimited).trim()).toBe('Scene text');
         expect(stripImagePromptBlocks(xml).trim()).toBe('Scene text');
+    });
+
+    it('keeps incomplete streamed image prompt protocol out of visible text', () => {
+        expect(stripImagePromptBlocks('Scene text\n\n---IMAGE_PROM')).toBe('Scene text\n\n');
+        expect(stripImagePromptBlocks('Scene text\n\n---IMAGE_PROMPT START---\nhidden tags')).toBe(
+            'Scene text\n\n'
+        );
+        expect(stripImagePromptBlocks('Scene text\n\n<image_prompt>hidden tags')).toBe(
+            'Scene text\n\n'
+        );
+    });
+
+    it('extracts an image prompt only from a completed block', () => {
+        expect(extractImagePrompt('Scene\n---IMAGE_PROMPT START---\ntags')).toBe('');
+        expect(
+            extractImagePrompt(
+                'Scene\n---IMAGE_PROMPT START---\nmasterpiece, portrait\n---IMAGE_PROMPT END---'
+            )
+        ).toBe('masterpiece, portrait');
     });
 
     it('builds readable assistant text without action markers', () => {

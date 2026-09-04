@@ -51,11 +51,87 @@ export function createChatPreview(
     });
 }
 
+function chatContent(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (!Array.isArray(value)) return '';
+    return value
+        .map((part) => {
+            if (typeof part === 'string') return part;
+            if (part && typeof part === 'object' && 'text' in part) {
+                return String((part as { text?: unknown }).text || '');
+            }
+            return '';
+        })
+        .join('');
+}
+
+function streamError(payload: any): Error | null {
+    const error = payload?.error;
+    if (!error) return null;
+    return new Error(error?.message || String(error));
+}
+
+async function readChatEventStream(
+    response: Response,
+    onContent?: (content: string) => void
+): Promise<string> {
+    if (!response.body) throw new Error('The model returned an unreadable response stream.');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let content = '';
+
+    const processEvent = (event: string) => {
+        const data = event
+            .split('\n')
+            .filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).trimStart())
+            .join('\n')
+            .trim();
+        if (!data || data === '[DONE]') return;
+
+        let payload: any;
+        try {
+            payload = JSON.parse(data);
+        } catch {
+            throw new Error('The model returned an invalid response stream.');
+        }
+        const error = streamError(payload);
+        if (error) throw error;
+
+        const delta = chatContent(payload?.choices?.[0]?.delta?.content);
+        if (delta) {
+            content += delta;
+            onContent?.(content);
+        }
+    };
+
+    while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        buffer = buffer.replace(/\r\n/g, '\n');
+
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary >= 0) {
+            processEvent(buffer.slice(0, boundary));
+            buffer = buffer.slice(boundary + 2);
+            boundary = buffer.indexOf('\n\n');
+        }
+        if (done) break;
+    }
+
+    if (buffer.trim()) processEvent(buffer);
+    if (!content) throw new Error('The model returned an empty response.');
+    return content;
+}
+
 export async function sendModernChat(
     settings: ModernSettings,
     character: ModernCharacter,
     messages: ModernMessage[],
-    draft: string
+    draft: string,
+    onContent?: (content: string) => void
 ): Promise<string> {
     if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key in Settings.');
     if (!settings.openrouterModel) throw new Error('Select an OpenRouter model in Settings.');
@@ -65,10 +141,23 @@ export async function sendModernChat(
         headers: preview.headers,
         body: JSON.stringify(preview.body)
     });
+    if (!response.ok) {
+        await responsePayload(response);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.toLowerCase().includes('text/event-stream')) {
+        return readChatEventStream(response, onContent);
+    }
+
+    // Keep a JSON fallback for gateways or test doubles that ignore `stream: true`.
     const payload = await responsePayload(response);
-    const content = payload?.choices?.[0]?.message?.content;
+    const error = streamError(payload);
+    if (error) throw error;
+    const content = chatContent(payload?.choices?.[0]?.message?.content);
     if (!content) throw new Error('The model returned an empty response.');
-    return String(content);
+    onContent?.(content);
+    return content;
 }
 
 export async function sendUtilityRequest(

@@ -65,7 +65,7 @@ EroChat/
 |           |-- ModernApp.tsx        # Views, panels, dialogs, and UI components
 |           |-- useModernController.ts # React state and application actions
 |           |-- api.ts               # Provider and Express API calls
-|           |-- storage.ts           # Per-user localStorage hydration/persistence
+|           |-- storage.ts           # Database persistence and legacy localStorage migration
 |           |-- types.ts             # Client domain and persisted-state types
 |           |-- character-thumbnails.ts
 |           |-- message-format.ts
@@ -107,7 +107,7 @@ The persisted client state contains:
 - standalone generator preferences and prompt presets;
 - local usage statistics and recent/favorite model data.
 
-State is stored as JSON in `localStorage` under:
+State is stored per account in SQLite (`user_app_state`). Existing browser JSON is imported automatically from the following legacy key, retained locally, and backed up verbatim in `user_state_imports`:
 
 ```text
 erochat_data_user_<userId>
@@ -115,19 +115,18 @@ erochat_data_user_<userId>
 
 The user ID prevents accounts using the same browser from sharing chat data. `storage.ts` merges parsed data with defaults, normalizes character collections and view IDs, and returns defaults if the stored JSON cannot be parsed. Controller state is persisted after changes.
 
-Chats, settings, characters, chat-gallery entries, and statistics are browser-owned data. They are not stored in the server database. Provider API keys also remain in that per-user browser record. The OpenRouter key is forwarded transiently for an administrator's character-generation request but is never persisted, returned, or logged by the server. Clearing site storage removes that local data.
+Chats, settings (including provider API keys), characters, gallery entries, and statistics are stored in the server database and scoped to the authenticated account. Protect the database and its backups accordingly. `useDatabaseState.ts` loads and migrates data before editing, serializes saves, checks revisions to reject stale writes, and offers retry/download recovery when saving fails. Legacy browser entries remain untouched.
 
-Generator jobs and generated assets are different: their history and metadata are server-owned and scoped by the authenticated user ID.
-
+Generator jobs and generated asset metadata also remain in the database; media files remain in the server data directory.
 ## Chat request flow
 
 1. The controller appends the user's draft to the active character's messages.
 2. `chat-request.ts` builds the OpenRouter request from the character system prompt, accepted memory snapshots, active context messages, model settings, reasoning options, and session identifier.
-3. `modern/api.ts` sends the request directly to OpenRouter using the browser-stored API key.
+3. `modern/api.ts` sends the request directly to OpenRouter using the account API key.
 4. The assistant response is added to the character conversation.
 5. If image generation is enabled and the response contains a supported image-prompt block, the selected image provider generates one image.
 6. Generated media is copied into authenticated server storage and attached to the assistant message and chat gallery.
-7. Usage statistics and browser state are updated.
+7. Usage statistics and persisted database state are updated.
 
 The request-preview UI uses the same pure builder as the real request. Changes to request construction should therefore be made in `chat-request.ts`, with tests covering both messages and preview output.
 

@@ -16,7 +16,7 @@ export default tseslint.config(
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
-        files: ['src/server.ts', 'src/character-card-import.ts'],
+        files: ['src/server.ts', 'src/character-card-import.ts', 'src/user-state.ts'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'commonjs',

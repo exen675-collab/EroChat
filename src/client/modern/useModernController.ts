@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BootstrapUser } from '../auth.js';
-import { getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
+import { extractImagePrompt, getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
 import {
     createChatPreview,
     fetchGeneratorHistory,
@@ -10,7 +10,7 @@ import {
 } from './api.js';
 import { runMediaGeneration } from './media-generation.js';
 import { chatMediaPreset } from './media-presets.js';
-import { hydrateModernState, persistModernState } from './storage.js';
+import { useDatabaseState } from './useDatabaseState.js';
 import type {
     MemorySnapshot,
     ModernCharacter,
@@ -36,14 +36,6 @@ function viewFromHash(): ViewId | null {
     return ['chat', 'characters', 'browse', 'generator', 'gallery', 'stats'].includes(value)
         ? (value as ViewId)
         : null;
-}
-
-function imagePromptFromContent(content: string): string {
-    const xmlMatch = content.match(/<image_prompt>([\s\S]*?)<\/image_prompt>/i);
-    const delimitedMatch = content.match(
-        /---IMAGE_PROMPT START---([\s\S]*?)---IMAGE_PROMPT END---/i
-    );
-    return xmlMatch?.[1]?.trim() || delimitedMatch?.[1]?.trim() || '';
 }
 
 const TEXT_UPGRADE_MODEL = 'deepseek/deepseek-v4-flash';
@@ -80,10 +72,7 @@ function syncCurrentMessages(state: ModernPersistedState, messages: ModernMessag
 }
 
 export function useModernController(user: BootstrapUser) {
-    const [data, setData] = useState<ModernPersistedState>(() => {
-        const hydrated = hydrateModernState(user.id);
-        return { ...hydrated, currentView: viewFromHash() || hydrated.currentView };
-    });
+    const { data, setData, persistence } = useDatabaseState(user.id);
     const [generatorJobs, setGeneratorJobs] = useState<any[]>([]);
     const [generatorAssets, setGeneratorAssets] = useState<any[]>([]);
     const [busy, setBusy] = useState<string | null>(null);
@@ -94,12 +83,8 @@ export function useModernController(user: BootstrapUser) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        persistModernState(user.id, data);
-    }, [data, user.id]);
-
-    useEffect(() => {
-        window.location.hash = data.currentView;
-    }, [data.currentView]);
+        if (persistence.loaded) window.location.hash = data.currentView;
+    }, [data.currentView, persistence.loaded]);
 
     useEffect(() => {
         const onHash = () => {
@@ -205,15 +190,6 @@ export function useModernController(user: BootstrapUser) {
         },
         [notify]
     );
-
-    const appendMessages = useCallback((nextMessages: ModernMessage[]) => {
-        setData((current) => {
-            const character = current.characters.find(
-                (item) => item.id === current.currentCharacterId
-            );
-            return syncCurrentMessages(current, [...(character?.messages || []), ...nextMessages]);
-        });
-    }, []);
 
     const recordUsage = useCallback(
         (
@@ -381,7 +357,25 @@ export function useModernController(user: BootstrapUser) {
                 content,
                 createdAt: new Date().toISOString()
             };
-            appendMessages([userMessage]);
+            const assistant: ModernMessage = {
+                id: id(),
+                role: 'assistant',
+                content: '',
+                createdAt: new Date().toISOString(),
+                isStreaming: true
+            };
+            const characterId = currentCharacter.id;
+            setData((current) => ({
+                ...current,
+                characters: current.characters.map((character) =>
+                    character.id === characterId
+                        ? {
+                              ...character,
+                              messages: [...character.messages, userMessage, assistant]
+                          }
+                        : character
+                )
+            }));
             recordUsage('user', { prompt: content });
             setBusy('chat');
             try {
@@ -389,22 +383,37 @@ export function useModernController(user: BootstrapUser) {
                     data.settings,
                     currentCharacter,
                     messages,
-                    content
+                    content,
+                    (streamedContent) =>
+                        updateMessageMedia(characterId, assistant.id, {
+                            content: streamedContent,
+                            isStreaming: true
+                        })
                 );
-                const assistant: ModernMessage = {
-                    id: id(),
-                    role: 'assistant',
+                updateMessageMedia(characterId, assistant.id, {
                     content: raw,
-                    createdAt: new Date().toISOString()
-                };
+                    isStreaming: false
+                });
                 recordUsage('assistant', { model: data.settings.openrouterModel });
-                const imagePrompt = imagePromptFromContent(raw);
-                appendMessages([assistant]);
+                const imagePrompt = extractImagePrompt(raw);
                 if (data.settings.enableImageGeneration && imagePrompt) {
                     void generateMessageMedia(currentCharacter, assistant.id, imagePrompt, 'chat');
                 }
                 return true;
             } catch (error) {
+                setData((current) => ({
+                    ...current,
+                    characters: current.characters.map((character) =>
+                        character.id === characterId
+                            ? {
+                                  ...character,
+                                  messages: character.messages.filter(
+                                      (message) => message.id !== assistant.id
+                                  )
+                              }
+                            : character
+                    )
+                }));
                 notify((error as Error).message, 'error');
                 return false;
             } finally {
@@ -412,14 +421,14 @@ export function useModernController(user: BootstrapUser) {
             }
         },
         [
-            appendMessages,
             busy,
             currentCharacter,
             data.settings,
             generateMessageMedia,
             messages,
             notify,
-            recordUsage
+            recordUsage,
+            updateMessageMedia
         ]
     );
 
@@ -475,7 +484,7 @@ export function useModernController(user: BootstrapUser) {
             const message = messages.find((item) => item.id === messageId);
             if (!message) return;
             const prompt =
-                imagePromptFromContent(message.content) || getAssistantVisibleText(message.content);
+                extractImagePrompt(message.content) || getAssistantVisibleText(message.content);
             setBusy(`image:${messageId}`);
             try {
                 if (currentCharacter) {
@@ -682,6 +691,7 @@ export function useModernController(user: BootstrapUser) {
     }, [notify]);
 
     return {
+        persistence,
         data,
         setData,
         user,

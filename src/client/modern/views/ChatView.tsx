@@ -49,6 +49,7 @@ function MessageCard({
     return (
         <article
             className={`m-message ${assistant ? 'is-assistant' : 'is-user'} ${hasMedia ? 'has-media' : ''} ${message.archivedFromModelContext ? 'is-archived' : ''}`}
+            aria-busy={message.isStreaming || undefined}
         >
             <div className="m-message__avatar">
                 {assistant ? (
@@ -132,43 +133,45 @@ function MessageCard({
                         </div>
                     )}
                 </div>
-                <div className="m-message__actions">
-                    {assistant && (
-                        <button onClick={() => void controller.playTts(message)}>
-                            <Volume2 size={15} /> Read
+                {!message.isStreaming && (
+                    <div className="m-message__actions">
+                        {assistant && (
+                            <button onClick={() => void controller.playTts(message)}>
+                                <Volume2 size={15} /> Read
+                            </button>
+                        )}
+                        {assistant && (
+                            <button onClick={() => onEdit(message)}>
+                                <Edit3 size={15} /> Edit
+                            </button>
+                        )}
+                        {assistant && (
+                            <button
+                                disabled={
+                                    controller.busy === `image:${message.id}` ||
+                                    ['queued', 'starting', 'loading', 'generating'].includes(
+                                        message.mediaStatus || ''
+                                    )
+                                }
+                                onClick={() => void controller.regenerateMessageImage(message.id)}
+                            >
+                                <RefreshCw size={15} /> Image
+                            </button>
+                        )}
+                        <button onClick={() => controller.branchFromMessage(message.id)}>
+                            <GitBranch size={15} /> Branch
                         </button>
-                    )}
-                    {assistant && (
-                        <button onClick={() => onEdit(message)}>
-                            <Edit3 size={15} /> Edit
-                        </button>
-                    )}
-                    {assistant && (
                         <button
-                            disabled={
-                                controller.busy === `image:${message.id}` ||
-                                ['queued', 'starting', 'loading', 'generating'].includes(
-                                    message.mediaStatus || ''
-                                )
+                            onClick={() =>
+                                window.confirm(
+                                    'Remove this message from chat history and future context?'
+                                ) && controller.removeMessage(message.id)
                             }
-                            onClick={() => void controller.regenerateMessageImage(message.id)}
                         >
-                            <RefreshCw size={15} /> Image
+                            <Trash2 size={15} /> Remove
                         </button>
-                    )}
-                    <button onClick={() => controller.branchFromMessage(message.id)}>
-                        <GitBranch size={15} /> Branch
-                    </button>
-                    <button
-                        onClick={() =>
-                            window.confirm(
-                                'Remove this message from chat history and future context?'
-                            ) && controller.removeMessage(message.id)
-                        }
-                    >
-                        <Trash2 size={15} /> Remove
-                    </button>
-                </div>
+                    </div>
+                )}
             </div>
         </article>
     );
@@ -260,7 +263,7 @@ export function ChatView({ controller }: { controller: ModernController }) {
     const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
     useEffect(() => {
         endRef.current?.scrollIntoView?.({ block: 'end' });
-    }, [controller.messages.length]);
+    }, [controller.messages.length, controller.messages.at(-1)?.content]);
     useEffect(() => {
         if (!resizeRef.current) {
             composerHeightRef.current = controller.data.settings.messageInputHeight;
@@ -327,30 +330,35 @@ export function ChatView({ controller }: { controller: ModernController }) {
                         </p>
                     </div>
                 )}
-                {controller.messages.map((message) => (
-                    <MessageCard
-                        key={message.id}
-                        message={message}
-                        controller={controller}
-                        onEdit={setEditing}
-                        onLightbox={(url, video) => setLightbox({ url, video })}
-                    />
-                ))}
-                {controller.busy === 'chat' && (
-                    <div className="m-typing">
-                        <Avatar
-                            character={controller.currentCharacter}
-                            galleryImages={controller.data.galleryImages}
-                            size="small"
+                {controller.messages.map((message) =>
+                    message.isStreaming && !message.content ? null : (
+                        <MessageCard
+                            key={message.id}
+                            message={message}
+                            controller={controller}
+                            onEdit={setEditing}
+                            onLightbox={(url, video) => setLightbox({ url, video })}
                         />
-                        <span>
-                            <i />
-                            <i />
-                            <i />
-                        </span>
-                        <small>{controller.currentCharacter?.name} is composing…</small>
-                    </div>
+                    )
                 )}
+                {controller.busy === 'chat' &&
+                    !controller.messages.some(
+                        (message) => message.isStreaming && Boolean(message.content)
+                    ) && (
+                        <div className="m-typing">
+                            <Avatar
+                                character={controller.currentCharacter}
+                                galleryImages={controller.data.galleryImages}
+                                size="small"
+                            />
+                            <span>
+                                <i />
+                                <i />
+                                <i />
+                            </span>
+                            <small>{controller.currentCharacter?.name} is composing…</small>
+                        </div>
+                    )}
                 <div ref={endRef} />
             </div>
             <div className="m-composer-wrap">

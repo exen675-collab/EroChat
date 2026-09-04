@@ -39,7 +39,8 @@ describe('chat request preview builder', () => {
         expect(preview.body).toMatchObject({
             model: 'openai/gpt-4.1-mini',
             temperature: 0.9,
-            max_tokens: 10000
+            max_tokens: 10000,
+            stream: true
         });
         expect(preview.body.reasoning).toBeUndefined();
         expect(preview.body.messages.at(-1)).toEqual({
@@ -91,6 +92,17 @@ describe('chat request preview builder', () => {
             effort: 'medium',
             exclude: true
         });
+    });
+
+    it('supports the maximum OpenRouter reasoning effort', () => {
+        const preview = buildChatRequestPreview({
+            draftMessage: 'Think as deeply as possible',
+            systemPrompt: 'System prompt',
+            openrouterReasoningEnabled: true,
+            openrouterReasoningEffort: 'max'
+        });
+
+        expect(preview.body.reasoning).toEqual({ effort: 'max', exclude: true });
     });
 
     it('marks preview availability based on draft content and generation state', () => {

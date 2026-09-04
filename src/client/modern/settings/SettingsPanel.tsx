@@ -233,6 +233,7 @@ export function SettingsPanel({
                                             <option>medium</option>
                                             <option>high</option>
                                             <option>xhigh</option>
+                                            <option>max</option>
                                         </select>
                                     </label>
                                 )}

@@ -25,10 +25,18 @@ The Express backend provides:
 - Publish characters to a shared Character Browse catalog
 - Search, sort, import, and chat with community characters
 - Let administrators generate and publish new catalog characters with OpenRouter
-- Save chats/settings/gallery in browser localStorage
-- Keep chats/settings/gallery separate per logged-in user on the same browser
+- Save chats, characters, memories, settings, gallery, presets, and statistics in SQLite
+- Keep app data separate per account and available across browsers
 - Per-user credits
 - Works on desktop and mobile layouts
+
+## Existing browser data
+
+After updating and restarting the server, open the app in each browser/profile that holds existing data and sign in to its original account. The app automatically imports that account's `erochat_data_user_<id>` entry into SQLite before allowing edits. Existing localStorage entries are never removed or overwritten.
+
+Each distinct local payload is also backed up verbatim in `user_state_imports`. Reopening the same browser does not repeat an already completed import. Data from another browser adds missing records; existing database values win conflicts, with the original local values retained in the backup. Authenticated users can retrieve their own original backups at `/api/user-state/backups`.
+
+Saves are serialized and checked against a database revision to prevent stale tabs from overwriting newer changes. Failed saves show a retry button and an option to download unsaved data. Keep the page open until saving succeeds, or download the recovery file before reloading. Back up the full `data` directory to preserve both the database and media.
 
 ## Run with Docker (recommended)
 
@@ -206,9 +214,9 @@ EroChat/
 ## Privacy
 
 - Login credentials are stored securely on the server (passwords hashed)
-- Provider credentials stay in browser storage per user
-- An administrator's OpenRouter key is forwarded transiently for character generation and is not stored on the server
-- Chat history/settings/gallery stay in your browser localStorage (separated per user)
+- Provider credentials are saved with account settings in the server database; protect access to the data directory and its backups
+- Provider requests use the credentials saved in account settings
+- App state is stored per user in `data/erochat.sqlite`; media files remain in `data/media`
 - Persisted media and generator history are scoped to the authenticated server account
 
 ## Troubleshooting

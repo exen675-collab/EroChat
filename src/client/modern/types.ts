@@ -45,6 +45,7 @@ export interface ModernMessage {
     archivedFromModelContext?: boolean;
     archivedMemorySnapshotId?: string;
     createdAt?: string;
+    isStreaming?: boolean;
 }
 
 export interface MemorySnapshot {

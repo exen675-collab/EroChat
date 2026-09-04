@@ -17,6 +17,20 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
     const [sidebar, setSidebar] = useState(false);
     const [settings, setSettings] = useState(false);
 
+    if (!controller.persistence.loaded) {
+        return (
+            <main className="modern-app">
+                <div role="status">
+                    {controller.persistence.error ||
+                        'Loading your data and securing any local backup…'}
+                    {controller.persistence.error && (
+                        <button onClick={controller.persistence.retry}>Retry loading</button>
+                    )}
+                </div>
+            </main>
+        );
+    }
+
     return (
         <div className="modern-app">
             <AppSidebar
@@ -26,6 +40,15 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
                 onSettings={() => setSettings(true)}
             />
             <main className="m-main">
+                {controller.persistence.error && (
+                    <div role="alert">
+                        Changes are not saved: {controller.persistence.error}
+                        <button onClick={controller.persistence.retry}>Retry saving</button>
+                        <button onClick={controller.persistence.download}>
+                            Download unsaved data
+                        </button>
+                    </div>
+                )}
                 <Topbar
                     controller={controller}
                     onMenu={() => setSidebar(true)}

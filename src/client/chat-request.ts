@@ -13,7 +13,8 @@ export const OPENROUTER_REASONING_EFFORTS = Object.freeze([
     'low',
     'medium',
     'high',
-    'xhigh'
+    'xhigh',
+    'max'
 ]);
 
 export function buildMemoryContextMessage(memorySnapshots = []) {
@@ -104,7 +105,8 @@ export function buildChatRequestPreview({
         model: openrouterModel,
         messages,
         temperature,
-        max_tokens: maxTokens
+        max_tokens: maxTokens,
+        stream: true
     };
 
     const normalizedSessionId = String(openrouterSessionId || '')

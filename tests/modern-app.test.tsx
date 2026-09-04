@@ -4,11 +4,32 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModernApp } from '../src/client/modern/ModernApp.js';
 
+let savedState: any;
+async function renderApp(element: Parameters<typeof render>[0]) {
+    const previousFetch = globalThis.fetch;
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) === '/api/user-state/load') {
+            const raw = JSON.parse(String(init?.body)).localState;
+            return new Response(
+                JSON.stringify({ state: raw ? JSON.parse(raw) : null, revision: 0 })
+            );
+        }
+        if (String(input) === '/api/user-state') {
+            const body = JSON.parse(String(init?.body));
+            savedState = body.state;
+            return new Response(JSON.stringify({ revision: body.revision + 1 }));
+        }
+        return previousFetch(input, init);
+    });
+    render(element);
+    await waitFor(() => expect(screen.queryByText(/Loading your data/)).not.toBeInTheDocument());
+}
 const user = { id: 42, username: 'tester', credits: 99, isAdmin: false };
 
 describe('ModernApp', () => {
     beforeEach(() => {
         localStorage.clear();
+        savedState = null;
         window.location.hash = '#chat';
         vi.stubGlobal(
             'fetch',
@@ -32,7 +53,7 @@ describe('ModernApp', () => {
     });
 
     it('renders the modern chat and navigates between every primary view', async () => {
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         expect(
             screen.getByRole('heading', { name: 'Start a conversation with Default Character' })
         ).toBeInTheDocument();
@@ -53,7 +74,7 @@ describe('ModernApp', () => {
     });
 
     it('shows only the current settings sections', async () => {
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
         expect(screen.getByRole('button', { name: /Providers/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Generation/i })).toBeInTheDocument();
@@ -86,7 +107,7 @@ describe('ModernApp', () => {
             })
         );
 
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
         await userEvent.type(screen.getByLabelText('OpenRouter API key'), 'sk-test');
         await userEvent.selectOptions(screen.getByLabelText('Active provider'), 'openrouter');
@@ -124,7 +145,7 @@ describe('ModernApp', () => {
     });
 
     it('keeps character creation manual and limited to the supported fields', async () => {
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
         await userEvent.click(screen.getByRole('button', { name: /New character/i }));
 
@@ -177,7 +198,7 @@ describe('ModernApp', () => {
             })
         );
 
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
         expect(
             await screen.findByRole('heading', { name: 'Find your next conversation.' })
@@ -194,7 +215,10 @@ describe('ModernApp', () => {
         await waitFor(() => expect(window.location.hash).toBe('#chat'));
         expect(screen.getByText('Welcome, traveler.')).toBeInTheDocument();
 
-        const stored = JSON.parse(localStorage.getItem('erochat_data_user_42') || '{}');
+        await waitFor(() =>
+            expect(savedState?.characters.some((item: any) => item.name === 'Seraphine')).toBe(true)
+        );
+        const stored = savedState;
         expect(stored.characters).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ name: 'Seraphine', systemPrompt: 'You are Seraphine.' })
@@ -250,7 +274,7 @@ describe('ModernApp', () => {
             })
         );
 
-        render(<ModernApp user={user} />);
+        await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
         await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
 
@@ -359,7 +383,7 @@ describe('ModernApp', () => {
             })
         );
 
-        render(<ModernApp user={{ ...user, isAdmin: true }} />);
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
         await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
 
         expect(await screen.findByText('No characters published yet')).toBeInTheDocument();
@@ -471,7 +495,7 @@ describe('ModernApp', () => {
         });
         vi.stubGlobal('fetch', fetchMock);
 
-        render(<ModernApp user={{ ...user, isAdmin: true }} />);
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
         await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
         await screen.findByText('by @author');
 
