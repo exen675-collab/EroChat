@@ -144,6 +144,82 @@
     gap: 8px;
     margin-top: 15px;
 }
+.m-character-card.m-character-card--overlay {
+    min-height: 390px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    isolation: isolate;
+    border-color: rgba(255, 255, 255, 0.13);
+    background: #13111b;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+}
+.m-character-card--overlay .m-character-card__visual {
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    height: 100%;
+    aspect-ratio: auto;
+}
+.m-character-card--overlay .m-character-card__visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(8, 8, 13, 0.02) 30%, rgba(8, 8, 13, 0.58) 62%, #08080d 100%),
+        linear-gradient(90deg, rgba(8, 8, 13, 0.15), transparent 45%);
+    pointer-events: none;
+}
+.m-character-card--overlay .m-character-card__visual > span {
+    font-size: 64px;
+}
+.m-character-card--overlay .m-character-card__visual i {
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(8, 8, 13, 0.52);
+}
+.m-character-card--overlay .m-character-card__body {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    padding: 180px 17px 17px;
+    pointer-events: none;
+}
+.m-character-card--overlay .m-character-card__body .m-eyebrow {
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+}
+.m-character-card--overlay .m-character-card__body h3 {
+    margin-top: 4px;
+    color: white;
+    font-size: 21px;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
+.m-character-card--overlay .m-character-card__body p {
+    color: rgba(255, 255, 255, 0.76);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+}
+.m-character-card--overlay .m-character-card__body > div {
+    flex-wrap: nowrap;
+    align-items: center;
+}
+.m-character-card--overlay .m-character-card__body .m-button {
+    gap: 5px;
+    padding-inline: 9px;
+    pointer-events: auto;
+}
+.m-character-card--overlay .m-button--ghost {
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(8, 8, 13, 0.42);
+    backdrop-filter: blur(12px);
+}
+.m-character-card--overlay .m-button--ghost:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(8, 8, 13, 0.65);
+}
 .m-browse-tools {
     display: grid;
     grid-template-columns: minmax(260px, 1fr) minmax(160px, 210px);
@@ -159,6 +235,14 @@
 }
 .m-public-character .m-character-card__body > div {
     justify-content: flex-end;
+}
+@media (max-width: 700px) {
+    .m-character-card.m-character-card--overlay {
+        min-height: 350px;
+    }
+    .m-character-card--overlay .m-character-card__body {
+        padding: 150px 14px 14px;
+    }
 }
 .m-reference-selection-summary {
     display: flex;

@@ -303,10 +303,11 @@ export function CharactersView({ controller }: { controller: ModernController })
                 {sortedCharacters.map((character) => (
                     <article
                         key={character.id}
-                        className={`m-character-card ${character.id === controller.currentCharacter?.id ? 'is-active' : ''}`}
+                        className={`m-character-card m-character-card--overlay ${character.id === controller.currentCharacter?.id ? 'is-active' : ''}`}
                     >
                         <button
                             className="m-character-card__visual"
+                            aria-label={`Select ${character.name}`}
                             onClick={() => controller.selectCharacter(character.id)}
                         >
                             <CharacterVisual
