@@ -58,6 +58,8 @@ export interface MemorySnapshot {
 export interface ModernCharacter {
     id: string;
     name: string;
+    createdAt?: string;
+    lastUsedAt?: string;
     avatar?: string;
     thumbnail?: string;
     systemPrompt: string;

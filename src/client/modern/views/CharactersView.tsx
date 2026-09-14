@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { importCharacterCard, publishCharacter } from '../api.js';
+import { sortCharactersByRecentUse } from '../character-sort.js';
 import { getCharacterThumbnailUrl } from '../character-thumbnails.js';
 import { CharacterVisual } from '../components/character-visuals.js';
 import { Button, Modal } from '../components/ui.js';
@@ -206,6 +207,7 @@ export function CharactersView({ controller }: { controller: ModernController })
     const [publishing, setPublishing] = useState<ModernCharacter | null>(null);
     const [publishingId, setPublishingId] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const sortedCharacters = sortCharactersByRecentUse(controller.data.characters);
     async function handlePublish(character: ModernCharacter) {
         setPublishingId(character.id);
         try {
@@ -298,7 +300,7 @@ export function CharactersView({ controller }: { controller: ModernController })
                 </div>
             </section>
             <section className="m-character-grid">
-                {controller.data.characters.map((character) => (
+                {sortedCharacters.map((character) => (
                     <article
                         key={character.id}
                         className={`m-character-card ${character.id === controller.currentCharacter?.id ? 'is-active' : ''}`}
