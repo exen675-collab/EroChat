@@ -144,6 +144,11 @@ export function useModernController(user: BootstrapUser) {
     const selectCharacter = useCallback((characterId: string) => {
         setData((current) => ({
             ...current,
+            characters: current.characters.map((character) =>
+                character.id === characterId
+                    ? { ...character, lastUsedAt: new Date().toISOString() }
+                    : character
+            ),
             currentCharacterId: characterId,
             currentView: 'chat'
         }));
@@ -154,14 +159,17 @@ export function useModernController(user: BootstrapUser) {
         (character: ModernCharacter) => {
             setData((current) => {
                 const exists = current.characters.some((item) => item.id === character.id);
+                const savedCharacter = exists
+                    ? character
+                    : { ...character, createdAt: character.createdAt || new Date().toISOString() };
                 return {
                     ...current,
                     currentCharacterId: character.id,
                     characters: exists
                         ? current.characters.map((item) =>
-                              item.id === character.id ? { ...item, ...character } : item
+                              item.id === character.id ? { ...item, ...savedCharacter } : item
                           )
-                        : [...current.characters, character]
+                        : [...current.characters, savedCharacter]
                 };
             });
             notify('Character saved.', 'success');
@@ -371,6 +379,7 @@ export function useModernController(user: BootstrapUser) {
                     character.id === characterId
                         ? {
                               ...character,
+                              lastUsedAt: userMessage.createdAt,
                               messages: [...character.messages, userMessage, assistant]
                           }
                         : character
