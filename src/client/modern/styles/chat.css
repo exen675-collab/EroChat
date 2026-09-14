@@ -314,22 +314,8 @@
 .m-memory {
     margin-bottom: 8px;
 }
-.m-memory__summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-}
-.m-memory__summary span {
-    padding: 4px 8px;
-    border: 1px solid var(--m-border);
-    border-radius: 999px;
-    color: var(--m-faint);
-    font-size: 10px;
-    background: rgba(255, 255, 255, 0.02);
-}
 .m-memory__decision,
 .m-memory__review {
-    margin-top: 8px;
     padding: 12px;
     border: 1px solid rgba(243, 188, 105, 0.22);
     border-radius: 13px;

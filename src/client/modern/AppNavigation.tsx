@@ -1,11 +1,14 @@
 import {
     Activity,
+    Archive,
+    Brain,
     CircleUserRound,
     Compass,
     GalleryHorizontalEnd,
     LogOut,
     Menu,
     MessageCircle,
+    MessagesSquare,
     MoreHorizontal,
     Settings,
     Users,
@@ -117,6 +120,14 @@ export function Topbar({
     onMenu: () => void;
     onSettings: () => void;
 }) {
+    const activeMessages = controller.messages.filter(
+        (message) => !message.archivedFromModelContext
+    ).length;
+    const archivedMessages = controller.messages.length - activeMessages;
+    const contextLimit =
+        controller.currentCharacter?.contextMessageCount ||
+        controller.data.settings.contextMessageCount;
+    const memoryCount = controller.currentCharacter?.memorySnapshots?.length || 0;
     const titles: Record<ViewId, [string, string]> = {
         chat: ['Conversation', controller.currentCharacter?.name || 'Chat'],
         characters: ['Your cast', 'Characters'],
@@ -132,7 +143,26 @@ export function Topbar({
             </IconButton>
             <div className="m-topbar__title">
                 <span>{titles[controller.data.currentView][0]}</span>
-                <h1>{titles[controller.data.currentView][1]}</h1>
+                <div className="m-topbar__title-row">
+                    <h1>{titles[controller.data.currentView][1]}</h1>
+                    {controller.data.currentView === 'chat' && (
+                        <div
+                            className="m-topbar__chat-stats"
+                            aria-label="Conversation memory status"
+                        >
+                            <span title={`${activeMessages}/${contextLimit * 2} active messages`}>
+                                <MessagesSquare size={12} /> {activeMessages}/{contextLimit * 2}{' '}
+                                <small>active messages</small>
+                            </span>
+                            <span title={`${archivedMessages} archived messages`}>
+                                <Archive size={12} /> {archivedMessages} <small>archived</small>
+                            </span>
+                            <span title={`${memoryCount} memories`}>
+                                <Brain size={12} /> {memoryCount} <small>memories</small>
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
             <div className="m-topbar__status">
                 <span className="m-status">

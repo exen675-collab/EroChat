@@ -185,20 +185,13 @@ function MemoryPanel({ controller }: { controller: ModernController }) {
     const active = controller.messages.filter(
         (message) => !message.archivedFromModelContext
     ).length;
-    const archived = controller.messages.length - active;
     const limit =
         controller.currentCharacter?.contextMessageCount ||
         controller.data.settings.contextMessageCount;
     const pressure = active >= limit * 2;
+    if (!pressure && !controller.memoryDraft) return null;
     return (
         <section className={`m-memory ${pressure ? 'is-warning' : ''}`}>
-            <div className="m-memory__summary">
-                <span>
-                    {active}/{limit * 2} active messages
-                </span>
-                <span>{archived} archived</span>
-                <span>{controller.currentCharacter?.memorySnapshots?.length || 0} memories</span>
-            </div>
             {pressure && !controller.memoryDraft && (
                 <div className="m-memory__decision">
                     <div>
