@@ -403,7 +403,12 @@ export function useModernController(user: BootstrapUser) {
                     content: raw,
                     isStreaming: false
                 });
-                recordUsage('assistant', { model: data.settings.openrouterModel });
+                recordUsage('assistant', {
+                    model:
+                        data.settings.textProvider === 'grok-cli'
+                            ? `grok-cli/${data.settings.grokModel || 'default'}`
+                            : data.settings.openrouterModel
+                });
                 const imagePrompt = extractImagePrompt(raw);
                 if (data.settings.enableImageGeneration && imagePrompt) {
                     void generateMessageMedia(currentCharacter, assistant.id, imagePrompt, 'chat');
@@ -699,6 +704,21 @@ export function useModernController(user: BootstrapUser) {
         }
     }, [notify]);
 
+    const thumbnailImages = useMemo(
+        () => [
+            ...data.galleryImages,
+            ...generatorAssets
+                .filter((asset) => asset.mediaType === 'image')
+                .map((asset) => ({
+                    id: `asset-${asset.id}`,
+                    characterId: asset.characterId,
+                    imageUrl: asset.url,
+                    createdAt: asset.createdAt
+                }))
+        ],
+        [data.galleryImages, generatorAssets]
+    );
+
     return {
         persistence,
         data,
@@ -708,6 +728,7 @@ export function useModernController(user: BootstrapUser) {
         messages,
         generatorJobs,
         generatorAssets,
+        thumbnailImages,
         setGeneratorJobs,
         setGeneratorAssets,
         busy,

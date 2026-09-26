@@ -11,7 +11,7 @@ import {
     X
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { sendUtilityRequest } from '../api.js';
+import { fetchProviderModels, sendUtilityRequest } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
 import { runMediaGeneration } from '../media-generation.js';
 import { findMediaPreset } from '../media-presets.js';
@@ -34,6 +34,8 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     const [batch, setBatch] = useState(Number(prefs.batchCount) || 1);
     const [sources, setSources] = useState<string[]>([]);
     const [presetName, setPresetName] = useState('');
+    const [models, setModels] = useState<Record<string, string[]>>({});
+    const [loadingModels, setLoadingModels] = useState(false);
     const [busy, setBusy] = useState(false);
     const uploadRef = useRef<HTMLInputElement>(null);
     const mediaPresets = prefs.presets || [];
@@ -50,6 +52,18 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                 preset.id === selectedPreset.id ? { ...preset, ...patch } : preset
             )
         });
+    }
+    async function loadModels() {
+        const provider = selectedPreset.provider;
+        setLoadingModels(true);
+        try {
+            const list = await fetchProviderModels(provider, controller.data.settings);
+            setModels((current) => ({ ...current, [provider]: list }));
+        } catch (error) {
+            controller.notify((error as Error).message, 'error');
+        } finally {
+            setLoadingModels(false);
+        }
     }
     async function helper(action: string) {
         try {
@@ -316,13 +330,27 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                         <label className="m-field">
                             <span>Provider model</span>
                             <input
+                                list="generator-provider-models"
                                 value={selectedPreset.providerModel}
                                 onChange={(event) =>
                                     patchPreset({ providerModel: event.target.value })
                                 }
-                                placeholder="Use provider setting"
+                                placeholder="Choose or enter a model"
                             />
                         </label>
+                        <datalist id="generator-provider-models">
+                            {(models[selectedPreset.provider] || []).map((model) => (
+                                <option key={model} value={model} />
+                            ))}
+                        </datalist>
+                        <Button onClick={() => void loadModels()} disabled={loadingModels}>
+                            {loadingModels ? (
+                                <LoaderCircle className="spin" size={16} />
+                            ) : (
+                                <RefreshCw size={16} />
+                            )}{' '}
+                            Load models
+                        </Button>
                         <label className="m-field">
                             <span>Workflow</span>
                             <input

@@ -82,66 +82,83 @@ describe('ModernApp', () => {
         expect(screen.queryByRole('button', { name: /Appearance/i })).not.toBeInTheDocument();
     });
 
-    it('keeps loaded OpenRouter text and image models in separate selectors', async () => {
-        vi.stubGlobal(
-            'fetch',
-            vi.fn(async (input: RequestInfo | URL) => {
-                const url = String(input);
-                if (url.includes('/api/generator/jobs')) {
-                    return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
-                }
-                if (url.includes('/api/generator/assets')) {
-                    return new Response(JSON.stringify({ assets: [] }), { status: 200 });
-                }
-                if (url.endsWith('/api/v1/images/models')) {
-                    return new Response(JSON.stringify({ data: [{ id: 'image/test-model' }] }), {
-                        status: 200
-                    });
-                }
-                if (url.endsWith('/api/v1/models')) {
-                    return new Response(JSON.stringify({ data: [{ id: 'text/test-model' }] }), {
-                        status: 200
-                    });
-                }
-                return new Response(JSON.stringify({}), { status: 200 });
-            })
-        );
-
+    it('keeps image tuning and model selection out of settings', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
-        await userEvent.type(screen.getByLabelText('OpenRouter API key'), 'sk-test');
-        await userEvent.selectOptions(screen.getByLabelText('Active provider'), 'openrouter');
-
-        const imageBox = screen.getByText('OpenRouter connection').closest('.m-provider-box');
-        const textSection = screen
-            .getByRole('heading', { name: 'Text provider' })
-            .closest('section');
-        expect(imageBox).not.toBeNull();
-        expect(textSection).not.toBeNull();
-
-        await userEvent.click(
-            within(imageBox as HTMLElement).getByRole('button', { name: /Load models/i })
-        );
+        const imageSection = screen
+            .getByRole('heading', { name: 'Image providers' })
+            .closest('section')!;
         expect(
-            await within(imageBox as HTMLElement).findByRole('option', {
-                name: 'image/test-model'
-            })
-        ).toBeInTheDocument();
-        expect(
-            within(textSection as HTMLElement).queryByRole('option', { name: 'image/test-model' })
+            within(imageSection).queryByRole('button', { name: /Load models/i })
         ).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Generation' }));
+        expect(screen.queryByText('Default image tuning')).not.toBeInTheDocument();
+    });
 
-        await userEvent.click(
-            within(textSection as HTMLElement).getByRole('button', { name: /Load models/i })
+    it('hides and restores the sidebar and opens the active character chat', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Hide sidebar' }));
+        expect(document.querySelector('.modern-app')).toHaveClass('is-sidebar-collapsed');
+        expect(localStorage.getItem('erochat-sidebar-collapsed')).toBe('true');
+        await userEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
+        expect(document.querySelector('.modern-app')).not.toHaveClass('is-sidebar-collapsed');
+        await userEvent.click(screen.getAllByRole('button', { name: 'Characters' })[0]);
+        await userEvent.click(screen.getByRole('button', { name: 'Chat with Default Character' }));
+        expect(screen.getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    });
+
+    it('uses generator assets as character thumbnails', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async (input: RequestInfo | URL) =>
+                    new Response(
+                        JSON.stringify(
+                            String(input).includes('/api/generator/assets')
+                                ? {
+                                      assets: [
+                                          {
+                                              id: 1,
+                                              mediaType: 'image',
+                                              characterId: 'default',
+                                              url: '/media/generated.png'
+                                          }
+                                      ]
+                                  }
+                                : { jobs: [] }
+                        )
+                    )
+            )
         );
-        expect(
-            await within(textSection as HTMLElement).findByRole('option', {
-                name: 'text/test-model'
-            })
-        ).toBeInTheDocument();
-        expect(
-            within(imageBox as HTMLElement).queryByRole('option', { name: 'text/test-model' })
-        ).not.toBeInTheDocument();
+        await renderApp(<ModernApp user={user} />);
+        await waitFor(() =>
+            expect(
+                screen
+                    .getByRole('button', { name: 'Chat with Default Character' })
+                    .querySelector('img')
+            ).toHaveAttribute('src', '/media/generated.png')
+        );
+    });
+
+    it('scrolls to the full stream height and follows late layout changes', async () => {
+        let resize: (() => void) | undefined;
+        vi.stubGlobal(
+            'ResizeObserver',
+            class {
+                constructor(callback: () => void) {
+                    resize = callback;
+                }
+                observe() {}
+                disconnect() {}
+            }
+        );
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1800);
+        await renderApp(<ModernApp user={user} />);
+        const stream = document.querySelector('.m-chat__stream')!;
+        expect(stream.scrollTop).toBe(1800);
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(2200);
+        resize?.();
+        expect(stream.scrollTop).toBe(2200);
     });
 
     it('keeps character creation manual and limited to the supported fields', async () => {

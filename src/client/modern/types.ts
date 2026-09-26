@@ -109,6 +109,7 @@ export interface GeneratedCharacterDraft {
 
 export interface ModernSettings {
     textProvider: string;
+    grokModel?: string;
     openrouterKey: string;
     openrouterModel: string;
     favoriteOpenRouterModels: string[];

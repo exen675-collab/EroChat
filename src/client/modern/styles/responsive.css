@@ -491,3 +491,17 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+@media (min-width: 761px) {
+    .modern-app.is-sidebar-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .is-sidebar-collapsed .m-sidebar {
+        display: none;
+    }
+}
+@media (max-width: 760px) {
+    .m-sidebar-toggle {
+        display: none !important;
+    }
+}

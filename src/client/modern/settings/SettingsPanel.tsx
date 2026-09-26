@@ -16,13 +16,12 @@ import { useEffect, useState } from 'react';
 import {
     fetchAdminUsers,
     fetchOpenRouterModels,
-    fetchProviderModels,
     logout,
     updateAdminCredits,
     updateProfile
 } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
-import type { ImageProvider, ModernSettings } from '../types.js';
+import type { ModernSettings } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 import { ProviderSettings } from './ProviderSettings.js';
 import { SettingsSection } from './SettingsSection.js';
@@ -37,7 +36,6 @@ export function SettingsPanel({
     const [tab, setTab] = useState<'providers' | 'generation' | 'account' | 'admin'>('providers');
     const [settings, setSettings] = useState<ModernSettings>({ ...controller.data.settings });
     const [textModels, setTextModels] = useState<string[]>([]);
-    const [imageModels, setImageModels] = useState<Partial<Record<ImageProvider, string[]>>>({});
     const [modelSearch, setModelSearch] = useState('');
     const [loading, setLoading] = useState('');
     const [profile, setProfile] = useState({
@@ -55,18 +53,6 @@ export function SettingsPanel({
         try {
             const list = await fetchOpenRouterModels(settings);
             setTextModels(list);
-            controller.notify(`Loaded ${list.length} models.`, 'success');
-        } catch (error) {
-            controller.notify((error as Error).message, 'error');
-        } finally {
-            setLoading('');
-        }
-    }
-    async function loadImageModels(provider: ImageProvider) {
-        setLoading(`${provider}-images`);
-        try {
-            const list = await fetchProviderModels(provider, settings);
-            setImageModels((current) => ({ ...current, [provider]: list }));
             controller.notify(`Loaded ${list.length} models.`, 'success');
         } catch (error) {
             controller.notify((error as Error).message, 'error');
@@ -141,7 +127,7 @@ export function SettingsPanel({
                         <>
                             <SettingsSection
                                 title="Text provider"
-                                description="OpenRouter powers chat, prompt helpers, memory, and writing tools."
+                                description="Choose the provider for chat, prompt helpers, memory, and writing tools."
                             >
                                 <label className="m-field">
                                     <span>Provider</span>
@@ -153,133 +139,175 @@ export function SettingsPanel({
                                     >
                                         <option value="openrouter">OpenRouter</option>
                                         <option value="premium">Premium</option>
-                                    </select>
-                                </label>
-                                <label className="m-field">
-                                    <span>OpenRouter API key</span>
-                                    <input
-                                        type="password"
-                                        value={settings.openrouterKey}
-                                        onChange={(event) =>
-                                            update({ openrouterKey: event.target.value })
-                                        }
-                                    />
-                                </label>
-                                <div className="m-field">
-                                    <span>Model</span>
-                                    <div className="m-inline">
-                                        <input
-                                            placeholder="Search loaded models"
-                                            value={modelSearch}
-                                            onChange={(event) => setModelSearch(event.target.value)}
-                                        />
-                                        <Button
-                                            onClick={() => void loadTextModels()}
-                                            disabled={loading === 'openrouter'}
-                                        >
-                                            {loading === 'openrouter' ? (
-                                                <LoaderCircle className="spin" size={16} />
-                                            ) : (
-                                                <RefreshCw size={16} />
-                                            )}{' '}
-                                            Load models
-                                        </Button>
-                                    </div>
-                                    <select
-                                        size={Math.min(8, Math.max(2, filteredModels.length))}
-                                        value={settings.openrouterModel}
-                                        onChange={(event) =>
-                                            update({ openrouterModel: event.target.value })
-                                        }
-                                    >
-                                        <option value={settings.openrouterModel}>
-                                            {settings.openrouterModel || 'Select a model'}
+                                        <option value="grok-cli">
+                                            Grok subscription (experimental)
                                         </option>
-                                        {filteredModels
-                                            .filter((model) => model !== settings.openrouterModel)
-                                            .map((model) => (
-                                                <option key={model}>{model}</option>
-                                            ))}
                                     </select>
-                                </div>
-                                <label className="m-toggle">
-                                    <input
-                                        type="checkbox"
-                                        checked={settings.openrouterReasoningEnabled}
-                                        onChange={(event) =>
-                                            update({
-                                                openrouterReasoningEnabled: event.target.checked
-                                            })
-                                        }
-                                    />
-                                    <span>
-                                        <strong>Reasoning</strong>
-                                        <small>Ask supported models to reason internally.</small>
-                                    </span>
                                 </label>
-                                {settings.openrouterReasoningEnabled && (
-                                    <label className="m-field">
-                                        <span>Reasoning effort</span>
-                                        <select
-                                            value={settings.openrouterReasoningEffort}
-                                            onChange={(event) =>
-                                                update({
-                                                    openrouterReasoningEffort: event.target.value
-                                                })
-                                            }
-                                        >
-                                            <option>minimal</option>
-                                            <option>low</option>
-                                            <option>medium</option>
-                                            <option>high</option>
-                                            <option>xhigh</option>
-                                            <option>max</option>
-                                        </select>
-                                    </label>
-                                )}
-                                <div className="m-favorites">
-                                    <span>Favorite models</span>
-                                    <div>
-                                        {settings.favoriteOpenRouterModels.map((model) => (
-                                            <button
-                                                key={model}
+                                {settings.textProvider === 'grok-cli' ? (
+                                    <div className="m-provider-box">
+                                        <p>
+                                            Uses Grok Build signed in on the EroChat server. All
+                                            users share that account’s usage allowance.
+                                        </p>
+                                        <p>
+                                            For Docker, start the host bridge with{' '}
+                                            <code>npm run grok:bridge</code> on your PC (see
+                                            README). Responses appear when complete. Images and
+                                            voice keep their separate providers.
+                                        </p>
+                                        <label className="m-field">
+                                            <span>Grok model (optional)</span>
+                                            <input
+                                                value={settings.grokModel || ''}
+                                                placeholder="CLI default"
+                                                onChange={(event) =>
+                                                    update({ grokModel: event.target.value })
+                                                }
+                                            />
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <label className="m-field">
+                                            <span>OpenRouter API key</span>
+                                            <input
+                                                type="password"
+                                                value={settings.openrouterKey}
+                                                onChange={(event) =>
+                                                    update({ openrouterKey: event.target.value })
+                                                }
+                                            />
+                                        </label>
+                                        <div className="m-field">
+                                            <span>Model</span>
+                                            <div className="m-inline">
+                                                <input
+                                                    placeholder="Search loaded models"
+                                                    value={modelSearch}
+                                                    onChange={(event) =>
+                                                        setModelSearch(event.target.value)
+                                                    }
+                                                />
+                                                <Button
+                                                    onClick={() => void loadTextModels()}
+                                                    disabled={loading === 'openrouter'}
+                                                >
+                                                    {loading === 'openrouter' ? (
+                                                        <LoaderCircle className="spin" size={16} />
+                                                    ) : (
+                                                        <RefreshCw size={16} />
+                                                    )}{' '}
+                                                    Load models
+                                                </Button>
+                                            </div>
+                                            <select
+                                                size={Math.min(
+                                                    8,
+                                                    Math.max(2, filteredModels.length)
+                                                )}
+                                                value={settings.openrouterModel}
+                                                onChange={(event) =>
+                                                    update({ openrouterModel: event.target.value })
+                                                }
+                                            >
+                                                <option value={settings.openrouterModel}>
+                                                    {settings.openrouterModel || 'Select a model'}
+                                                </option>
+                                                {filteredModels
+                                                    .filter(
+                                                        (model) =>
+                                                            model !== settings.openrouterModel
+                                                    )
+                                                    .map((model) => (
+                                                        <option key={model}>{model}</option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                        <label className="m-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.openrouterReasoningEnabled}
+                                                onChange={(event) =>
+                                                    update({
+                                                        openrouterReasoningEnabled:
+                                                            event.target.checked
+                                                    })
+                                                }
+                                            />
+                                            <span>
+                                                <strong>Reasoning</strong>
+                                                <small>
+                                                    Ask supported models to reason internally.
+                                                </small>
+                                            </span>
+                                        </label>
+                                        {settings.openrouterReasoningEnabled && (
+                                            <label className="m-field">
+                                                <span>Reasoning effort</span>
+                                                <select
+                                                    value={settings.openrouterReasoningEffort}
+                                                    onChange={(event) =>
+                                                        update({
+                                                            openrouterReasoningEffort:
+                                                                event.target.value
+                                                        })
+                                                    }
+                                                >
+                                                    <option>minimal</option>
+                                                    <option>low</option>
+                                                    <option>medium</option>
+                                                    <option>high</option>
+                                                    <option>xhigh</option>
+                                                    <option>max</option>
+                                                </select>
+                                            </label>
+                                        )}
+                                        <div className="m-favorites">
+                                            <span>Favorite models</span>
+                                            <div>
+                                                {settings.favoriteOpenRouterModels.map((model) => (
+                                                    <button
+                                                        key={model}
+                                                        onClick={() =>
+                                                            update({
+                                                                favoriteOpenRouterModels:
+                                                                    settings.favoriteOpenRouterModels.filter(
+                                                                        (item) => item !== model
+                                                                    )
+                                                            })
+                                                        }
+                                                    >
+                                                        {model}
+                                                        <X size={14} />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <Button
+                                                disabled={
+                                                    !settings.openrouterModel ||
+                                                    settings.favoriteOpenRouterModels.includes(
+                                                        settings.openrouterModel
+                                                    )
+                                                }
                                                 onClick={() =>
                                                     update({
-                                                        favoriteOpenRouterModels:
-                                                            settings.favoriteOpenRouterModels.filter(
-                                                                (item) => item !== model
-                                                            )
+                                                        favoriteOpenRouterModels: [
+                                                            settings.openrouterModel,
+                                                            ...settings.favoriteOpenRouterModels
+                                                        ]
                                                     })
                                                 }
                                             >
-                                                {model}
-                                                <X size={14} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <Button
-                                        disabled={
-                                            !settings.openrouterModel ||
-                                            settings.favoriteOpenRouterModels.includes(
-                                                settings.openrouterModel
-                                            )
-                                        }
-                                        onClick={() =>
-                                            update({
-                                                favoriteOpenRouterModels: [
-                                                    settings.openrouterModel,
-                                                    ...settings.favoriteOpenRouterModels
-                                                ]
-                                            })
-                                        }
-                                    >
-                                        <Heart size={16} /> Add selected
-                                    </Button>
-                                </div>
+                                                <Heart size={16} /> Add selected
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
                             </SettingsSection>
                             <SettingsSection
                                 title="Image providers"
-                                description="Configure local or hosted image generation."
+                                description="Configure provider connections here. Choose image models and tuning in Create."
                             >
                                 <label className="m-field">
                                     <span>Active provider</span>
@@ -299,33 +327,21 @@ export function SettingsPanel({
                                     provider="swarm"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadImageModels('swarm')}
-                                    loading={loading === 'swarm-images'}
-                                    models={imageModels.swarm || []}
                                 />
                                 <ProviderSettings
                                     provider="comfy"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadImageModels('comfy')}
-                                    loading={loading === 'comfy-images'}
-                                    models={imageModels.comfy || []}
                                 />
                                 <ProviderSettings
                                     provider="nanogpt"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadImageModels('nanogpt')}
-                                    loading={loading === 'nanogpt-images'}
-                                    models={imageModels.nanogpt || []}
                                 />
                                 <ProviderSettings
                                     provider="openrouter"
                                     settings={settings}
                                     update={update}
-                                    onLoad={() => void loadImageModels('openrouter')}
-                                    loading={loading === 'openrouter-images'}
-                                    models={imageModels.openrouter || []}
                                 />
                             </SettingsSection>
                         </>
@@ -397,80 +413,6 @@ export function SettingsPanel({
                                     />
                                     <small>{settings.messageInputHeight}px</small>
                                 </label>
-                            </SettingsSection>
-                            <SettingsSection
-                                title="Default image tuning"
-                                description="Used by automatic chat images and as generator defaults."
-                            >
-                                <div className="m-form-grid">
-                                    <label className="m-field">
-                                        <span>Width</span>
-                                        <input
-                                            type="number"
-                                            value={settings.imgWidth}
-                                            onChange={(event) =>
-                                                update({ imgWidth: Number(event.target.value) })
-                                            }
-                                        />
-                                    </label>
-                                    <label className="m-field">
-                                        <span>Height</span>
-                                        <input
-                                            type="number"
-                                            value={settings.imgHeight}
-                                            onChange={(event) =>
-                                                update({ imgHeight: Number(event.target.value) })
-                                            }
-                                        />
-                                    </label>
-                                    <label className="m-field">
-                                        <span>Steps</span>
-                                        <input
-                                            type="number"
-                                            value={settings.steps}
-                                            onChange={(event) =>
-                                                update({ steps: Number(event.target.value) })
-                                            }
-                                        />
-                                    </label>
-                                    <label className="m-field">
-                                        <span>CFG scale</span>
-                                        <input
-                                            type="number"
-                                            step="0.5"
-                                            value={settings.cfgScale}
-                                            onChange={(event) =>
-                                                update({ cfgScale: Number(event.target.value) })
-                                            }
-                                        />
-                                    </label>
-                                    <label className="m-field">
-                                        <span>Sampler</span>
-                                        <select
-                                            value={settings.sampler}
-                                            onChange={(event) =>
-                                                update({ sampler: event.target.value })
-                                            }
-                                        >
-                                            <option value="euler_ancestral">Euler ancestral</option>
-                                            <option value="euler">Euler</option>
-                                            <option value="dpmpp_2m">DPM++ 2M</option>
-                                        </select>
-                                    </label>
-                                    <label className="m-field">
-                                        <span>Scheduler</span>
-                                        <select
-                                            value={settings.scheduler}
-                                            onChange={(event) =>
-                                                update({ scheduler: event.target.value })
-                                            }
-                                        >
-                                            <option value="karras">Karras</option>
-                                            <option value="normal">Normal</option>
-                                            <option value="sgm_uniform">SGM Uniform</option>
-                                        </select>
-                                    </label>
-                                </div>
                             </SettingsSection>
                             <SettingsSection
                                 title="System prompt"

@@ -10,6 +10,8 @@
     },
     "include": [
         "src/server.ts",
+        "src/grok-provider.ts",
+        "src/grok-bridge.ts",
         "src/user-state.ts",
         "src/character-card-import.ts",
         "src/character-generation.ts"

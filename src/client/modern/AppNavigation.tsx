@@ -7,6 +7,8 @@ import {
     GalleryHorizontalEnd,
     LogOut,
     Menu,
+    PanelLeftClose,
+    PanelLeftOpen,
     MessageCircle,
     MessagesSquare,
     MoreHorizontal,
@@ -83,10 +85,16 @@ export function AppSidebar({
                 </nav>
                 <div className="m-sidebar__character">
                     <span className="m-eyebrow">Active character</span>
-                    <button onClick={() => controller.setView('characters')}>
+                    <button
+                        aria-label={`Chat with ${controller.currentCharacter?.name}`}
+                        onClick={() => {
+                            controller.setView('chat');
+                            onClose();
+                        }}
+                    >
                         <Avatar
                             character={controller.currentCharacter}
-                            galleryImages={controller.data.galleryImages}
+                            galleryImages={controller.thumbnailImages}
                             size="small"
                         />
                         <span>
@@ -114,10 +122,14 @@ export function AppSidebar({
 export function Topbar({
     controller,
     onMenu,
+    collapsed,
+    onToggleSidebar,
     onSettings
 }: {
     controller: ModernController;
     onMenu: () => void;
+    collapsed: boolean;
+    onToggleSidebar: () => void;
     onSettings: () => void;
 }) {
     const activeMessages = controller.messages.filter(
@@ -138,6 +150,13 @@ export function Topbar({
     };
     return (
         <header className="m-topbar">
+            <IconButton
+                label={collapsed ? 'Show sidebar' : 'Hide sidebar'}
+                className="m-sidebar-toggle"
+                onClick={onToggleSidebar}
+            >
+                {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+            </IconButton>
             <IconButton label="Open navigation" className="m-menu-button" onClick={onMenu}>
                 <Menu size={22} />
             </IconButton>

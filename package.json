@@ -10,6 +10,7 @@
         "build:server": "tsc -p tsconfig.server.json",
         "typecheck": "tsc -p tsconfig.test.json --noEmit",
         "start": "node dist/server.js",
+        "grok:bridge": "node node_modules/typescript/bin/tsc -p tsconfig.server.json && node dist/grok-bridge.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",

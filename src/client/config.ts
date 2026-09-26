@@ -17,6 +17,7 @@ export const defaultCharacter = {
 // Default settings
 export const defaultSettings = {
     textProvider: 'openrouter',
+    grokModel: '',
     openrouterKey: '',
     openrouterModel: 'anthropic/claude-3.5-sonnet',
     favoriteOpenRouterModels: [],

@@ -37,3 +37,6 @@ data/
 *.db
 *.sqlite
 *.sqlite3
+
+# Local Grok host bridge credentials
+.grok-bridge.env

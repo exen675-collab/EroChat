@@ -16,5 +16,9 @@ export function getCharacterThumbnailUrl(
         .filter((item) => item.characterId === character.id && item.imageUrl)
         .sort((a, b) => getCreatedAtTime(a) - getCreatedAtTime(b))[0];
 
-    return firstGeneratedImage?.imageUrl || null;
+    return (
+        firstGeneratedImage?.imageUrl ||
+        character.messages.find((message) => message.imageUrl)?.imageUrl ||
+        null
+    );
 }

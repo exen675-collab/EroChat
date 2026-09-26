@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import {
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
     type KeyboardEvent as ReactKeyboardEvent,
@@ -55,7 +56,7 @@ function MessageCard({
                 {assistant ? (
                     <Avatar
                         character={controller.currentCharacter}
-                        galleryImages={controller.data.galleryImages}
+                        galleryImages={controller.thumbnailImages}
                         size="small"
                     />
                 ) : (
@@ -251,12 +252,31 @@ export function ChatView({ controller }: { controller: ModernController }) {
     const [composerHeight, setComposerHeight] = useState(
         controller.data.settings.messageInputHeight
     );
-    const endRef = useRef<HTMLDivElement>(null);
+    const streamRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const followBottom = useRef(true);
     const composerHeightRef = useRef(composerHeight);
     const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+    const scrollToBottom = () => {
+        const stream = streamRef.current;
+        if (stream) stream.scrollTop = stream.scrollHeight;
+    };
+    useLayoutEffect(() => {
+        followBottom.current = true;
+        scrollToBottom();
+    }, [controller.currentCharacter?.id]);
+    useLayoutEffect(() => {
+        if (followBottom.current) scrollToBottom();
+    }, [controller.messages, controller.busy, composerHeight]);
     useEffect(() => {
-        endRef.current?.scrollIntoView?.({ block: 'end' });
-    }, [controller.messages.length, controller.messages.at(-1)?.content]);
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(() => {
+            if (followBottom.current) scrollToBottom();
+        });
+        if (streamRef.current) observer.observe(streamRef.current);
+        if (contentRef.current) observer.observe(contentRef.current);
+        return () => observer.disconnect();
+    }, []);
     useEffect(() => {
         if (!resizeRef.current) {
             composerHeightRef.current = controller.data.settings.messageInputHeight;
@@ -307,52 +327,65 @@ export function ChatView({ controller }: { controller: ModernController }) {
     }
     return (
         <div className="m-chat">
-            <div className="m-chat__stream">
-                {controller.messages.length === 0 && (
-                    <div className="m-chat-empty">
-                        <Avatar
-                            character={controller.currentCharacter}
-                            galleryImages={controller.data.galleryImages}
-                            size="large"
-                        />
-                        <span className="m-eyebrow">A new scene begins</span>
-                        <h2>Start a conversation with {controller.currentCharacter?.name}</h2>
-                        <p>
-                            Write the opening line, ask for suggestions, or configure the character
-                            and providers in Settings.
-                        </p>
-                    </div>
-                )}
-                {controller.messages.map((message) =>
-                    message.isStreaming && !message.content ? null : (
-                        <MessageCard
-                            key={message.id}
-                            message={message}
-                            controller={controller}
-                            onEdit={setEditing}
-                            onLightbox={(url, video) => setLightbox({ url, video })}
-                        />
-                    )
-                )}
-                {controller.busy === 'chat' &&
-                    !controller.messages.some(
-                        (message) => message.isStreaming && Boolean(message.content)
-                    ) && (
-                        <div className="m-typing">
+            <div
+                className="m-chat__stream"
+                ref={streamRef}
+                onScroll={() => {
+                    const stream = streamRef.current;
+                    if (stream)
+                        followBottom.current =
+                            stream.scrollHeight - stream.scrollTop - stream.clientHeight < 48;
+                }}
+                onLoadCapture={() => {
+                    if (followBottom.current) scrollToBottom();
+                }}
+            >
+                <div ref={contentRef}>
+                    {controller.messages.length === 0 && (
+                        <div className="m-chat-empty">
                             <Avatar
                                 character={controller.currentCharacter}
-                                galleryImages={controller.data.galleryImages}
-                                size="small"
+                                galleryImages={controller.thumbnailImages}
+                                size="large"
                             />
-                            <span>
-                                <i />
-                                <i />
-                                <i />
-                            </span>
-                            <small>{controller.currentCharacter?.name} is composing…</small>
+                            <span className="m-eyebrow">A new scene begins</span>
+                            <h2>Start a conversation with {controller.currentCharacter?.name}</h2>
+                            <p>
+                                Write the opening line, ask for suggestions, or configure the
+                                character and providers in Settings.
+                            </p>
                         </div>
                     )}
-                <div ref={endRef} />
+                    {controller.messages.map((message) =>
+                        message.isStreaming && !message.content ? null : (
+                            <MessageCard
+                                key={message.id}
+                                message={message}
+                                controller={controller}
+                                onEdit={setEditing}
+                                onLightbox={(url, video) => setLightbox({ url, video })}
+                            />
+                        )
+                    )}
+                    {controller.busy === 'chat' &&
+                        !controller.messages.some(
+                            (message) => message.isStreaming && Boolean(message.content)
+                        ) && (
+                            <div className="m-typing">
+                                <Avatar
+                                    character={controller.currentCharacter}
+                                    galleryImages={controller.thumbnailImages}
+                                    size="small"
+                                />
+                                <span>
+                                    <i />
+                                    <i />
+                                    <i />
+                                </span>
+                                <small>{controller.currentCharacter?.name} is composing…</small>
+                            </div>
+                        )}
+                </div>
             </div>
             <div className="m-composer-wrap">
                 <MemoryPanel controller={controller} />
@@ -383,22 +416,28 @@ export function ChatView({ controller }: { controller: ModernController }) {
                     >
                         <span />
                     </div>
-                    <select
-                        aria-label="Quick model"
-                        value={controller.data.settings.openrouterModel}
-                        onChange={(event) =>
-                            controller.updateSettings({ openrouterModel: event.target.value })
-                        }
-                    >
-                        <option value={controller.data.settings.openrouterModel}>
-                            {controller.data.settings.openrouterModel || 'Choose a model'}
-                        </option>
-                        {controller.data.settings.favoriteOpenRouterModels
-                            .filter((model) => model !== controller.data.settings.openrouterModel)
-                            .map((model) => (
-                                <option key={model}>{model}</option>
-                            ))}
-                    </select>
+                    {controller.data.settings.textProvider === 'grok-cli' ? (
+                        <span>Grok · {controller.data.settings.grokModel || 'CLI default'}</span>
+                    ) : (
+                        <select
+                            aria-label="Quick model"
+                            value={controller.data.settings.openrouterModel}
+                            onChange={(event) =>
+                                controller.updateSettings({ openrouterModel: event.target.value })
+                            }
+                        >
+                            <option value={controller.data.settings.openrouterModel}>
+                                {controller.data.settings.openrouterModel || 'Choose a model'}
+                            </option>
+                            {controller.data.settings.favoriteOpenRouterModels
+                                .filter(
+                                    (model) => model !== controller.data.settings.openrouterModel
+                                )
+                                .map((model) => (
+                                    <option key={model}>{model}</option>
+                                ))}
+                        </select>
+                    )}
                     <textarea
                         aria-label="Message"
                         placeholder={`Message ${controller.currentCharacter?.name || 'your character'}…`}

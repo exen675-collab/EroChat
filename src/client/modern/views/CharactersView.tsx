@@ -211,7 +211,7 @@ export function CharactersView({ controller }: { controller: ModernController })
     async function handlePublish(character: ModernCharacter) {
         setPublishingId(character.id);
         try {
-            const thumbnail = getCharacterThumbnailUrl(character, controller.data.galleryImages);
+            const thumbnail = getCharacterThumbnailUrl(character, controller.thumbnailImages);
             await publishCharacter({ ...character, thumbnail: thumbnail || undefined });
             controller.notify('Character published to Character Browse.', 'success');
             setPublishing(null);
@@ -312,7 +312,7 @@ export function CharactersView({ controller }: { controller: ModernController })
                         >
                             <CharacterVisual
                                 character={character}
-                                galleryImages={controller.data.galleryImages}
+                                galleryImages={controller.thumbnailImages}
                             />
                             <i>{character.messages.length} messages</i>
                         </button>
@@ -370,7 +370,7 @@ export function CharactersView({ controller }: { controller: ModernController })
             {publishing && (
                 <PublishCharacterModal
                     character={publishing}
-                    thumbnail={getCharacterThumbnailUrl(publishing, controller.data.galleryImages)}
+                    thumbnail={getCharacterThumbnailUrl(publishing, controller.thumbnailImages)}
                     busy={publishingId === publishing.id}
                     onClose={() => setPublishing(null)}
                     onPublish={() => void handlePublish(publishing)}

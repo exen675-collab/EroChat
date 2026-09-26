@@ -17,6 +17,7 @@ const {
 } = require('./character-generation');
 
 const { initUserState, registerUserState } = require('./user-state');
+const { requestGrokChat } = require('./grok-provider');
 const app = express();
 const SQLiteStore = SQLiteStoreFactory(session);
 
@@ -1431,6 +1432,26 @@ app.post('/api/nanogpt/images', requireApiAuth, async (req, res) => {
     } catch (error) {
         console.error('Failed to proxy NanoGPT image generation:', error);
         res.status(400).json({ error: error.message || 'Failed to generate NanoGPT image.' });
+    }
+});
+
+// All signed-in users share the server owner’s local Grok subscription.
+app.post('/api/experimental/grok/chat', requireApiAuth, async (req, res) => {
+    const abort = new AbortController();
+    const onClose = () => {
+        if (!res.writableEnded) abort.abort();
+    };
+    res.on('close', onClose);
+    try {
+        const content = await requestGrokChat(req.body, abort.signal);
+        if (!res.destroyed) res.json({ choices: [{ message: { role: 'assistant', content } }] });
+    } catch (error) {
+        if (!res.destroyed)
+            res.status(error.status || 502).json({
+                error: error.message || 'Grok request failed.'
+            });
+    } finally {
+        res.off('close', onClose);
     }
 });
 

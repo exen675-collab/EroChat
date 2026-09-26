@@ -44,6 +44,25 @@ describe('modern character thumbnail fallback', () => {
         ).toBe('/media/older.png');
     });
 
+    it('uses a chat image when no gallery image exists', () => {
+        expect(
+            getCharacterThumbnailUrl(
+                {
+                    ...character,
+                    messages: [
+                        {
+                            id: 'message',
+                            role: 'assistant',
+                            content: '',
+                            imageUrl: '/media/chat.png'
+                        }
+                    ]
+                },
+                []
+            )
+        ).toBe('/media/chat.png');
+    });
+
     it('returns null when no character image exists', () => {
         expect(getCharacterThumbnailUrl(character, [])).toBeNull();
     });

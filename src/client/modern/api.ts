@@ -1,4 +1,4 @@
-import { buildChatRequestPreview } from '../chat-request.js';
+import { buildChatRequestPreview, formatChatRequestPreview } from '../chat-request.js';
 import { normalizeBaseUrl, normalizeImageScheduler, normalizeSwarmSampler } from '../utils.js';
 import type {
     GeneratedCharacterDraft,
@@ -35,7 +35,7 @@ export function createChatPreview(
     messages: ModernMessage[],
     draft: string
 ) {
-    return buildChatRequestPreview({
+    const preview = buildChatRequestPreview({
         draftMessage: draft,
         systemPrompt: character.systemPrompt || settings.systemPrompt,
         protectedImagePromptLanguage: settings.protectedImagePromptLanguage,
@@ -49,6 +49,17 @@ export function createChatPreview(
         openrouterSessionId: character.openrouterSessionId || '',
         currentUrl: window.location.href
     });
+    if (settings.textProvider === 'grok-cli') {
+        const grok = {
+            ...preview,
+            provider: 'grok-cli',
+            url: '/api/experimental/grok/chat',
+            headers: { 'Content-Type': 'application/json' },
+            body: { model: settings.grokModel || '', messages: preview.body.messages }
+        };
+        return { ...grok, displayText: formatChatRequestPreview(grok) };
+    }
+    return preview;
 }
 
 function chatContent(value: unknown): string {
@@ -133,8 +144,10 @@ export async function sendModernChat(
     draft: string,
     onContent?: (content: string) => void
 ): Promise<string> {
-    if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key in Settings.');
-    if (!settings.openrouterModel) throw new Error('Select an OpenRouter model in Settings.');
+    if (settings.textProvider !== 'grok-cli') {
+        if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key in Settings.');
+        if (!settings.openrouterModel) throw new Error('Select an OpenRouter model in Settings.');
+    }
     const preview = createChatPreview(settings, character, messages, draft);
     const response = await fetch(preview.url, {
         method: 'POST',
@@ -165,6 +178,15 @@ export async function sendUtilityRequest(
     messages: Array<{ role: string; content: string }>,
     options: { model?: string; temperature?: number; maxTokens?: number } = {}
 ): Promise<string> {
+    if (settings.textProvider === 'grok-cli') {
+        const payload = await jsonRequest('/api/experimental/grok/chat', {
+            method: 'POST',
+            body: JSON.stringify({ model: settings.grokModel || '', messages })
+        });
+        const content = chatContent(payload?.choices?.[0]?.message?.content).trim();
+        if (!content) throw new Error('Grok returned an empty response.');
+        return content;
+    }
     if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key in Settings.');
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',

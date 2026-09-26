@@ -230,3 +230,40 @@ EroChat/
 - Intended for adults (18+)
 - Use responsibly and follow provider/local rules
 - MIT licensed
+
+### Experimental Grok subscription provider
+
+Any **signed-in EroChat user** can select **Settings → Providers → Text provider → Grok subscription (experimental)**. Chat and text helpers then call the official Grok Build CLI on the machine running the EroChat server. No OpenRouter key is needed for these requests. Image generation and voice retain their existing providers.
+
+1. Install [Grok Build](https://docs.x.ai/build/overview) on the server machine and run `grok login` as the same OS user that runs EroChat. Use your subscription login. Verify that a simple prompt works in the CLI.
+2. Ensure `grok` is in the server's `PATH`, or set `EROCHAT_GROK_BIN` to its absolute executable path before starting EroChat.
+3. Select the experimental provider and save settings. Leave the model blank for the CLI default, or enter a model ID available to your account (`grok models`).
+
+The browser cannot launch a CLI installed on a different computer. With Docker, use the host bridge below to connect to Grok installed on your PC. The bridge uses the server owner's CLI configuration and login. All signed-in users can access it and share that account's usage allowance and the one-request-at-a-time limit. Use a dedicated OS account/Grok configuration if your usual CLI has custom hooks or integrations.
+
+Each request supplies the current conversation (including memory) to a fresh CLI invocation in a temporary working directory. Built-in tools, web search and subagents are disabled; the CLI receives no `XAI_API_KEY` from the server environment. EroChat does not read or store Grok login tokens and does not fall back to an API provider on errors. CLI configuration can still affect the selected model and its billing, so use a subscription-backed model rather than a custom BYOK model.
+
+This first version returns complete replies, not token streaming. It allows one request at a time, a 120-second timeout, and up to 512 KB of conversation text. OpenRouter sampling/reasoning settings do not apply. The temporary prompt is deleted afterward; Grok's own session retention and account policies still apply. Subscription allowances and content restrictions remain in effect; this is not unlimited or guaranteed cheaper usage. See [Grok headless integration](https://docs.x.ai/build/cli/headless-scripting) and [subscription usage limits](https://docs.x.ai/grok/faq#usage--limits).
+
+
+#### Docker with Grok installed on your PC
+
+Run these commands from the project folder **on your PC**, using the OS account already signed in to Grok:
+
+```bash
+npm run grok:bridge
+```
+
+Keep that terminal running. The bridge listens on port 20123 and automatically creates a private `.grok-bridge.env` file containing a random shared token. This file is excluded from Git and Docker builds. It reuses the token on subsequent starts. Grok login credentials stay on your PC.
+
+In a second terminal, rebuild/restart EroChat with the bridge configuration:
+
+```bash
+docker compose --env-file .grok-bridge.env up -d --build
+```
+
+For the development container, add `-f docker-compose.dev.yml`. Both Compose files automatically load `.grok-bridge.env` when it exists, so ordinary `docker compose up -d` commands preserve the host connection. Running `npm run grok:bridge` again detects the existing authenticated bridge and exits successfully without starting a second instance. The Compose files map `host.docker.internal` to the Docker host, including on Linux.
+
+Select **Grok subscription (experimental)** in EroChat. Every signed-in user can use the connection; the host bridge enforces the shared one-request limit. Its HTTP endpoint requires the token, which stays between the container and bridge and is never sent to the browser. It binds to `0.0.0.0` so Docker can reach it; do not forward port 20123 on your router. You can restrict the bind address with `EROCHAT_GROK_BRIDGE_HOST`. Restart `npm run grok:bridge` after rebooting the PC.
+
+If EroChat reports that it cannot reach the bridge, check that the host process is running and your firewall allows connections from Docker to port 20123. `EROCHAT_GROK_BIN` can point to the local Grok executable when it is not on the host process's PATH. Without `EROCHAT_GROK_BRIDGE_URL`, EroChat continues to run Grok directly on the server.

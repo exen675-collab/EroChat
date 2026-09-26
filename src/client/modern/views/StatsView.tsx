@@ -198,7 +198,7 @@ export function StatsView({ controller }: { controller: ModernController }) {
                             <div key={character.id}>
                                 <Avatar
                                     character={character}
-                                    galleryImages={controller.data.galleryImages}
+                                    galleryImages={controller.thumbnailImages}
                                     size="small"
                                 />
                                 <span>

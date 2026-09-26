@@ -15,6 +15,9 @@ import './modern.css';
 export function ModernApp({ user }: { user: BootstrapUser }) {
     const controller = useModernController(user);
     const [sidebar, setSidebar] = useState(false);
+    const [collapsed, setCollapsed] = useState(
+        () => localStorage.getItem('erochat-sidebar-collapsed') === 'true'
+    );
     const [settings, setSettings] = useState(false);
 
     if (!controller.persistence.loaded) {
@@ -32,7 +35,7 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
     }
 
     return (
-        <div className="modern-app">
+        <div className={`modern-app ${collapsed ? 'is-sidebar-collapsed' : ''}`}>
             <AppSidebar
                 controller={controller}
                 open={sidebar}
@@ -51,6 +54,13 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
                 )}
                 <Topbar
                     controller={controller}
+                    collapsed={collapsed}
+                    onToggleSidebar={() =>
+                        setCollapsed((current) => {
+                            localStorage.setItem('erochat-sidebar-collapsed', String(!current));
+                            return !current;
+                        })
+                    }
                     onMenu={() => setSidebar(true)}
                     onSettings={() => setSettings(true)}
                 />

@@ -9,6 +9,11 @@ services:
             SESSION_SECRET: change-this-secret
             COOKIE_SECURE: 'false'
             DEFAULT_USER_CREDITS: 100
+        env_file:
+            - path: .grok-bridge.env
+              required: false
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
         volumes:
             - ./data:/app/data
         restart: unless-stopped

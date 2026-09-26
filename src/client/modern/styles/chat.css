@@ -9,7 +9,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 36px clamp(24px, 4vw, 72px);
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
 }
 .m-chat-empty {
     min-height: 55vh;
