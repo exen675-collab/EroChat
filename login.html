@@ -316,6 +316,88 @@
                 font-weight: 700;
             }
 
+            /* Hero character wall — starts under the translucent header */
+            .hero-stage {
+                position: relative;
+                isolation: isolate;
+                overflow: hidden;
+                margin-top: -60px;
+                padding-top: 60px;
+            }
+            .hero-stage > .wrap {
+                position: relative;
+                z-index: 2;
+            }
+            .hero-wall {
+                position: absolute;
+                inset: -120px -60px;
+                z-index: 0;
+                display: grid;
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                gap: 14px;
+                opacity: 0.75;
+                transform: rotate(-8deg) scale(1.12);
+                pointer-events: none;
+            }
+            .hero-wall__col {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                animation: hero-wall-scroll 60s linear infinite;
+            }
+            .hero-wall__col:nth-child(even) {
+                margin-top: -140px;
+                animation-direction: reverse;
+            }
+            .hero-wall__col:nth-child(3n) {
+                animation-duration: 75s;
+            }
+            .hero-wall img {
+                display: block;
+                width: 100%;
+                aspect-ratio: 3 / 4;
+                border-radius: 16px;
+                object-fit: cover;
+                background: var(--m-surface-2);
+            }
+            /* Each column holds its images twice, so -50% (+ half a gap) loops seamlessly */
+            @keyframes hero-wall-scroll {
+                to {
+                    transform: translateY(calc(-50% - 7px));
+                }
+            }
+            .hero-shade {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                pointer-events: none;
+                background:
+                    linear-gradient(
+                        90deg,
+                        rgba(10, 10, 12, 0.95) 0%,
+                        rgba(10, 10, 12, 0.8) 42%,
+                        rgba(10, 10, 12, 0.35) 100%
+                    ),
+                    linear-gradient(transparent 60%, var(--m-bg));
+            }
+            .hero-stage .pill {
+                background: rgba(17, 17, 20, 0.6);
+                backdrop-filter: blur(8px);
+            }
+            .hero-stage .panel {
+                border-color: var(--m-border-strong);
+                background: rgba(17, 17, 20, 0.72);
+                backdrop-filter: blur(24px) saturate(140%);
+            }
+            .hero-stage .tabs {
+                background: rgba(255, 255, 255, 0.04);
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .hero-wall__col {
+                    animation: none;
+                }
+            }
+
             /* Auth card */
             .panel {
                 border: 1px solid var(--m-border);
@@ -805,6 +887,20 @@
                 .hero {
                     padding-top: 48px;
                 }
+                .hero-wall {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    opacity: 0.55;
+                }
+                .hero-wall__col:nth-child(n + 5) {
+                    display: none;
+                }
+                .hero-shade {
+                    background: linear-gradient(
+                        rgba(10, 10, 12, 0.7),
+                        rgba(10, 10, 12, 0.88) 55%,
+                        var(--m-bg)
+                    );
+                }
                 .hero h1 {
                     font-size: 42px;
                 }
@@ -882,144 +978,210 @@
         </header>
 
         <main>
-            <div class="wrap hero">
-                <div>
-                    <span class="pill"><span class="dot"></span>Open beta · free to join</span>
-                    <h1>Characters that <em>remember</em> you.</h1>
-                    <p class="hero__lead">
-                        Wink is an AI character chat workspace. Create or import characters, keep
-                        long stories consistent with memory, and illustrate any scene — from cozy
-                        slice-of-life to mature roleplay, on your terms.
-                    </p>
-                    <div class="hero__cta">
-                        <a href="#auth" class="m-button m-button--primary" data-open-tab="signup"
-                            >Create free account</a
-                        >
-                        <a href="#pricing" class="m-button">See pricing</a>
+            <div class="hero-stage">
+                <div class="hero-wall" aria-hidden="true">
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-1.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-4.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-1.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-4.webp" alt="" loading="eager" decoding="async" />
                     </div>
-                    <div class="stats">
-                        <div>
-                            <span class="m-eyebrow">Models</span>
-                            <strong>50+</strong>
-                        </div>
-                        <div>
-                            <span class="m-eyebrow">Card import</span>
-                            <strong>V2</strong>
-                        </div>
-                        <div>
-                            <span class="m-eyebrow">Ads</span>
-                            <strong>None</strong>
-                        </div>
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-4.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-5.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-6.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-7.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-4.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-5.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-6.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-7.webp" alt="" loading="eager" decoding="async" />
+                    </div>
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-7.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-8.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-1.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-7.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-8.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-1.webp" alt="" loading="eager" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="eager" decoding="async" />
+                    </div>
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-2.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-4.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-5.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-4.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-5.webp" alt="" loading="lazy" decoding="async" />
+                    </div>
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-5.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-6.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-7.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-8.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-5.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-6.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-7.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-8.webp" alt="" loading="lazy" decoding="async" />
+                    </div>
+                    <div class="hero-wall__col">
+                        <img src="/landing/char-8.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-1.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-8.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-1.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-2.webp" alt="" loading="lazy" decoding="async" />
+                        <img src="/landing/char-3.webp" alt="" loading="lazy" decoding="async" />
                     </div>
                 </div>
+                <div class="hero-shade" aria-hidden="true"></div>
 
-                <div id="auth" class="panel auth">
-                    <div class="tabs" role="tablist">
-                        <button type="button" data-auth-tab="login" class="auth-tab">Log in</button>
-                        <button type="button" data-auth-tab="signup" class="auth-tab">
-                            Create account
-                        </button>
-                    </div>
-                    <div class="auth__body">
-                        <span class="m-eyebrow m-eyebrow--accent">Welcome</span>
-                        <h2 id="panelTitle">Log in</h2>
-                        <p id="panelCopy" class="auth__copy">
-                            Use your username and password to open your workspace.
+                <div class="wrap hero">
+                    <div>
+                        <span class="pill"><span class="dot"></span>Open beta · free to join</span>
+                        <h1>Characters that <em>remember</em> you.</h1>
+                        <p class="hero__lead">
+                            Wink is an AI character chat workspace. Create or import characters, keep
+                            long stories consistent with memory, and illustrate any scene — from cozy
+                            slice-of-life to mature roleplay, on your terms.
                         </p>
-                        <p id="selectedPlan" class="notice hidden"></p>
-
-                        <form id="loginForm" class="auth-form">
-                            <label class="m-field">
-                                <span>Username</span>
-                                <input
-                                    id="loginUsername"
-                                    name="username"
-                                    type="text"
-                                    required
-                                    autocomplete="username"
-                                    placeholder="your_name"
-                                />
-                            </label>
-                            <label class="m-field">
-                                <span>Password</span>
-                                <span class="password">
-                                    <input
-                                        id="loginPassword"
-                                        name="password"
-                                        type="password"
-                                        required
-                                        autocomplete="current-password"
-                                        class="password-input"
-                                        placeholder="password"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="password-toggle"
-                                        aria-label="Show password"
-                                    >
-                                        Show
-                                    </button>
-                                </span>
-                            </label>
-                            <button
-                                type="submit"
-                                class="submit-button m-button m-button--primary m-button--block"
+                        <div class="hero__cta">
+                            <a href="#auth" class="m-button m-button--primary" data-open-tab="signup"
+                                >Create free account</a
                             >
-                                Log in
-                            </button>
-                        </form>
+                            <a href="#pricing" class="m-button">See pricing</a>
+                        </div>
+                        <div class="stats">
+                            <div>
+                                <span class="m-eyebrow">Models</span>
+                                <strong>50+</strong>
+                            </div>
+                            <div>
+                                <span class="m-eyebrow">Card import</span>
+                                <strong>V2</strong>
+                            </div>
+                            <div>
+                                <span class="m-eyebrow">Ads</span>
+                                <strong>None</strong>
+                            </div>
+                        </div>
+                    </div>
 
-                        <form id="signupForm" class="auth-form hidden">
-                            <label class="m-field">
-                                <span>Username</span>
-                                <input
-                                    id="signupUsername"
-                                    name="username"
-                                    type="text"
-                                    required
-                                    autocomplete="username"
-                                    minlength="3"
-                                    maxlength="24"
-                                    pattern="[A-Za-z0-9_-]+"
-                                    placeholder="choose_a_name"
-                                />
-                                <small
-                                    >3–24 characters: letters, numbers, underscore or dash.</small
-                                >
-                            </label>
-                            <label class="m-field">
-                                <span>Password</span>
-                                <span class="password">
-                                    <input
-                                        id="signupPassword"
-                                        name="password"
-                                        type="password"
-                                        required
-                                        autocomplete="new-password"
-                                        minlength="6"
-                                        class="password-input"
-                                        placeholder="at least 6 characters"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="password-toggle"
-                                        aria-label="Show password"
-                                    >
-                                        Show
-                                    </button>
-                                </span>
-                            </label>
-                            <button
-                                type="submit"
-                                class="submit-button m-button m-button--primary m-button--block"
-                            >
+                    <div id="auth" class="panel auth">
+                        <div class="tabs" role="tablist">
+                            <button type="button" data-auth-tab="login" class="auth-tab">Log in</button>
+                            <button type="button" data-auth-tab="signup" class="auth-tab">
                                 Create account
                             </button>
-                        </form>
+                        </div>
+                        <div class="auth__body">
+                            <span class="m-eyebrow m-eyebrow--accent">Welcome</span>
+                            <h2 id="panelTitle">Log in</h2>
+                            <p id="panelCopy" class="auth__copy">
+                                Use your username and password to open your workspace.
+                            </p>
+                            <p id="selectedPlan" class="notice hidden"></p>
 
-                        <p class="legal">
-                            By continuing you agree to the Terms of Service and Privacy Policy.
-                        </p>
+                            <form id="loginForm" class="auth-form">
+                                <label class="m-field">
+                                    <span>Username</span>
+                                    <input
+                                        id="loginUsername"
+                                        name="username"
+                                        type="text"
+                                        required
+                                        autocomplete="username"
+                                        placeholder="your_name"
+                                    />
+                                </label>
+                                <label class="m-field">
+                                    <span>Password</span>
+                                    <span class="password">
+                                        <input
+                                            id="loginPassword"
+                                            name="password"
+                                            type="password"
+                                            required
+                                            autocomplete="current-password"
+                                            class="password-input"
+                                            placeholder="password"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="password-toggle"
+                                            aria-label="Show password"
+                                        >
+                                            Show
+                                        </button>
+                                    </span>
+                                </label>
+                                <button
+                                    type="submit"
+                                    class="submit-button m-button m-button--primary m-button--block"
+                                >
+                                    Log in
+                                </button>
+                            </form>
+
+                            <form id="signupForm" class="auth-form hidden">
+                                <label class="m-field">
+                                    <span>Username</span>
+                                    <input
+                                        id="signupUsername"
+                                        name="username"
+                                        type="text"
+                                        required
+                                        autocomplete="username"
+                                        minlength="3"
+                                        maxlength="24"
+                                        pattern="[A-Za-z0-9_-]+"
+                                        placeholder="choose_a_name"
+                                    />
+                                    <small
+                                        >3–24 characters: letters, numbers, underscore or dash.</small
+                                    >
+                                </label>
+                                <label class="m-field">
+                                    <span>Password</span>
+                                    <span class="password">
+                                        <input
+                                            id="signupPassword"
+                                            name="password"
+                                            type="password"
+                                            required
+                                            autocomplete="new-password"
+                                            minlength="6"
+                                            class="password-input"
+                                            placeholder="at least 6 characters"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="password-toggle"
+                                            aria-label="Show password"
+                                        >
+                                            Show
+                                        </button>
+                                    </span>
+                                </label>
+                                <button
+                                    type="submit"
+                                    class="submit-button m-button m-button--primary m-button--block"
+                                >
+                                    Create account
+                                </button>
+                            </form>
+
+                            <p class="legal">
+                                By continuing you agree to the Terms of Service and Privacy Policy.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
