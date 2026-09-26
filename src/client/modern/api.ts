@@ -142,7 +142,8 @@ export async function sendModernChat(
     character: ModernCharacter,
     messages: ModernMessage[],
     draft: string,
-    onContent?: (content: string) => void
+    onContent?: (content: string) => void,
+    signal?: AbortSignal
 ): Promise<string> {
     if (settings.textProvider !== 'grok-cli') {
         if (!settings.openrouterKey) throw new Error('Enter your OpenRouter API key in Settings.');
@@ -152,7 +153,8 @@ export async function sendModernChat(
     const response = await fetch(preview.url, {
         method: 'POST',
         headers: preview.headers,
-        body: JSON.stringify(preview.body)
+        body: JSON.stringify(preview.body),
+        signal
     });
     if (!response.ok) {
         await responsePayload(response);

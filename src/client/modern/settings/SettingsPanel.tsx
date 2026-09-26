@@ -399,7 +399,7 @@ export function SettingsPanel({
                                     />
                                 </label>
                                 <label className="m-field">
-                                    <span>Composer height</span>
+                                    <span>Composer max height</span>
                                     <input
                                         type="range"
                                         min={120}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { BootstrapUser } from '../auth.js';
-import { AppSidebar, MobileNav, Topbar } from './AppNavigation.js';
+import { AppRail, MobileNav } from './AppNavigation.js';
 import { SettingsPanel } from './settings/SettingsPanel.js';
 import { Toasts } from './Toasts.js';
 import { useModernController } from './useModernController.js';
@@ -14,10 +14,6 @@ import './modern.css';
 
 export function ModernApp({ user }: { user: BootstrapUser }) {
     const controller = useModernController(user);
-    const [sidebar, setSidebar] = useState(false);
-    const [collapsed, setCollapsed] = useState(
-        () => localStorage.getItem('erochat-sidebar-collapsed') === 'true'
-    );
     const [settings, setSettings] = useState(false);
 
     if (!controller.persistence.loaded) {
@@ -35,16 +31,11 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
     }
 
     return (
-        <div className={`modern-app ${collapsed ? 'is-sidebar-collapsed' : ''}`}>
-            <AppSidebar
-                controller={controller}
-                open={sidebar}
-                onClose={() => setSidebar(false)}
-                onSettings={() => setSettings(true)}
-            />
+        <div className={`modern-app is-view-${controller.data.currentView}`}>
+            <AppRail controller={controller} onSettings={() => setSettings(true)} />
             <main className="m-main">
                 {controller.persistence.error && (
-                    <div role="alert">
+                    <div className="m-save-error" role="alert">
                         Changes are not saved: {controller.persistence.error}
                         <button onClick={controller.persistence.retry}>Retry saving</button>
                         <button onClick={controller.persistence.download}>
@@ -52,18 +43,6 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
                         </button>
                     </div>
                 )}
-                <Topbar
-                    controller={controller}
-                    collapsed={collapsed}
-                    onToggleSidebar={() =>
-                        setCollapsed((current) => {
-                            localStorage.setItem('erochat-sidebar-collapsed', String(!current));
-                            return !current;
-                        })
-                    }
-                    onMenu={() => setSidebar(true)}
-                    onSettings={() => setSettings(true)}
-                />
                 <div className="m-content">
                     {controller.data.currentView === 'chat' && <ChatView controller={controller} />}
                     {controller.data.currentView === 'characters' && (
@@ -83,7 +62,7 @@ export function ModernApp({ user }: { user: BootstrapUser }) {
                     )}
                 </div>
             </main>
-            <MobileNav controller={controller} />
+            <MobileNav controller={controller} onSettings={() => setSettings(true)} />
             {settings && (
                 <SettingsPanel controller={controller} onClose={() => setSettings(false)} />
             )}

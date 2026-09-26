@@ -58,6 +58,7 @@ function normalizeCharacter(character: Partial<ModernCharacter>): ModernCharacte
         ...character,
         id: String(character.id || crypto.randomUUID()),
         name: String(character.name || 'Untitled character'),
+        isDefault: String(character.id) === 'default',
         avatar: character.avatar && !character.avatar.includes('ðŸ') ? character.avatar : '✨',
         messages: Array.isArray(character.messages) ? character.messages : [],
         memorySnapshots: Array.isArray(character.memorySnapshots) ? character.memorySnapshots : [],

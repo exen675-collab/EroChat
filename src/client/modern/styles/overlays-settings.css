@@ -23,7 +23,7 @@
     overflow: hidden;
     border: 1px solid var(--m-border-strong);
     border-radius: 20px;
-    background: #111019;
+    background: #141417;
     box-shadow: var(--m-shadow);
 }
 .m-modal--small {
@@ -75,7 +75,7 @@
     border-radius: 22px;
     color: white;
     background:
-        radial-gradient(circle at 50% 40%, rgba(192, 83, 242, 0.38), transparent 45%), #13111b;
+        radial-gradient(circle at 50% 40%, rgba(240, 98, 146, 0.18), transparent 45%), #141317;
     font-size: 42px;
     box-shadow: 0 14px 35px rgba(0, 0, 0, 0.24);
 }
@@ -100,9 +100,9 @@
     gap: 12px;
     margin-top: 20px;
     padding: 15px;
-    border: 1px solid rgba(195, 93, 243, 0.2);
+    border: 1px solid rgba(240, 98, 146, 0.2);
     border-radius: 13px;
-    background: rgba(195, 93, 243, 0.07);
+    background: rgba(240, 98, 146, 0.07);
 }
 .m-publish-privacy > svg {
     margin-top: 2px;
@@ -126,7 +126,7 @@
     border: 1px solid var(--m-border);
     border-radius: 12px;
     color: #d9cfe0;
-    background: #08080d;
+    background: #0a0a0c;
     font:
         12px/1.6 ui-monospace,
         monospace;
@@ -218,7 +218,7 @@
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     border-left: 1px solid var(--m-border-strong);
-    background: #0d0d14;
+    background: #0e0e11;
     box-shadow: var(--m-shadow);
     animation: m-slide 0.22s ease;
 }
@@ -261,7 +261,7 @@
 }
 .m-settings > nav button.is-active {
     color: white;
-    background: rgba(195, 93, 243, 0.12);
+    background: rgba(240, 98, 146, 0.12);
 }
 .m-settings__body {
     overflow-y: auto;
@@ -273,7 +273,7 @@
     gap: 8px;
     padding: 12px 18px;
     border-top: 1px solid var(--m-border);
-    background: rgba(8, 8, 13, 0.9);
+    background: rgba(10, 10, 12, 0.9);
 }
 .m-settings-section {
     margin-bottom: 17px;

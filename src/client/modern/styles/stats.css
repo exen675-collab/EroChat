@@ -49,7 +49,7 @@
     border: 1px solid var(--m-border);
     border-radius: 18px;
     background:
-        linear-gradient(135deg, rgba(195, 93, 243, 0.045), transparent 80%), var(--m-surface);
+        linear-gradient(135deg, rgba(240, 98, 146, 0.045), transparent 80%), var(--m-surface);
 }
 .m-stats-meta {
     display: flex;
@@ -68,7 +68,7 @@
     place-items: center;
     border-radius: 12px;
     color: #d486f8;
-    background: rgba(195, 93, 243, 0.1);
+    background: rgba(240, 98, 146, 0.1);
 }
 .m-stat-grid strong {
     grid-column: 1;
@@ -283,7 +283,7 @@
     font-variant-numeric: tabular-nums;
     padding: 5px 9px;
     border-radius: 7px;
-    background: rgba(195, 93, 243, 0.08);
+    background: rgba(240, 98, 146, 0.08);
 }
 .m-ranking--text strong {
     max-width: 100%;
@@ -318,7 +318,7 @@
     padding: 24px;
     border: 1px dashed var(--m-border-strong);
     border-radius: 12px;
-    background: radial-gradient(ellipse at center, rgba(195, 93, 243, 0.06), transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(240, 98, 146, 0.06), transparent 70%);
     color: var(--m-muted);
     text-align: center;
     font-size: 12px;

@@ -95,16 +95,34 @@ describe('ModernApp', () => {
         expect(screen.queryByText('Default image tuning')).not.toBeInTheDocument();
     });
 
-    it('hides and restores the sidebar and opens the active character chat', async () => {
+    it('toggles the character panel and reopens chat from the characters view', async () => {
         await renderApp(<ModernApp user={user} />);
-        await userEvent.click(screen.getByRole('button', { name: 'Hide sidebar' }));
-        expect(document.querySelector('.modern-app')).toHaveClass('is-sidebar-collapsed');
-        expect(localStorage.getItem('erochat-sidebar-collapsed')).toBe('true');
-        await userEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
-        expect(document.querySelector('.modern-app')).not.toHaveClass('is-sidebar-collapsed');
+        expect(screen.getByRole('button', { name: 'Chat with Default Character' })).toHaveClass(
+            'is-active'
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Show character panel' }));
+        expect(document.querySelector('.m-chat-layout')).toHaveClass('is-panel-open');
+        expect(screen.getByRole('heading', { name: 'Default Character' })).toBeInTheDocument();
+        expect(localStorage.getItem('erochat-chat-panel')).toBe('open');
+        await userEvent.click(screen.getByRole('button', { name: 'Close character panel' }));
+        expect(document.querySelector('.m-chat-layout')).not.toHaveClass('is-panel-open');
+        expect(localStorage.getItem('erochat-chat-panel')).toBe('closed');
         await userEvent.click(screen.getAllByRole('button', { name: 'Characters' })[0]);
-        await userEvent.click(screen.getByRole('button', { name: 'Chat with Default Character' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Select Default Character' }));
         expect(screen.getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    });
+
+    it('offers suggestions and draft upgrades from the composer tools menu', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+        const menu = screen.getByRole('menu');
+        expect(within(menu).getByRole('menuitem', { name: /Suggest replies/ })).toBeEnabled();
+        expect(within(menu).getByRole('menuitem', { name: /Polish/ })).toBeDisabled();
+        await userEvent.keyboard('{Escape}');
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+        await userEvent.type(screen.getByRole('textbox', { name: 'Message' }), 'Hello');
+        await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+        expect(screen.getByRole('menuitem', { name: /Polish/ })).toBeEnabled();
     });
 
     it('uses generator assets as character thumbnails', async () => {
@@ -230,7 +248,11 @@ describe('ModernApp', () => {
 
         await userEvent.click(screen.getByRole('button', { name: /Import & chat/i }));
         await waitFor(() => expect(window.location.hash).toBe('#chat'));
-        expect(screen.getByText('Welcome, traveler.')).toBeInTheDocument();
+        expect(
+            within(document.querySelector<HTMLElement>('.m-chat__stream')!).getByText(
+                'Welcome, traveler.'
+            )
+        ).toBeInTheDocument();
 
         await waitFor(() =>
             expect(savedState?.characters.some((item: any) => item.name === 'Seraphine')).toBe(true)
@@ -605,5 +627,94 @@ describe('ModernApp', () => {
         expect(
             fetchMock.mock.calls.filter(([url]) => String(url) === '/api/admin/characters/publish')
         ).toHaveLength(1);
+    });
+    describe('chat conversation', () => {
+        function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
+            localStorage.setItem(
+                'erochat_data_user_42',
+                JSON.stringify({
+                    settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                    characters: [
+                        {
+                            id: 'nova',
+                            name: 'Nova',
+                            avatar: 'N',
+                            systemPrompt: 'You are Nova.',
+                            messages,
+                            ...extra
+                        }
+                    ],
+                    currentCharacterId: 'nova',
+                    currentView: 'chat'
+                })
+            );
+        }
+        const stream = () => document.querySelector<HTMLElement>('.m-chat__stream')!;
+
+        it('collapses messages that were archived into memory', async () => {
+            seedChat([
+                {
+                    id: 'old',
+                    role: 'user',
+                    content: 'An old line.',
+                    archivedFromModelContext: true
+                },
+                { id: 'new', role: 'assistant', content: 'A recent reply.' }
+            ]);
+            await renderApp(<ModernApp user={user} />);
+            expect(within(stream()).getByText('A recent reply.')).toBeInTheDocument();
+            expect(within(stream()).queryByText('An old line.')).not.toBeInTheDocument();
+            await userEvent.click(
+                screen.getByRole('button', { name: /1 earlier message is summarized in memory/ })
+            );
+            expect(within(stream()).getByText('An old line.')).toBeInTheDocument();
+        });
+
+        it('starts an empty chat with the character greeting', async () => {
+            seedChat([], { greeting: 'Hello from Nova.' });
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Start with greeting' }));
+            expect(within(stream()).getByText('Hello from Nova.')).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Start with greeting' })
+            ).not.toBeInTheDocument();
+        });
+
+        it('regenerates the last reply to the latest user message', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Say something.' },
+                { id: 'a1', role: 'assistant', content: 'First attempt.' }
+            ]);
+            const chatBodies: any[] = [];
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                    const url = String(input);
+                    if (url.includes('openrouter.ai')) {
+                        chatBodies.push(JSON.parse(String(init?.body)));
+                        return new Response(
+                            JSON.stringify({
+                                choices: [{ message: { content: 'Second attempt.' } }]
+                            })
+                        );
+                    }
+                    if (url.includes('/api/generator/jobs')) {
+                        return new Response(JSON.stringify({ jobs: [] }));
+                    }
+                    if (url.includes('/api/generator/assets')) {
+                        return new Response(JSON.stringify({ assets: [] }));
+                    }
+                    return new Response(JSON.stringify({}));
+                })
+            );
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+            expect(await within(stream()).findByText('Second attempt.')).toBeInTheDocument();
+            expect(within(stream()).queryByText('First attempt.')).not.toBeInTheDocument();
+            expect(within(stream()).getByText('Say something.')).toBeInTheDocument();
+            const sent = chatBodies[0].messages.map((message: any) => message.content).join('\n');
+            expect(sent).toContain('Say something.');
+            expect(sent).not.toContain('First attempt.');
+        });
     });
 });
