@@ -363,7 +363,8 @@ export function useModernController(user: BootstrapUser) {
             character: ModernCharacter,
             history: ModernMessage[],
             content: string,
-            assistant: ModernMessage
+            assistant: ModernMessage,
+            previousReplies: ModernMessage[] = []
         ) => {
             const characterId = character.id;
             const abort = new AbortController();
@@ -416,8 +417,8 @@ export function useModernController(user: BootstrapUser) {
                         item.id === characterId
                             ? {
                                   ...item,
-                                  messages: item.messages.filter(
-                                      (message) => message.id !== assistant.id
+                                  messages: item.messages.flatMap((message) =>
+                                      message.id === assistant.id ? previousReplies : [message]
                                   )
                               }
                             : item
@@ -492,7 +493,8 @@ export function useModernController(user: BootstrapUser) {
             currentCharacter,
             messages.slice(0, userIndex),
             messages[userIndex].content,
-            assistant
+            assistant,
+            messages.slice(userIndex + 1)
         );
     }, [busy, currentCharacter, messages, streamReply]);
 

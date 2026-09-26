@@ -227,7 +227,7 @@ function MessageItem({
                     <button
                         aria-label="Regenerate scene image"
                         title={message.imageUrl ? 'Regenerate scene image' : 'Generate scene image'}
-                        disabled={controller.busy === `image:${message.id}` || mediaPending}
+                        disabled={Boolean(controller.busy) || mediaPending}
                         onClick={() => void controller.regenerateMessageImage(message.id)}
                     >
                         <ImagePlus size={15} />
@@ -272,7 +272,7 @@ function MemoryNotice({ controller }: { controller: ModernController }) {
                     <div>
                         <Button
                             onClick={() => void controller.compressMemory()}
-                            disabled={controller.busy === 'memory'}
+                            disabled={Boolean(controller.busy)}
                         >
                             {controller.busy === 'memory' ? (
                                 <LoaderCircle className="spin" size={16} />
@@ -371,7 +371,11 @@ function ChatPane({
     onBack: () => void;
     onLightbox: (url: string, video?: boolean) => void;
 }) {
-    const [draft, setDraft] = useState('');
+    const [drafts, setDrafts] = useState<Record<string, string>>({});
+    const characterId = controller.currentCharacter?.id || '';
+    const draft = drafts[characterId] || '';
+    const setDraft = (value: string) =>
+        setDrafts((current) => ({ ...current, [characterId]: value }));
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [preview, setPreview] = useState<any>(null);
     const [editing, setEditing] = useState<ModernMessage | null>(null);
@@ -445,7 +449,7 @@ function ChatPane({
         const shortcut = (event: KeyboardEvent) => {
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
                 event.preventDefault();
-                if (controller.busy !== 'suggestions') void suggest();
+                if (!controller.busy) void suggest();
             }
         };
         document.addEventListener('keydown', shortcut);
@@ -454,10 +458,11 @@ function ChatPane({
 
     async function submit() {
         followBottom.current = true;
-        if (await controller.sendMessage(draft)) {
-            setDraft('');
-            setSuggestions([]);
-        }
+        if (!draft.trim() || controller.busy || !controller.currentCharacter) return;
+        const pending = controller.sendMessage(draft);
+        setDraft('');
+        setSuggestions([]);
+        await pending;
     }
     async function upgrade(mode: string) {
         setMenuOpen(false);
@@ -577,7 +582,7 @@ function ChatPane({
                                 )}
                                 <button
                                     className="m-btn"
-                                    disabled={controller.busy === 'suggestions'}
+                                    disabled={Boolean(controller.busy)}
                                     onClick={() => void suggest()}
                                 >
                                     {controller.busy === 'suggestions' ? (
@@ -704,7 +709,7 @@ function ChatPane({
                             <div className="m-menu" role="menu">
                                 <button
                                     role="menuitem"
-                                    disabled={controller.busy === 'suggestions'}
+                                    disabled={Boolean(controller.busy)}
                                     onClick={() => void suggest()}
                                 >
                                     <Lightbulb size={16} /> Suggest replies <small>Ctrl J</small>
@@ -714,7 +719,7 @@ function ChatPane({
                                     <button
                                         key={mode}
                                         role="menuitem"
-                                        disabled={!draft.trim() || controller.busy === 'upgrade'}
+                                        disabled={!draft.trim() || Boolean(controller.busy)}
                                         onClick={() => void upgrade(mode)}
                                     >
                                         <WandSparkles size={16} /> {label}
@@ -723,7 +728,7 @@ function ChatPane({
                                 <hr />
                                 <button
                                     role="menuitem"
-                                    disabled={controller.busy === 'memory' || active === 0}
+                                    disabled={Boolean(controller.busy) || active === 0}
                                     onClick={() => {
                                         setMenuOpen(false);
                                         void controller.compressMemory();
@@ -753,7 +758,11 @@ function ChatPane({
                         style={{ maxHeight: maxComposerHeight }}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={(event) => {
-                            if (event.key === 'Enter' && !event.shiftKey) {
+                            if (
+                                event.key === 'Enter' &&
+                                !event.shiftKey &&
+                                !event.nativeEvent.isComposing
+                            ) {
                                 event.preventDefault();
                                 void submit();
                             }
@@ -773,7 +782,7 @@ function ChatPane({
                             className="m-send"
                             aria-label="Send"
                             onClick={() => void submit()}
-                            disabled={!draft.trim()}
+                            disabled={!draft.trim() || Boolean(controller.busy)}
                         >
                             <ArrowUp size={18} />
                         </button>

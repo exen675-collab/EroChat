@@ -139,7 +139,7 @@ export function CharacterPanel({
                 <div className="m-panel__label">
                     Memory
                     <button
-                        disabled={controller.busy === 'memory' || active === 0}
+                        disabled={Boolean(controller.busy) || active === 0}
                         onClick={() => void controller.compressMemory()}
                     >
                         {controller.busy === 'memory' && (
