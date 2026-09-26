@@ -3,273 +3,1486 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>EroChat Login</title>
+        <title>Wink — AI characters that remember you</title>
+        <meta
+            name="description"
+            content="Wink is an AI character chat workspace: custom characters, long-term memory, and image generation."
+        />
         <link rel="icon" type="image/png" href="/favicon.png" />
-        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap"
+        />
         <style>
+            /* Tokens mirror src/client/modern/styles/foundation.css */
+            :root {
+                color-scheme: dark;
+                --m-bg: #0a0a0c;
+                --m-surface: #111114;
+                --m-surface-2: #17171b;
+                --m-surface-3: #1f1f25;
+                --m-border: rgba(255, 255, 255, 0.07);
+                --m-border-strong: rgba(255, 255, 255, 0.12);
+                --m-text: #ececf1;
+                --m-muted: #a1a1ac;
+                --m-faint: #6b6b76;
+                --m-accent: #f06292;
+                --m-accent-soft: color-mix(in oklab, var(--m-accent) 16%, transparent);
+                --m-accent-text: color-mix(in oklab, var(--m-accent) 70%, white);
+                --m-success: #5fd4a0;
+                --m-danger: #f2748b;
+                --m-r-md: 12px;
+                --m-r-lg: 16px;
+                --m-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+                --m-font-ui: 'Inter', system-ui, sans-serif;
+                --m-font-prose: 'Newsreader', Georgia, serif;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            html {
+                scroll-behavior: smooth;
+                scroll-padding-top: 76px;
+            }
             body {
-                background:
-                    radial-gradient(
-                        circle at 12% 18%,
-                        rgba(244, 114, 182, 0.22),
-                        transparent 28rem
-                    ),
-                    radial-gradient(circle at 78% 8%, rgba(34, 211, 238, 0.18), transparent 26rem),
-                    linear-gradient(135deg, #120918 0%, #111827 45%, #0b1020 100%);
+                margin: 0;
+                color: var(--m-text);
+                background: var(--m-bg);
+                font-family: var(--m-font-ui);
+                font-size: 14px;
+                line-height: 1.5;
+                -webkit-font-smoothing: antialiased;
+            }
+            h1,
+            h2,
+            h3,
+            p {
+                margin: 0;
+            }
+            h1,
+            h2,
+            h3 {
+                letter-spacing: -0.01em;
+            }
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+            button,
+            input {
+                margin: 0;
+                font: inherit;
+                color: inherit;
+            }
+            button {
+                padding: 0;
+                border: 0;
+                background: none;
+                cursor: pointer;
+            }
+            svg {
+                display: block;
+            }
+            button:focus-visible,
+            a:focus-visible,
+            input:focus-visible,
+            summary:focus-visible {
+                outline: 2px solid var(--m-accent);
+                outline-offset: 2px;
+            }
+            .hidden {
+                display: none !important;
             }
 
-            .glass-panel {
-                box-shadow:
-                    0 24px 80px rgba(0, 0, 0, 0.42),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            .wrap {
+                width: 100%;
+                max-width: 1160px;
+                margin: 0 auto;
+                padding-inline: 24px;
+            }
+            .m-eyebrow {
+                color: var(--m-faint);
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+            }
+            .m-eyebrow--accent {
+                color: var(--m-accent-text);
             }
 
-            .anime-panel {
-                background-image:
-                    linear-gradient(90deg, rgba(12, 15, 30, 0.7), rgba(12, 15, 30, 0.36)),
-                    url('/anime_login.png');
-                background-position: center;
-                background-size: cover;
+            /* Buttons (same as .m-button in shell-ui.css) */
+            .m-button {
+                min-height: 42px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 0 15px;
+                border: 1px solid var(--m-border);
+                border-radius: 10px;
+                background: var(--m-surface-3);
+                color: var(--m-text);
+                font-size: 13px;
+                font-weight: 500;
+                transition: 0.18s ease;
+            }
+            .m-button:hover:not(:disabled) {
+                border-color: var(--m-border-strong);
+                background: #26262d;
+            }
+            .m-button:disabled {
+                opacity: 0.48;
+                cursor: wait;
+            }
+            .m-button--primary {
+                border-color: transparent;
+                color: #111;
+                background: var(--m-accent);
+                font-weight: 600;
+            }
+            .m-button--primary:hover:not(:disabled) {
+                background: var(--m-accent);
+                filter: brightness(1.08);
+            }
+            .m-button--ghost {
+                border-color: transparent;
+                color: var(--m-muted);
+                background: transparent;
+            }
+            .m-button--ghost:hover:not(:disabled) {
+                color: var(--m-text);
+                background: var(--m-surface-2);
+            }
+            .m-button--block {
+                width: 100%;
+            }
+
+            /* Header */
+            .top {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                border-bottom: 1px solid var(--m-border);
+                background: rgba(10, 10, 12, 0.82);
+                backdrop-filter: blur(20px);
+            }
+            .top .wrap {
+                height: 60px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 16px;
+                font-weight: 700;
+            }
+            .brand img {
+                width: 30px;
+                height: 30px;
+                border-radius: 9px;
+                object-fit: cover;
+            }
+            .tag {
+                padding: 2px 7px;
+                border: 1px solid var(--m-border-strong);
+                border-radius: 999px;
+                color: var(--m-muted);
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            .top nav {
+                display: flex;
+                gap: 4px;
+            }
+            .top nav a {
+                padding: 7px 12px;
+                border-radius: 8px;
+                color: var(--m-muted);
+                font-size: 13px;
+                font-weight: 500;
+                transition:
+                    color 0.15s,
+                    background 0.15s;
+            }
+            .top nav a:hover {
+                color: var(--m-text);
+                background: var(--m-surface-2);
+            }
+            .top__actions {
+                display: flex;
+                gap: 6px;
+            }
+            .top__actions .m-button {
+                min-height: 36px;
+            }
+
+            section {
+                padding: 88px 0;
+            }
+            section + section {
+                border-top: 1px solid var(--m-border);
+            }
+            .section-head {
+                max-width: 620px;
+                margin-bottom: 40px;
+            }
+            .section-head h2 {
+                margin-top: 10px;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.15;
+            }
+            .section-head p {
+                margin-top: 12px;
+                color: var(--m-muted);
+                font-size: 16px;
+            }
+            .section-head--center {
+                margin-inline: auto;
+                text-align: center;
+            }
+
+            /* Hero */
+            .hero {
+                display: grid;
+                grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+                align-items: center;
+                gap: 64px;
+                padding: 72px 0 88px;
+            }
+            .pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 5px 11px;
+                border: 1px solid var(--m-border);
+                border-radius: 999px;
+                color: var(--m-muted);
+                background: var(--m-surface);
+                font-size: 12px;
+                font-weight: 500;
+            }
+            .dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--m-success);
+            }
+            .hero h1 {
+                margin-top: 22px;
+                font-size: 54px;
+                font-weight: 700;
+                line-height: 1.04;
+                letter-spacing: -0.03em;
+            }
+            .hero h1 em {
+                color: var(--m-accent);
+                font-family: var(--m-font-prose);
+                font-weight: 400;
+                letter-spacing: -0.01em;
+            }
+            .hero__lead {
+                max-width: 520px;
+                margin-top: 20px;
+                color: var(--m-muted);
+                font-size: 17px;
+                line-height: 1.6;
+            }
+            .hero__cta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 28px;
+            }
+            .stats {
+                display: flex;
+                gap: 36px;
+                margin-top: 40px;
+            }
+            .stats strong {
+                display: block;
+                margin-top: 4px;
+                font-size: 22px;
+                font-weight: 700;
+            }
+
+            /* Auth card */
+            .panel {
+                border: 1px solid var(--m-border);
+                border-radius: 20px;
+                background: var(--m-surface);
+                box-shadow: var(--m-shadow);
+            }
+            .auth {
+                padding: 8px;
+            }
+            .tabs {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 4px;
+                padding: 4px;
+                border-radius: 14px;
+                background: var(--m-surface-2);
+            }
+            .tabs button {
+                min-height: 38px;
+                border-radius: 10px;
+                color: var(--m-faint);
+                font-size: 13px;
+                font-weight: 600;
+                transition:
+                    color 0.15s,
+                    background 0.15s;
+            }
+            .tabs button:hover {
+                color: var(--m-text);
+            }
+            .tabs button.is-active {
+                color: var(--m-text);
+                background: var(--m-surface-3);
+                box-shadow: inset 0 0 0 1px var(--m-border-strong);
+            }
+            .auth__body {
+                padding: 24px 20px 20px;
+            }
+            .auth__body h2 {
+                margin-top: 8px;
+                font-size: 24px;
+                font-weight: 700;
+            }
+            .auth__copy {
+                margin-top: 6px;
+                color: var(--m-muted);
+                font-size: 13px;
+            }
+            .notice {
+                margin-top: 14px;
+                padding: 9px 12px;
+                border: 1px solid color-mix(in oklab, var(--m-accent) 28%, transparent);
+                border-radius: 10px;
+                color: var(--m-accent-text);
+                background: var(--m-accent-soft);
+                font-size: 12px;
+            }
+            form {
+                display: grid;
+                gap: 14px;
+                margin-top: 22px;
+            }
+            .m-field {
+                display: grid;
+                gap: 7px;
+                font-size: 12px;
+            }
+            .m-field > span {
+                color: var(--m-muted);
+                font-weight: 600;
+            }
+            .m-field input {
+                width: 100%;
+                min-height: 43px;
+                padding: 9px 11px;
+                border: 1px solid var(--m-border);
+                border-radius: 10px;
+                color: var(--m-text);
+                background: #0e0e11;
+                font-size: 14px;
+                outline: none;
+            }
+            .m-field input::placeholder {
+                color: var(--m-faint);
+            }
+            .m-field input:focus {
+                border-color: rgba(240, 98, 146, 0.5);
+                box-shadow: 0 0 0 3px rgba(240, 98, 146, 0.08);
+            }
+            .m-field small {
+                color: var(--m-faint);
+            }
+            .password {
+                position: relative;
+            }
+            .password input {
+                padding-right: 64px;
+            }
+            .password-toggle {
+                position: absolute;
+                top: 50%;
+                right: 6px;
+                transform: translateY(-50%);
+                padding: 6px 9px;
+                border-radius: 7px;
+                color: var(--m-muted);
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .password-toggle:hover {
+                color: var(--m-text);
+                background: var(--m-surface-3);
+            }
+            form .m-button {
+                margin-top: 4px;
+            }
+            .legal {
+                margin-top: 16px;
+                color: var(--m-faint);
+                font-size: 11px;
+                text-align: center;
+            }
+
+            /* Features */
+            .grid-3 {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 14px;
+            }
+            .feature {
+                padding: 22px;
+                border: 1px solid var(--m-border);
+                border-radius: var(--m-r-lg);
+                background: var(--m-surface);
+                transition: border-color 0.18s;
+            }
+            .feature:hover {
+                border-color: var(--m-border-strong);
+            }
+            .icon {
+                width: 38px;
+                height: 38px;
+                display: grid;
+                place-items: center;
+                margin-bottom: 18px;
+                border: 1px solid var(--m-border);
+                border-radius: var(--m-r-md);
+                color: var(--m-accent);
+                background: var(--m-surface-2);
+            }
+            .feature h3 {
+                font-size: 15px;
+                font-weight: 600;
+            }
+            .feature p {
+                margin-top: 6px;
+                color: var(--m-muted);
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            /* How it works */
+            .how {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                align-items: center;
+                gap: 56px;
+            }
+            .steps {
+                display: grid;
+                gap: 22px;
+                margin: 32px 0 0;
+                padding: 0;
+                list-style: none;
+            }
+            .steps li {
+                display: flex;
+                gap: 14px;
+            }
+            .step-num {
+                width: 30px;
+                height: 30px;
+                flex: 0 0 auto;
+                display: grid;
+                place-items: center;
+                border: 1px solid var(--m-border-strong);
+                border-radius: 9px;
+                background: var(--m-surface-2);
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .steps h3 {
+                font-size: 15px;
+                font-weight: 600;
+            }
+            .steps p {
+                margin-top: 3px;
+                color: var(--m-muted);
+                font-size: 13px;
+            }
+
+            /* Chat preview mirrors chat.css */
+            .preview {
+                overflow: hidden;
+            }
+            .preview__bar {
+                display: flex;
+                align-items: center;
+                gap: 11px;
+                padding: 14px 18px;
+                border-bottom: 1px solid var(--m-border);
+            }
+            .avatar {
+                width: 34px;
+                height: 34px;
+                display: grid;
+                place-items: center;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 11px;
+                background: linear-gradient(135deg, #3a2130, #1f1f25);
+                color: var(--m-accent-text);
+                font-weight: 600;
+            }
+            .preview__bar strong {
+                display: block;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            .preview__bar small {
+                color: var(--m-faint);
+                font-size: 12px;
+            }
+            .preview__mem {
+                margin-left: auto;
+                padding: 4px 9px;
+                border: 1px solid var(--m-border);
+                border-radius: 999px;
+                color: var(--m-muted);
+                font-size: 11px;
+            }
+            .preview__body {
+                display: grid;
+                gap: 22px;
+                padding: 24px 22px;
+            }
+            .m-prose {
+                color: #e7e3ea;
+                font-family: var(--m-font-prose);
+                font-size: 17px;
+                line-height: 1.65;
+            }
+            .m-prose em {
+                color: var(--m-muted);
+            }
+            .m-bubble {
+                max-width: 78%;
+                justify-self: end;
+                padding: 10px 15px;
+                border: 1px solid var(--m-border);
+                border-radius: 18px 18px 6px 18px;
+                background: var(--m-surface-3);
+                font-size: 14px;
+            }
+            .m-composer {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 0 16px 16px;
+                padding: 8px 8px 8px 14px;
+                border: 1px solid var(--m-border-strong);
+                border-radius: 20px;
+                background: var(--m-surface-2);
+                color: var(--m-faint);
+            }
+            .m-composer > span:first-child {
+                flex: 1;
+            }
+            .send {
+                width: 34px;
+                height: 34px;
+                display: grid;
+                place-items: center;
+                border-radius: 12px;
+                color: #111;
+                background: var(--m-accent);
+            }
+
+            /* Pricing */
+            .segmented {
+                display: inline-flex;
+                gap: 4px;
+                margin-top: 22px;
+                padding: 4px;
+                border: 1px solid var(--m-border);
+                border-radius: 12px;
+                background: var(--m-surface);
+            }
+            .segmented button {
+                min-height: 34px;
+                padding: 0 14px;
+                border-radius: 9px;
+                color: var(--m-faint);
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .segmented button.is-active {
+                color: var(--m-text);
+                background: var(--m-surface-3);
+            }
+            .save {
+                color: var(--m-success);
+            }
+            .plan {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                padding: 26px;
+                border: 1px solid var(--m-border);
+                border-radius: 18px;
+                background: var(--m-surface);
+            }
+            .plan--featured {
+                border-color: color-mix(in oklab, var(--m-accent) 55%, transparent);
+                box-shadow: 0 0 0 4px var(--m-accent-soft);
+            }
+            .plan__badge {
+                position: absolute;
+                top: -11px;
+                left: 26px;
+                padding: 3px 9px;
+                border-radius: 999px;
+                color: #111;
+                background: var(--m-accent);
+                font-size: 11px;
+                font-weight: 700;
+            }
+            .plan h3 {
+                font-size: 17px;
+                font-weight: 600;
+            }
+            .plan__tag {
+                margin-top: 2px;
+                color: var(--m-faint);
+                font-size: 13px;
+            }
+            .price {
+                display: flex;
+                align-items: baseline;
+                gap: 4px;
+                margin-top: 22px;
+            }
+            .price strong {
+                font-size: 40px;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                font-variant-numeric: tabular-nums;
+            }
+            .price > span {
+                color: var(--m-faint);
+                font-size: 13px;
+            }
+            .plan-note {
+                height: 16px;
+                color: var(--m-faint);
+                font-size: 12px;
+            }
+            .plan ul {
+                flex: 1;
+                display: grid;
+                align-content: start;
+                gap: 10px;
+                margin: 22px 0 26px;
+                padding: 22px 0 0;
+                border-top: 1px solid var(--m-border);
+                list-style: none;
+                color: var(--m-muted);
+                font-size: 13px;
+            }
+            .plan li {
+                display: flex;
+                gap: 10px;
+            }
+            .plan li svg {
+                flex: 0 0 auto;
+                margin-top: 2px;
+                color: var(--m-accent);
+            }
+            .fine {
+                margin-top: 24px;
+                color: var(--m-faint);
+                font-size: 12px;
+                text-align: center;
+            }
+
+            /* FAQ */
+            .faq {
+                max-width: 720px;
+                display: grid;
+                gap: 8px;
+                margin: 0 auto;
+            }
+            details {
+                border: 1px solid var(--m-border);
+                border-radius: var(--m-r-md);
+                background: var(--m-surface);
+            }
+            summary {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 15px 18px;
+                font-size: 14px;
+                font-weight: 600;
+                list-style: none;
+                cursor: pointer;
+            }
+            summary::-webkit-details-marker {
+                display: none;
+            }
+            summary svg {
+                color: var(--m-faint);
+                transition: transform 0.18s;
+            }
+            details[open] summary svg {
+                transform: rotate(45deg);
+            }
+            details p {
+                padding: 0 18px 16px;
+                color: var(--m-muted);
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            footer {
+                border-top: 1px solid var(--m-border);
+            }
+            footer .wrap {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding-block: 26px;
+                color: var(--m-faint);
+                font-size: 12px;
+            }
+            footer nav {
+                display: flex;
+                gap: 20px;
+            }
+            footer a:hover {
+                color: var(--m-text);
+            }
+
+            /* Toast (matches app toasts) */
+            .toast {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                z-index: 50;
+                width: calc(100% - 32px);
+                max-width: 420px;
+                padding: 12px 14px;
+                border: 1px solid var(--m-border-strong);
+                border-radius: 12px;
+                background: var(--m-surface-3);
+                box-shadow: var(--m-shadow);
+                font-size: 13px;
+                transform: translateX(-50%);
+            }
+            .toast.is-error {
+                border-color: rgba(242, 116, 139, 0.35);
+                color: #ffb3c0;
+            }
+
+            @media (max-width: 960px) {
+                .top nav {
+                    display: none;
+                }
+                .hero,
+                .how {
+                    grid-template-columns: 1fr;
+                    gap: 44px;
+                }
+                .hero {
+                    padding-top: 48px;
+                }
+                .hero h1 {
+                    font-size: 42px;
+                }
+                .grid-3 {
+                    grid-template-columns: 1fr;
+                }
+                section {
+                    padding: 64px 0;
+                }
+            }
+            @media (max-width: 480px) {
+                .wrap {
+                    padding-inline: 16px;
+                }
+                .hero h1 {
+                    font-size: 36px;
+                }
+                .stats {
+                    gap: 24px;
+                }
+                .top__actions .m-button--ghost {
+                    display: none;
+                }
             }
         </style>
     </head>
-    <body class="min-h-screen overflow-x-hidden text-white antialiased">
-        <main
-            class="mx-auto flex min-h-screen w-full max-w-7xl items-center px-5 py-8 sm:px-8 lg:px-10"
-        >
-            <div
-                class="glass-panel grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.07] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]"
+    <body>
+        <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+            <symbol
+                id="i-check"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
             >
-                <section
-                    class="anime-panel relative hidden min-h-[760px] overflow-hidden p-10 lg:block"
-                >
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-black/25"
-                    ></div>
-                    <div class="relative z-10 flex h-full flex-col">
-                        <div>
-                            <div class="mb-10 flex items-center gap-3">
-                                <img
-                                    src="/favicon.png"
-                                    alt="EroChat"
-                                    class="h-12 w-12 rounded-2xl bg-white object-cover p-1 shadow-lg shadow-black/20"
-                                />
-                                <div>
-                                    <p class="text-lg font-semibold tracking-wide">EroChat</p>
-                                    <p class="text-sm text-slate-300">Private AI companions</p>
-                                </div>
-                            </div>
+                <path d="M20 6 9 17l-5-5" />
+            </symbol>
+            <symbol
+                id="i-plus"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M5 12h14M12 5v14" />
+            </symbol>
+        </svg>
 
-                            <h1 class="max-w-xl text-5xl font-black leading-[1.02] text-white">
-                                Step back into your conversations.
-                            </h1>
-                            <ul class="mt-6 max-w-lg space-y-3 text-base leading-7 text-slate-200">
-                                <li class="flex gap-3">
-                                    <span class="mt-3 h-2 w-2 rounded-full bg-rose-300"></span>
-                                    <span
-                                        >Chat with custom AI characters and persistent memory.</span
+        <header class="top">
+            <div class="wrap">
+                <a href="#" class="brand">
+                    <img src="/favicon.png" alt="" />
+                    Wink
+                    <span class="tag">Beta</span>
+                </a>
+                <nav aria-label="Sections">
+                    <a href="#features">Features</a>
+                    <a href="#how">How it works</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#faq">FAQ</a>
+                </nav>
+                <div class="top__actions">
+                    <a href="#auth" class="m-button m-button--ghost" data-open-tab="login"
+                        >Log in</a
+                    >
+                    <a href="#auth" class="m-button m-button--primary" data-open-tab="signup"
+                        >Start free</a
+                    >
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="wrap hero">
+                <div>
+                    <span class="pill"><span class="dot"></span>Open beta · free to join</span>
+                    <h1>Characters that <em>remember</em> you.</h1>
+                    <p class="hero__lead">
+                        Wink is an AI character chat workspace. Create or import characters, keep
+                        long stories consistent with memory, and illustrate any scene — from cozy
+                        slice-of-life to mature roleplay, on your terms.
+                    </p>
+                    <div class="hero__cta">
+                        <a href="#auth" class="m-button m-button--primary" data-open-tab="signup"
+                            >Create free account</a
+                        >
+                        <a href="#pricing" class="m-button">See pricing</a>
+                    </div>
+                    <div class="stats">
+                        <div>
+                            <span class="m-eyebrow">Models</span>
+                            <strong>50+</strong>
+                        </div>
+                        <div>
+                            <span class="m-eyebrow">Card import</span>
+                            <strong>V2</strong>
+                        </div>
+                        <div>
+                            <span class="m-eyebrow">Ads</span>
+                            <strong>None</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="auth" class="panel auth">
+                    <div class="tabs" role="tablist">
+                        <button type="button" data-auth-tab="login" class="auth-tab">Log in</button>
+                        <button type="button" data-auth-tab="signup" class="auth-tab">
+                            Create account
+                        </button>
+                    </div>
+                    <div class="auth__body">
+                        <span class="m-eyebrow m-eyebrow--accent">Welcome</span>
+                        <h2 id="panelTitle">Log in</h2>
+                        <p id="panelCopy" class="auth__copy">
+                            Use your username and password to open your workspace.
+                        </p>
+                        <p id="selectedPlan" class="notice hidden"></p>
+
+                        <form id="loginForm" class="auth-form">
+                            <label class="m-field">
+                                <span>Username</span>
+                                <input
+                                    id="loginUsername"
+                                    name="username"
+                                    type="text"
+                                    required
+                                    autocomplete="username"
+                                    placeholder="your_name"
+                                />
+                            </label>
+                            <label class="m-field">
+                                <span>Password</span>
+                                <span class="password">
+                                    <input
+                                        id="loginPassword"
+                                        name="password"
+                                        type="password"
+                                        required
+                                        autocomplete="current-password"
+                                        class="password-input"
+                                        placeholder="password"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="password-toggle"
+                                        aria-label="Show password"
                                     >
+                                        Show
+                                    </button>
+                                </span>
+                            </label>
+                            <button
+                                type="submit"
+                                class="submit-button m-button m-button--primary m-button--block"
+                            >
+                                Log in
+                            </button>
+                        </form>
+
+                        <form id="signupForm" class="auth-form hidden">
+                            <label class="m-field">
+                                <span>Username</span>
+                                <input
+                                    id="signupUsername"
+                                    name="username"
+                                    type="text"
+                                    required
+                                    autocomplete="username"
+                                    minlength="3"
+                                    maxlength="24"
+                                    pattern="[A-Za-z0-9_-]+"
+                                    placeholder="choose_a_name"
+                                />
+                                <small
+                                    >3–24 characters: letters, numbers, underscore or dash.</small
+                                >
+                            </label>
+                            <label class="m-field">
+                                <span>Password</span>
+                                <span class="password">
+                                    <input
+                                        id="signupPassword"
+                                        name="password"
+                                        type="password"
+                                        required
+                                        autocomplete="new-password"
+                                        minlength="6"
+                                        class="password-input"
+                                        placeholder="at least 6 characters"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="password-toggle"
+                                        aria-label="Show password"
+                                    >
+                                        Show
+                                    </button>
+                                </span>
+                            </label>
+                            <button
+                                type="submit"
+                                class="submit-button m-button m-button--primary m-button--block"
+                            >
+                                Create account
+                            </button>
+                        </form>
+
+                        <p class="legal">
+                            By continuing you agree to the Terms of Service and Privacy Policy.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <section id="features">
+                <div class="wrap">
+                    <div class="section-head">
+                        <span class="m-eyebrow m-eyebrow--accent">What is Wink</span>
+                        <h2>One place for characters, conversations and art.</h2>
+                        <p>
+                            Built for people who want depth, continuity and control over their
+                            stories.
+                        </p>
+                    </div>
+                    <div class="grid-3">
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path
+                                        d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                                    /></svg
+                            ></span>
+                            <h3>Custom characters</h3>
+                            <p>
+                                Write personality, scenario and greeting — or import Character Card
+                                V2 files you already love.
+                            </p>
+                        </article>
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"
+                                    />
+                                    <path
+                                        d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"
+                                    />
+                                    <path d="M12 5v13" /></svg
+                            ></span>
+                            <h3>Long-term memory</h3>
+                            <p>
+                                Long chats are compressed into memory, so characters remember what
+                                happened days later.
+                            </p>
+                        </article>
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72M14 7l3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"
+                                    /></svg
+                            ></span>
+                            <h3>Image generation</h3>
+                            <p>
+                                Illustrate scenes mid-chat or in the Create studio, and keep
+                                everything in your gallery.
+                            </p>
+                        </article>
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z" /></svg
+                            ></span>
+                            <h3>Browse &amp; share</h3>
+                            <p>
+                                Discover community characters and publish your own with one click.
+                            </p>
+                        </article>
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M20 7h-9M14 17H5" />
+                                    <circle cx="17" cy="17" r="3" />
+                                    <circle cx="7" cy="7" r="3" /></svg
+                            ></span>
+                            <h3>Your content, your rules</h3>
+                            <p>
+                                Safe-for-work by default. Adults can opt in to mature content in
+                                settings.
+                            </p>
+                        </article>
+                        <article class="feature">
+                            <span class="icon"
+                                ><svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg
+                            ></span>
+                            <h3>Private by default</h3>
+                            <p>
+                                Your chats stay in your account. No ads and no training on your
+                                conversations.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section id="how">
+                <div class="wrap how">
+                    <div>
+                        <div class="section-head" style="margin-bottom: 0">
+                            <span class="m-eyebrow m-eyebrow--accent">How it works</span>
+                            <h2>From idea to scene in a minute.</h2>
+                        </div>
+                        <ol class="steps">
+                            <li>
+                                <span class="step-num">1</span>
+                                <div>
+                                    <h3>Create an account</h3>
+                                    <p>Username and password — no email needed during beta.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="step-num">2</span>
+                                <div>
+                                    <h3>Pick or build a character</h3>
+                                    <p>Browse the catalog, import a card, or write your own.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="step-num">3</span>
+                                <div>
+                                    <h3>Start the story</h3>
+                                    <p>
+                                        Chat, generate images, and let memory keep things
+                                        consistent.
+                                    </p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="panel preview" aria-hidden="true">
+                        <div class="preview__bar">
+                            <span class="avatar">M</span>
+                            <div>
+                                <strong>Mira</strong>
+                                <small>Café owner · Slice of life</small>
+                            </div>
+                            <span class="preview__mem">Memory · 12 notes</span>
+                        </div>
+                        <div class="preview__body">
+                            <div class="m-prose">
+                                <em>She slides a cup across the counter before you even ask.</em>
+                                “Oat latte, extra foam — same as Tuesday. So, did the interview go
+                                the way you hoped?”
+                            </div>
+                            <div class="m-bubble">I got the job! Starting Monday.</div>
+                        </div>
+                        <div class="m-composer">
+                            <span>Write a message…</span>
+                            <span class="send"
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="m5 12 7-7 7 7M12 19V5" /></svg
+                            ></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="pricing">
+                <div class="wrap">
+                    <div class="section-head section-head--center">
+                        <span class="m-eyebrow m-eyebrow--accent">Pricing</span>
+                        <h2>Start free. Upgrade when you want more.</h2>
+                        <p>Beta pricing — early members keep their rate.</p>
+                        <div class="segmented">
+                            <button type="button" class="billing-toggle" data-billing="monthly">
+                                Monthly
+                            </button>
+                            <button type="button" class="billing-toggle" data-billing="yearly">
+                                Yearly <span class="save">−20%</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid-3">
+                        <article class="plan">
+                            <h3>Free</h3>
+                            <p class="plan__tag">Try it out</p>
+                            <p class="price">
+                                <strong
+                                    >$<span class="plan-price" data-monthly="0" data-yearly="0"
+                                        >0</span
+                                    ></strong
+                                ><span>/ month</span>
+                            </p>
+                            <p class="plan-note" data-free="true"></p>
+                            <ul>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>50
+                                    messages / day
                                 </li>
-                                <li class="flex gap-3">
-                                    <span class="mt-3 h-2 w-2 rounded-full bg-cyan-300"></span>
-                                    <span
-                                        >Generate images, import character cards, and manage
-                                        media.</span
-                                    >
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>3
+                                    custom characters
                                 </li>
-                                <li class="flex gap-3">
-                                    <span class="mt-3 h-2 w-2 rounded-full bg-emerald-300"></span>
-                                    <span
-                                        >Save conversations, edit messages, and continue scenes
-                                        anytime.</span
-                                    >
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>10
+                                    images / month
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Standard models
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>Basic
+                                    memory
                                 </li>
                             </ul>
-                        </div>
+                            <a
+                                href="#auth"
+                                class="m-button m-button--block"
+                                data-open-tab="signup"
+                                data-plan="Free"
+                                >Start free</a
+                            >
+                        </article>
+                        <article class="plan plan--featured">
+                            <span class="plan__badge">Most popular</span>
+                            <h3>Plus</h3>
+                            <p class="plan__tag">For regulars</p>
+                            <p class="price">
+                                <strong
+                                    >$<span
+                                        class="plan-price"
+                                        data-monthly="9.99"
+                                        data-yearly="7.99"
+                                        >9.99</span
+                                    ></strong
+                                ><span>/ month</span>
+                            </p>
+                            <p class="plan-note"></p>
+                            <ul>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Unlimited messages
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Unlimited characters
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>200
+                                    images / month
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>Premium
+                                    models
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Extended memory
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Priority queue
+                                </li>
+                            </ul>
+                            <a
+                                href="#auth"
+                                class="m-button m-button--primary m-button--block"
+                                data-open-tab="signup"
+                                data-plan="Plus"
+                                >Choose Plus</a
+                            >
+                        </article>
+                        <article class="plan">
+                            <h3>Pro</h3>
+                            <p class="plan__tag">For power users</p>
+                            <p class="price">
+                                <strong
+                                    >$<span
+                                        class="plan-price"
+                                        data-monthly="24.99"
+                                        data-yearly="19.99"
+                                        >24.99</span
+                                    ></strong
+                                ><span>/ month</span>
+                            </p>
+                            <p class="plan-note"></p>
+                            <ul>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Everything in Plus
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>1,000
+                                    images / month
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg
+                                    >Top-tier models
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>Bring
+                                    your own API key
+                                </li>
+                                <li>
+                                    <svg width="14" height="14"><use href="#i-check" /></svg>Early
+                                    access to features
+                                </li>
+                            </ul>
+                            <a
+                                href="#auth"
+                                class="m-button m-button--block"
+                                data-open-tab="signup"
+                                data-plan="Pro"
+                                >Choose Pro</a
+                            >
+                        </article>
                     </div>
-                </section>
+                    <p class="fine">
+                        Prices in USD. Payments aren’t live yet — during beta every account runs on
+                        the Free plan.
+                    </p>
+                </div>
+            </section>
 
-                <section
-                    class="flex min-h-screen items-center justify-center p-5 sm:p-8 lg:min-h-[760px] lg:p-12"
-                >
-                    <div class="w-full max-w-md">
-                        <div class="mb-8 lg:hidden">
-                            <div class="mb-5 flex items-center gap-3">
-                                <img
-                                    src="/favicon.png"
-                                    alt="EroChat"
-                                    class="h-11 w-11 rounded-2xl bg-white object-cover p-1 shadow-lg shadow-black/20"
-                                />
-                                <div>
-                                    <p class="text-lg font-semibold">EroChat</p>
-                                    <p class="text-sm text-slate-300">Private AI companions</p>
-                                </div>
-                            </div>
-                            <h1 class="text-3xl font-black leading-tight">
-                                Step back into your conversations.
-                            </h1>
-                        </div>
-
-                        <div
-                            class="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-2 shadow-2xl"
-                        >
-                            <div class="grid grid-cols-2 rounded-[1.35rem] bg-white/[0.06] p-1">
-                                <button
-                                    type="button"
-                                    data-auth-tab="login"
-                                    class="auth-tab rounded-2xl px-4 py-3 text-sm font-bold transition"
-                                >
-                                    Log in
-                                </button>
-                                <button
-                                    type="button"
-                                    data-auth-tab="signup"
-                                    class="auth-tab rounded-2xl px-4 py-3 text-sm font-bold transition"
-                                >
-                                    Create account
-                                </button>
-                            </div>
-
-                            <div class="p-5 sm:p-7">
-                                <div class="mb-7">
-                                    <p
-                                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200"
-                                    >
-                                        Welcome
-                                    </p>
-                                    <h2 id="panelTitle" class="mt-3 text-3xl font-black text-white">
-                                        Log in
-                                    </h2>
-                                    <p id="panelCopy" class="mt-2 text-sm leading-6 text-slate-300">
-                                        Use your username and password to open your workspace.
-                                    </p>
-                                </div>
-
-                                <form id="loginForm" class="auth-form space-y-4">
-                                    <div>
-                                        <label
-                                            for="loginUsername"
-                                            class="mb-2 block text-sm font-semibold text-slate-200"
-                                        >
-                                            Username
-                                        </label>
-                                        <input
-                                            id="loginUsername"
-                                            name="username"
-                                            type="text"
-                                            required
-                                            autocomplete="username"
-                                            class="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-rose-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-rose-400/10"
-                                            placeholder="your_name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label
-                                            for="loginPassword"
-                                            class="mb-2 block text-sm font-semibold text-slate-200"
-                                        >
-                                            Password
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                id="loginPassword"
-                                                name="password"
-                                                type="password"
-                                                required
-                                                autocomplete="current-password"
-                                                class="password-input w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 pr-16 text-white outline-none transition placeholder:text-slate-500 focus:border-rose-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-rose-400/10"
-                                                placeholder="password"
-                                            />
-                                            <button
-                                                type="button"
-                                                class="password-toggle absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-                                                aria-label="Show password"
-                                            >
-                                                Show
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        class="submit-button w-full rounded-2xl bg-gradient-to-r from-rose-500 to-fuchsia-500 px-5 py-3.5 font-black text-white shadow-lg shadow-rose-950/30 transition hover:scale-[1.01] hover:from-rose-400 hover:to-fuchsia-400 focus:outline-none focus:ring-4 focus:ring-rose-300/25 active:scale-[0.99]"
-                                    >
-                                        Log in
-                                    </button>
-                                </form>
-
-                                <form id="signupForm" class="auth-form hidden space-y-4">
-                                    <div>
-                                        <label
-                                            for="signupUsername"
-                                            class="mb-2 block text-sm font-semibold text-slate-200"
-                                        >
-                                            Username
-                                        </label>
-                                        <input
-                                            id="signupUsername"
-                                            name="username"
-                                            type="text"
-                                            required
-                                            autocomplete="username"
-                                            minlength="3"
-                                            maxlength="24"
-                                            pattern="[A-Za-z0-9_-]+"
-                                            class="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-400/10"
-                                            placeholder="choose_a_name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label
-                                            for="signupPassword"
-                                            class="mb-2 block text-sm font-semibold text-slate-200"
-                                        >
-                                            Password
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                id="signupPassword"
-                                                name="password"
-                                                type="password"
-                                                required
-                                                autocomplete="new-password"
-                                                minlength="6"
-                                                class="password-input w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 pr-16 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-400/10"
-                                                placeholder="password"
-                                            />
-                                            <button
-                                                type="button"
-                                                class="password-toggle absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-                                                aria-label="Show password"
-                                            >
-                                                Show
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p
-                                        class="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.08] px-4 py-3 text-xs leading-5 text-cyan-100"
-                                    >
-                                        Use 3-24 characters for your username: letters, numbers,
-                                        underscore, or dash.
-                                    </p>
-                                    <button
-                                        type="submit"
-                                        class="submit-button w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-teal-400 px-5 py-3.5 font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:scale-[1.01] hover:from-cyan-300 hover:to-teal-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/25 active:scale-[0.99]"
-                                    >
-                                        Create account
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+            <section id="faq">
+                <div class="wrap">
+                    <div class="section-head section-head--center">
+                        <span class="m-eyebrow m-eyebrow--accent">FAQ</span>
+                        <h2>Questions</h2>
                     </div>
-                </section>
-            </div>
+                    <div class="faq">
+                        <details>
+                            <summary>
+                                Is it really free?<svg width="16" height="16">
+                                    <use href="#i-plus" />
+                                </svg>
+                            </summary>
+                            <p>
+                                Yes. The Free plan has no time limit and needs no card. Paid plans
+                                raise the limits.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Is Wink safe for work?<svg width="16" height="16">
+                                    <use href="#i-plus" />
+                                </svg>
+                            </summary>
+                            <p>
+                                By default, yes. Mature content is off until an adult (18+) turns it
+                                on in settings, and it is never shown to anyone who hasn’t opted in.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Are my chats private?<svg width="16" height="16">
+                                    <use href="#i-plus" />
+                                </svg>
+                            </summary>
+                            <p>
+                                Your conversations belong to your account. They are never shown
+                                publicly or used to train models.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Can I import characters from elsewhere?<svg width="16" height="16">
+                                    <use href="#i-plus" />
+                                </svg>
+                            </summary>
+                            <p>
+                                Yes — Character Card V2 files (PNG or JSON) import out of the box.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Can I cancel anytime?<svg width="16" height="16">
+                                    <use href="#i-plus" />
+                                </svg>
+                            </summary>
+                            <p>
+                                Once billing launches, yes. Cancel in one click and keep access
+                                until the end of the period.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
         </main>
 
-        <div
-            id="authMessage"
-            role="status"
-            class="fixed bottom-5 left-1/2 z-50 hidden w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border bg-slate-950/95 px-4 py-3 text-sm shadow-2xl backdrop-blur"
-        ></div>
+        <footer>
+            <div class="wrap">
+                <span>© 2026 Wink · Mature content is 18+ and opt-in</span>
+                <nav>
+                    <a href="#">Terms</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Contact</a>
+                </nav>
+            </div>
+        </footer>
+
+        <div id="authMessage" role="status" class="toast hidden"></div>
 
         <script>
             const loginForm = document.getElementById('loginForm');
@@ -278,6 +1491,7 @@
             const tabs = Array.from(document.querySelectorAll('.auth-tab'));
             const panelTitle = document.getElementById('panelTitle');
             const panelCopy = document.getElementById('panelCopy');
+            const selectedPlan = document.getElementById('selectedPlan');
 
             const panelContent = {
                 login: {
@@ -296,28 +1510,16 @@
                 signupForm.classList.toggle('hidden', !isSignup);
                 panelTitle.textContent = panelContent[activeTab].title;
                 panelCopy.textContent = panelContent[activeTab].copy;
-
                 tabs.forEach((tab) => {
-                    const selected = tab.dataset.authTab === activeTab;
-                    tab.classList.toggle('bg-white', selected);
-                    tab.classList.toggle('text-slate-950', selected);
-                    tab.classList.toggle('shadow-lg', selected);
-                    tab.classList.toggle('text-slate-300', !selected);
-                    tab.classList.toggle('hover:text-white', !selected);
+                    tab.classList.toggle('is-active', tab.dataset.authTab === activeTab);
                 });
-
                 authMessage.classList.add('hidden');
             }
 
             function showMessage(text, isError) {
                 authMessage.textContent = text;
                 authMessage.classList.remove('hidden');
-                authMessage.classList.toggle('text-red-100', Boolean(isError));
-                authMessage.classList.toggle('border-red-400/30', Boolean(isError));
-                authMessage.classList.toggle('bg-red-950/90', Boolean(isError));
-                authMessage.classList.toggle('text-emerald-100', !isError);
-                authMessage.classList.toggle('border-emerald-400/30', !isError);
-                authMessage.classList.toggle('bg-emerald-950/90', !isError);
+                authMessage.classList.toggle('is-error', Boolean(isError));
             }
 
             function setLoading(form, isLoading) {
@@ -327,8 +1529,6 @@
                 button.dataset.originalText =
                     button.dataset.originalText || button.textContent.trim();
                 button.textContent = isLoading ? 'Please wait...' : button.dataset.originalText;
-                button.classList.toggle('cursor-wait', isLoading);
-                button.classList.toggle('opacity-75', isLoading);
             }
 
             async function postAuth(url, payload) {
@@ -343,6 +1543,25 @@
                     throw new Error(data.error || 'Request failed.');
                 }
                 return data;
+            }
+
+            function bindAuthForm(form, url) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const username = String(formData.get('username') || '').trim();
+                    const password = String(formData.get('password') || '');
+
+                    try {
+                        setLoading(form, true);
+                        await postAuth(url, { username, password });
+                        window.location.href = '/app/';
+                    } catch (error) {
+                        showMessage(error.message, true);
+                    } finally {
+                        setLoading(form, false);
+                    }
+                });
             }
 
             tabs.forEach((tab) => {
@@ -362,40 +1581,39 @@
                 });
             });
 
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(loginForm);
-                const username = String(formData.get('username') || '').trim();
-                const password = String(formData.get('password') || '');
-
-                try {
-                    setLoading(loginForm, true);
-                    await postAuth('/api/auth/login', { username, password });
-                    window.location.href = '/app/';
-                } catch (error) {
-                    showMessage(error.message, true);
-                } finally {
-                    setLoading(loginForm, false);
-                }
+            document.querySelectorAll('[data-open-tab]').forEach((link) => {
+                link.addEventListener('click', () => {
+                    setActiveTab(link.dataset.openTab);
+                    const plan = link.dataset.plan;
+                    selectedPlan.classList.toggle('hidden', !plan || plan === 'Free');
+                    if (plan && plan !== 'Free') {
+                        selectedPlan.textContent = `${plan} selected — billing opens after beta, you start on Free for now.`;
+                    }
+                });
             });
 
-            signupForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(signupForm);
-                const username = String(formData.get('username') || '').trim();
-                const password = String(formData.get('password') || '');
+            const billingButtons = Array.from(document.querySelectorAll('.billing-toggle'));
 
-                try {
-                    setLoading(signupForm, true);
-                    await postAuth('/api/auth/signup', { username, password });
-                    window.location.href = '/app/';
-                } catch (error) {
-                    showMessage(error.message, true);
-                } finally {
-                    setLoading(signupForm, false);
-                }
+            function setBilling(period) {
+                billingButtons.forEach((button) => {
+                    button.classList.toggle('is-active', button.dataset.billing === period);
+                });
+                document.querySelectorAll('.plan-price').forEach((price) => {
+                    price.textContent = price.dataset[period];
+                });
+                document.querySelectorAll('.plan-note').forEach((note) => {
+                    note.textContent =
+                        period === 'yearly' && note.dataset.free !== 'true' ? 'billed yearly' : '';
+                });
+            }
+
+            billingButtons.forEach((button) => {
+                button.addEventListener('click', () => setBilling(button.dataset.billing));
             });
 
+            bindAuthForm(loginForm, '/api/auth/login');
+            bindAuthForm(signupForm, '/api/auth/signup');
+            setBilling('monthly');
             setActiveTab('login');
         </script>
     </body>

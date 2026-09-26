@@ -1537,7 +1537,7 @@ app.post('/api/admin/characters/generate', requireApiAuth, requireAdmin, async (
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiKey}`,
-                'X-Title': 'EroChat'
+                'X-Title': 'Wink'
             },
             body: JSON.stringify({
                 model,
@@ -2142,7 +2142,7 @@ initDb()
             const address = server.address();
             const listeningPort =
                 address && typeof address === 'object' && address.port ? address.port : PORT;
-            console.log(`EroChat server listening on http://localhost:${listeningPort}`);
+            console.log(`Wink server listening on http://localhost:${listeningPort}`);
         });
     })
     .catch((error) => {

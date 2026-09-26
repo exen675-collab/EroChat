@@ -123,7 +123,7 @@ if (require.main === module) {
         if (error.code === 'EADDRINUSE') {
             if (await isGrokBridgeRunning(host, port, token)) {
                 console.log(
-                    `Grok host bridge is already running on port ${port}. You can use EroChat; no second instance is needed.`
+                    `Grok host bridge is already running on port ${port}. You can use Wink; no second instance is needed.`
                 );
                 return;
             }

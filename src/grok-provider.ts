@@ -153,7 +153,7 @@ export async function runGrokChat(body: unknown, signal?: AbortSignal): Promise<
                         if (code === 'ENOENT')
                             return reject(
                                 new GrokProviderError(
-                                    'Grok Build is not installed on the EroChat server. For Docker, start the Grok host bridge on your PC (see README). Otherwise install Grok and run grok login.'
+                                    'Grok Build is not installed on the Wink server. For Docker, start the Grok host bridge on your PC (see README). Otherwise install Grok and run grok login.'
                                 )
                             );
                         if (signal?.aborted)

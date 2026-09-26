@@ -58,7 +58,7 @@ export function Modal({
             >
                 <header className="m-modal__header">
                     <div>
-                        <span className="m-eyebrow">EroChat Studio</span>
+                        <span className="m-eyebrow">Wink Studio</span>
                         <h2>{title}</h2>
                     </div>
                     <IconButton label="Close" onClick={onClose}>

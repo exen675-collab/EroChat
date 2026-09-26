@@ -196,7 +196,7 @@ export async function sendUtilityRequest(
             'Content-Type': 'application/json',
             Authorization: `Bearer ${settings.openrouterKey}`,
             'HTTP-Referer': window.location.href,
-            'X-Title': 'EroChat'
+            'X-Title': 'Wink'
         },
         body: JSON.stringify({
             model: options.model || settings.openrouterModel,
@@ -427,7 +427,7 @@ function comfyWorkflow(settings: ModernSettings, options: GenerateOptions, seed:
             }
         },
         6: { class_type: 'VAEDecode', inputs: { samples: ['5', 0], vae: ['1', 2] } },
-        7: { class_type: 'SaveImage', inputs: { filename_prefix: 'EroChat', images: ['6', 0] } }
+        7: { class_type: 'SaveImage', inputs: { filename_prefix: 'Wink', images: ['6', 0] } }
     };
 }
 
@@ -516,7 +516,7 @@ async function generateOpenRouter(settings: ModernSettings, options: GenerateOpt
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${settings.openrouterKey}`,
                 'HTTP-Referer': window.location.href,
-                'X-Title': 'EroChat'
+                'X-Title': 'Wink'
             },
             body: JSON.stringify({ model, prompt: options.prompt, n: 1 })
         });

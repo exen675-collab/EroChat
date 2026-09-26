@@ -129,7 +129,7 @@ export function buildChatRequestPreview({
         'Content-Type': 'application/json',
         Authorization: `Bearer ${openrouterKey}`,
         'HTTP-Referer': currentUrl,
-        'X-Title': 'EroChat'
+        'X-Title': 'Wink'
     };
 
     return {

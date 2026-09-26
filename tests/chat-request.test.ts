@@ -34,7 +34,7 @@ describe('chat request preview builder', () => {
             'Content-Type': 'application/json',
             Authorization: 'Bearer sk-test',
             'HTTP-Referer': 'https://example.com/chat',
-            'X-Title': 'EroChat'
+            'X-Title': 'Wink'
         });
         expect(preview.body).toMatchObject({
             model: 'openai/gpt-4.1-mini',

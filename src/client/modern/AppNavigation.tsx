@@ -33,7 +33,7 @@ export function AppRail({
     return (
         <nav className="m-rail" aria-label="Main navigation">
             <span className="m-rail__logo">
-                <img src="/favicon.png" alt="EroChat" />
+                <img src="/favicon.png" alt="Wink" />
             </span>
             {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
