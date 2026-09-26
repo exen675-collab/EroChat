@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { getCharacterThumbnailUrl } from '../character-thumbnails.js';
 import type { GalleryItem, ModernCharacter } from '../types.js';
 
@@ -35,5 +36,26 @@ export function CharacterVisual({
         <img src={thumbnailUrl} alt="" />
     ) : (
         <span>{character.avatar || '✨'}</span>
+    );
+}
+
+export function Portrait({
+    character,
+    galleryImages,
+    size = 44
+}: {
+    character?: ModernCharacter;
+    galleryImages: GalleryItem[];
+    size?: number;
+}) {
+    const thumbnailUrl = getCharacterThumbnailUrl(character, galleryImages);
+    return (
+        <span className="m-pic" style={{ '--size': `${size}px` } as CSSProperties}>
+            {thumbnailUrl ? (
+                <img src={thumbnailUrl} alt="" />
+            ) : (
+                <span>{character?.avatar || character?.name.slice(0, 1) || '✨'}</span>
+            )}
+        </span>
     );
 }

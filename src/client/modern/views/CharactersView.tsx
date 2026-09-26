@@ -17,7 +17,7 @@ import { Button, Modal } from '../components/ui.js';
 import type { ModernCharacter } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 
-function CharacterEditor({
+export function CharacterEditor({
     controller,
     character,
     onClose
@@ -314,7 +314,10 @@ export function CharactersView({ controller }: { controller: ModernController })
                                 character={character}
                                 galleryImages={controller.thumbnailImages}
                             />
-                            <i>{character.messages.length} messages</i>
+                            <i>
+                                {character.messages.length}{' '}
+                                {character.messages.length === 1 ? 'message' : 'messages'}
+                            </i>
                         </button>
                         <div className="m-character-card__body">
                             <span className="m-eyebrow">

@@ -355,6 +355,89 @@ export function useModernController(user: BootstrapUser) {
         ]
     );
 
+    const chatAbortRef = useRef<AbortController | null>(null);
+
+    /** Streams an assistant reply into `assistant`, which must already be in the chat. */
+    const streamReply = useCallback(
+        async (
+            character: ModernCharacter,
+            history: ModernMessage[],
+            content: string,
+            assistant: ModernMessage,
+            previousReplies: ModernMessage[] = []
+        ) => {
+            const characterId = character.id;
+            const abort = new AbortController();
+            chatAbortRef.current = abort;
+            let streamed = '';
+            setBusy('chat');
+            try {
+                const raw = await sendModernChat(
+                    data.settings,
+                    character,
+                    history,
+                    content,
+                    (streamedContent) => {
+                        streamed = streamedContent;
+                        updateMessageMedia(characterId, assistant.id, {
+                            content: streamedContent,
+                            isStreaming: true
+                        });
+                    },
+                    abort.signal
+                );
+                updateMessageMedia(characterId, assistant.id, {
+                    content: raw,
+                    isStreaming: false
+                });
+                recordUsage('assistant', {
+                    model:
+                        data.settings.textProvider === 'grok-cli'
+                            ? `grok-cli/${data.settings.grokModel || 'default'}`
+                            : data.settings.openrouterModel
+                });
+                const imagePrompt = extractImagePrompt(raw);
+                if (data.settings.enableImageGeneration && imagePrompt) {
+                    void generateMessageMedia(character, assistant.id, imagePrompt, 'chat');
+                }
+                return true;
+            } catch (error) {
+                const stopped = abort.signal.aborted;
+                if (stopped && streamed.trim()) {
+                    // Keep what already arrived when the user stops the reply.
+                    updateMessageMedia(characterId, assistant.id, {
+                        content: streamed,
+                        isStreaming: false
+                    });
+                    return true;
+                }
+                setData((current) => ({
+                    ...current,
+                    characters: current.characters.map((item) =>
+                        item.id === characterId
+                            ? {
+                                  ...item,
+                                  messages: item.messages.flatMap((message) =>
+                                      message.id === assistant.id ? previousReplies : [message]
+                                  )
+                              }
+                            : item
+                    )
+                }));
+                if (!stopped) notify((error as Error).message, 'error');
+                return stopped;
+            } finally {
+                if (chatAbortRef.current === abort) chatAbortRef.current = null;
+                setBusy(null);
+            }
+        },
+        [data.settings, generateMessageMedia, notify, recordUsage, updateMessageMedia]
+    );
+
+    const stopReply = useCallback(() => {
+        chatAbortRef.current?.abort();
+    }, []);
+
     const sendMessage = useCallback(
         async (draft: string) => {
             const content = draft.trim();
@@ -386,65 +469,49 @@ export function useModernController(user: BootstrapUser) {
                 )
             }));
             recordUsage('user', { prompt: content });
-            setBusy('chat');
-            try {
-                const raw = await sendModernChat(
-                    data.settings,
-                    currentCharacter,
-                    messages,
-                    content,
-                    (streamedContent) =>
-                        updateMessageMedia(characterId, assistant.id, {
-                            content: streamedContent,
-                            isStreaming: true
-                        })
-                );
-                updateMessageMedia(characterId, assistant.id, {
-                    content: raw,
-                    isStreaming: false
-                });
-                recordUsage('assistant', {
-                    model:
-                        data.settings.textProvider === 'grok-cli'
-                            ? `grok-cli/${data.settings.grokModel || 'default'}`
-                            : data.settings.openrouterModel
-                });
-                const imagePrompt = extractImagePrompt(raw);
-                if (data.settings.enableImageGeneration && imagePrompt) {
-                    void generateMessageMedia(currentCharacter, assistant.id, imagePrompt, 'chat');
-                }
-                return true;
-            } catch (error) {
-                setData((current) => ({
-                    ...current,
-                    characters: current.characters.map((character) =>
-                        character.id === characterId
-                            ? {
-                                  ...character,
-                                  messages: character.messages.filter(
-                                      (message) => message.id !== assistant.id
-                                  )
-                              }
-                            : character
-                    )
-                }));
-                notify((error as Error).message, 'error');
-                return false;
-            } finally {
-                setBusy(null);
-            }
+            return streamReply(currentCharacter, messages, content, assistant);
         },
-        [
-            busy,
-            currentCharacter,
-            data.settings,
-            generateMessageMedia,
-            messages,
-            notify,
-            recordUsage,
-            updateMessageMedia
-        ]
+        [busy, currentCharacter, messages, recordUsage, streamReply]
     );
+
+    /** Replaces everything after the last user message with a fresh reply to it. */
+    const regenerateReply = useCallback(async () => {
+        if (busy || !currentCharacter) return false;
+        let userIndex = messages.length - 1;
+        while (userIndex >= 0 && messages[userIndex].role !== 'user') userIndex -= 1;
+        if (userIndex < 0) return false;
+        const assistant: ModernMessage = {
+            id: id(),
+            role: 'assistant',
+            content: '',
+            createdAt: new Date().toISOString(),
+            isStreaming: true
+        };
+        const kept = messages.slice(0, userIndex + 1);
+        setData((current) => syncCurrentMessages(current, [...kept, assistant]));
+        return streamReply(
+            currentCharacter,
+            messages.slice(0, userIndex),
+            messages[userIndex].content,
+            assistant,
+            messages.slice(userIndex + 1)
+        );
+    }, [busy, currentCharacter, messages, streamReply]);
+
+    const startWithGreeting = useCallback(() => {
+        const greeting = currentCharacter?.greeting?.trim();
+        if (!greeting || messages.length) return;
+        setData((current) =>
+            syncCurrentMessages(current, [
+                {
+                    id: id(),
+                    role: 'assistant',
+                    content: greeting,
+                    createdAt: new Date().toISOString()
+                }
+            ])
+        );
+    }, [currentCharacter?.greeting, messages.length, setData]);
 
     const editMessage = useCallback((messageId: string, content: string) => {
         setData((current) => {
@@ -744,6 +811,9 @@ export function useModernController(user: BootstrapUser) {
         saveCharacter,
         deleteCharacter,
         sendMessage,
+        stopReply,
+        regenerateReply,
+        startWithGreeting,
         editMessage,
         removeMessage,
         branchFromMessage,

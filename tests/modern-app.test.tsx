@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModernApp } from '../src/client/modern/ModernApp.js';
@@ -95,16 +95,34 @@ describe('ModernApp', () => {
         expect(screen.queryByText('Default image tuning')).not.toBeInTheDocument();
     });
 
-    it('hides and restores the sidebar and opens the active character chat', async () => {
+    it('toggles the character panel and reopens chat from the characters view', async () => {
         await renderApp(<ModernApp user={user} />);
-        await userEvent.click(screen.getByRole('button', { name: 'Hide sidebar' }));
-        expect(document.querySelector('.modern-app')).toHaveClass('is-sidebar-collapsed');
-        expect(localStorage.getItem('erochat-sidebar-collapsed')).toBe('true');
-        await userEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
-        expect(document.querySelector('.modern-app')).not.toHaveClass('is-sidebar-collapsed');
+        expect(screen.getByRole('button', { name: 'Chat with Default Character' })).toHaveClass(
+            'is-active'
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Show character panel' }));
+        expect(document.querySelector('.m-chat-layout')).toHaveClass('is-panel-open');
+        expect(screen.getByRole('heading', { name: 'Default Character' })).toBeInTheDocument();
+        expect(localStorage.getItem('erochat-chat-panel')).toBe('open');
+        await userEvent.click(screen.getByRole('button', { name: 'Close character panel' }));
+        expect(document.querySelector('.m-chat-layout')).not.toHaveClass('is-panel-open');
+        expect(localStorage.getItem('erochat-chat-panel')).toBe('closed');
         await userEvent.click(screen.getAllByRole('button', { name: 'Characters' })[0]);
-        await userEvent.click(screen.getByRole('button', { name: 'Chat with Default Character' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Select Default Character' }));
         expect(screen.getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    });
+
+    it('offers suggestions and draft upgrades from the composer tools menu', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+        const menu = screen.getByRole('menu');
+        expect(within(menu).getByRole('menuitem', { name: /Suggest replies/ })).toBeEnabled();
+        expect(within(menu).getByRole('menuitem', { name: /Polish/ })).toBeDisabled();
+        await userEvent.keyboard('{Escape}');
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+        await userEvent.type(screen.getByRole('textbox', { name: 'Message' }), 'Hello');
+        await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+        expect(screen.getByRole('menuitem', { name: /Polish/ })).toBeEnabled();
     });
 
     it('uses generator assets as character thumbnails', async () => {
@@ -230,7 +248,11 @@ describe('ModernApp', () => {
 
         await userEvent.click(screen.getByRole('button', { name: /Import & chat/i }));
         await waitFor(() => expect(window.location.hash).toBe('#chat'));
-        expect(screen.getByText('Welcome, traveler.')).toBeInTheDocument();
+        expect(
+            within(document.querySelector<HTMLElement>('.m-chat__stream')!).getByText(
+                'Welcome, traveler.'
+            )
+        ).toBeInTheDocument();
 
         await waitFor(() =>
             expect(savedState?.characters.some((item: any) => item.name === 'Seraphine')).toBe(true)
@@ -605,5 +627,207 @@ describe('ModernApp', () => {
         expect(
             fetchMock.mock.calls.filter(([url]) => String(url) === '/api/admin/characters/publish')
         ).toHaveLength(1);
+    });
+    describe('chat conversation', () => {
+        function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
+            localStorage.setItem(
+                'erochat_data_user_42',
+                JSON.stringify({
+                    settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                    characters: [
+                        {
+                            id: 'nova',
+                            name: 'Nova',
+                            avatar: 'N',
+                            systemPrompt: 'You are Nova.',
+                            messages,
+                            ...extra
+                        }
+                    ],
+                    currentCharacterId: 'nova',
+                    currentView: 'chat'
+                })
+            );
+        }
+        const stream = () => document.querySelector<HTMLElement>('.m-chat__stream')!;
+
+        it('collapses messages that were archived into memory', async () => {
+            seedChat([
+                {
+                    id: 'old',
+                    role: 'user',
+                    content: 'An old line.',
+                    archivedFromModelContext: true
+                },
+                { id: 'new', role: 'assistant', content: 'A recent reply.' }
+            ]);
+            await renderApp(<ModernApp user={user} />);
+            expect(within(stream()).getByText('A recent reply.')).toBeInTheDocument();
+            expect(within(stream()).queryByText('An old line.')).not.toBeInTheDocument();
+            await userEvent.click(
+                screen.getByRole('button', { name: /1 earlier message is summarized in memory/ })
+            );
+            expect(within(stream()).getByText('An old line.')).toBeInTheDocument();
+        });
+
+        it('starts an empty chat with the character greeting', async () => {
+            seedChat([], { greeting: 'Hello from Nova.' });
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Start with greeting' }));
+            expect(within(stream()).getByText('Hello from Nova.')).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Start with greeting' })
+            ).not.toBeInTheDocument();
+        });
+
+        function mockPendingReply() {
+            let resolve!: (response: Response) => void;
+            let signal: AbortSignal | undefined;
+            const fallback = globalThis.fetch;
+            vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+                if (!String(input).includes('openrouter.ai')) return fallback(input, init);
+                signal = init?.signal as AbortSignal;
+                return new Promise<Response>((done, reject) => {
+                    resolve = done;
+                    signal?.addEventListener('abort', () =>
+                        reject(new DOMException('Stopped', 'AbortError'))
+                    );
+                });
+            });
+            return {
+                finish: (response: Response) => act(async () => resolve(response)),
+                signal: () => signal
+            };
+        }
+
+        it('preserves the next draft and isolates drafts when switching conversations', async () => {
+            seedChat([]);
+            const state = JSON.parse(localStorage.getItem('erochat_data_user_42')!);
+            state.characters.push({ id: 'other', name: 'Other', messages: [] });
+            localStorage.setItem('erochat_data_user_42', JSON.stringify(state));
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            const input = screen.getByRole('textbox', { name: 'Message' });
+            await userEvent.type(input, 'First message');
+            await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+            expect(input).toHaveValue('');
+            await userEvent.type(input, 'Next draft');
+            await userEvent.click(screen.getByRole('button', { name: 'Chat with Other' }));
+            expect(input).toHaveValue('');
+            await userEvent.type(input, 'Another conversation draft');
+            await reply.finish(
+                new Response(
+                    JSON.stringify({
+                        choices: [{ message: { content: 'Finished reply.' } }]
+                    })
+                )
+            );
+            expect(input).toHaveValue('Another conversation draft');
+            await userEvent.click(screen.getByRole('button', { name: 'Chat with Nova' }));
+            expect(input).toHaveValue('Next draft');
+            expect(within(stream()).getByText('Finished reply.')).toBeInTheDocument();
+        });
+
+        it.each(['failure', 'stop'])(
+            'keeps the original reply after regeneration %s',
+            async (outcome) => {
+                seedChat([
+                    { id: 'u1', role: 'user', content: 'Say something.' },
+                    { id: 'a1', role: 'assistant', content: 'Original reply.' }
+                ]);
+                const reply = mockPendingReply();
+                await renderApp(<ModernApp user={user} />);
+                await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+                if (outcome === 'stop') {
+                    await userEvent.click(screen.getByRole('button', { name: 'Stop reply' }));
+                    expect(reply.signal()?.aborted).toBe(true);
+                } else {
+                    await reply.finish(
+                        new Response(JSON.stringify({ error: { message: 'Unavailable' } }), {
+                            status: 503
+                        })
+                    );
+                }
+                expect(await within(stream()).findByText('Original reply.')).toBeInTheDocument();
+                expect(
+                    screen.queryByRole('button', { name: 'Stop reply' })
+                ).not.toBeInTheDocument();
+            }
+        );
+
+        it('keeps streamed text when stopped and prevents tools from replacing the active request', async () => {
+            seedChat([]);
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.type(screen.getByRole('textbox', { name: 'Message' }), 'Hello');
+            await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+            let source!: ReadableStreamDefaultController<Uint8Array>;
+            const body = new ReadableStream<Uint8Array>({
+                start(controller) {
+                    source = controller;
+                }
+            });
+            reply
+                .signal()
+                ?.addEventListener('abort', () =>
+                    source.error(new DOMException('Stopped', 'AbortError'))
+                );
+            await reply.finish(
+                new Response(body, { headers: { 'content-type': 'text/event-stream' } })
+            );
+            await act(async () => {
+                source.enqueue(
+                    new TextEncoder().encode(
+                        'data: {"choices":[{"delta":{"content":"Partial reply."}}]}\n\n'
+                    )
+                );
+            });
+            expect(await within(stream()).findByText('Partial reply.')).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            expect(screen.getByRole('menuitem', { name: /Suggest replies/ })).toBeDisabled();
+            expect(screen.getByRole('menuitem', { name: /Compress memory/ })).toBeDisabled();
+            await userEvent.keyboard('{Escape}');
+            await userEvent.click(screen.getByRole('button', { name: 'Stop reply' }));
+            expect(within(stream()).getByText('Partial reply.')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Stop reply' })).not.toBeInTheDocument();
+            expect(document.querySelector('[aria-busy="true"]')).not.toBeInTheDocument();
+        });
+
+        it('regenerates the last reply to the latest user message', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Say something.' },
+                { id: 'a1', role: 'assistant', content: 'First attempt.' }
+            ]);
+            const chatBodies: any[] = [];
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                    const url = String(input);
+                    if (url.includes('openrouter.ai')) {
+                        chatBodies.push(JSON.parse(String(init?.body)));
+                        return new Response(
+                            JSON.stringify({
+                                choices: [{ message: { content: 'Second attempt.' } }]
+                            })
+                        );
+                    }
+                    if (url.includes('/api/generator/jobs')) {
+                        return new Response(JSON.stringify({ jobs: [] }));
+                    }
+                    if (url.includes('/api/generator/assets')) {
+                        return new Response(JSON.stringify({ assets: [] }));
+                    }
+                    return new Response(JSON.stringify({}));
+                })
+            );
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+            expect(await within(stream()).findByText('Second attempt.')).toBeInTheDocument();
+            expect(within(stream()).queryByText('First attempt.')).not.toBeInTheDocument();
+            expect(within(stream()).getByText('Say something.')).toBeInTheDocument();
+            const sent = chatBodies[0].messages.map((message: any) => message.content).join('\n');
+            expect(sent).toContain('Say something.');
+            expect(sent).not.toContain('First attempt.');
+        });
     });
 });

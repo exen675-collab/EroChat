@@ -26,7 +26,7 @@
 }
 .m-field > span {
     font-weight: 600;
-    color: #b8b0c0;
+    color: var(--m-muted);
 }
 .m-field input,
 .m-field select,
@@ -41,7 +41,7 @@
     border: 1px solid var(--m-border);
     border-radius: 10px;
     color: var(--m-text);
-    background: #0d0d14;
+    background: #0e0e11;
     outline: none;
 }
 .m-field textarea {
@@ -51,8 +51,8 @@
 .m-field input:focus,
 .m-field select:focus,
 .m-field textarea:focus {
-    border-color: rgba(195, 93, 243, 0.5);
-    box-shadow: 0 0 0 3px rgba(195, 93, 243, 0.08);
+    border-color: rgba(240, 98, 146, 0.5);
+    box-shadow: 0 0 0 3px rgba(240, 98, 146, 0.08);
 }
 .m-field small {
     color: var(--m-faint);
@@ -74,9 +74,25 @@
 }
 .m-chip-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     margin: 10px 0 16px;
-    overflow-x: auto;
+}
+.m-chip-row button {
+    padding: 6px 11px;
+    border: 1px solid var(--m-border);
+    border-radius: 999px;
+    color: var(--m-muted);
+    background: var(--m-surface-2);
+    font-size: 12px;
+    white-space: nowrap;
+    transition:
+        color 0.15s,
+        border-color 0.15s;
+}
+.m-chip-row button:hover {
+    color: var(--m-text);
+    border-color: var(--m-accent);
 }
 .m-generator__helper {
     display: flex;
@@ -100,6 +116,9 @@
     border: 1px solid var(--m-border);
     border-radius: 13px;
     background: rgba(255, 255, 255, 0.02);
+}
+.m-advanced > :not(summary) {
+    padding: 0 14px 14px;
 }
 .m-advanced summary {
     min-height: 48px;
@@ -164,7 +183,7 @@
     margin-top: 15px;
 }
 .m-generator__history {
-    background: rgba(12, 12, 18, 0.55);
+    background: rgba(14, 14, 17, 0.55);
 }
 .m-generator__history > header,
 .m-insight-panel.wide > header {

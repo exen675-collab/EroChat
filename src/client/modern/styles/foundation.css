@@ -1,23 +1,31 @@
 :root {
     color-scheme: dark;
-    --m-bg: #08080d;
-    --m-surface: #0f0f17;
-    --m-surface-2: #151520;
-    --m-surface-3: #1b1927;
-    --m-border: rgba(255, 255, 255, 0.09);
-    --m-border-strong: rgba(216, 180, 254, 0.2);
-    --m-text: #f4f1f8;
-    --m-muted: #a39cab;
-    --m-faint: #716a79;
-    --m-accent: #c35df3;
-    --m-accent-2: #f05a9d;
-    --m-success: #62d6a7;
+    --m-bg: #0a0a0c;
+    --m-surface: #111114;
+    --m-surface-2: #17171b;
+    --m-surface-3: #1f1f25;
+    --m-border: rgba(255, 255, 255, 0.07);
+    --m-border-strong: rgba(255, 255, 255, 0.12);
+    --m-text: #ececf1;
+    --m-muted: #a1a1ac;
+    --m-faint: #6b6b76;
+    --m-accent: #f06292;
+    --m-accent-2: #f48fb1;
+    --m-accent-soft: color-mix(in oklab, var(--m-accent) 16%, transparent);
+    --m-accent-text: color-mix(in oklab, var(--m-accent) 70%, white);
+    --m-success: #5fd4a0;
     --m-warning: #f3bc69;
     --m-danger: #f2748b;
-    --m-radius: 18px;
+    --m-radius: 16px;
+    --m-r-sm: 8px;
+    --m-r-md: 12px;
+    --m-r-lg: 16px;
     --m-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-    --m-scrollbar: #51425f;
-    --m-scrollbar-hover: #79608b;
+    --m-scrollbar: #2c2c33;
+    --m-scrollbar-hover: #44444d;
+    --m-font-ui: 'Inter', system-ui, sans-serif;
+    --m-font-prose: 'Newsreader', Georgia, serif;
+    --m-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 * {
@@ -99,13 +107,12 @@ textarea:focus-visible {
 .modern-app {
     min-height: 100dvh;
     display: grid;
-    grid-template-columns: 244px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     color: var(--m-text);
-    background:
-        radial-gradient(circle at 67% -10%, rgba(132, 51, 163, 0.16), transparent 36%),
-        radial-gradient(circle at 100% 90%, rgba(190, 24, 93, 0.08), transparent 32%), var(--m-bg);
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: 15px;
+    background: var(--m-bg);
+    font-family: var(--m-font-ui);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
 }
 .modern-app button {
     color: inherit;
@@ -118,12 +125,12 @@ textarea:focus-visible {
 }
 .modern-app h1,
 .modern-app h2,
-.modern-app h3,
-.m-brand {
-    font-family: Manrope, 'DM Sans', sans-serif;
+.modern-app h3 {
+    font-family: var(--m-font-ui);
+    letter-spacing: -0.01em;
 }
 .m-eyebrow {
-    color: #cbbfd2;
+    color: var(--m-faint);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.14em;
@@ -136,4 +143,16 @@ textarea:focus-visible {
     to {
         transform: rotate(360deg);
     }
+}
+.modern-app select:not([multiple]):not([size]) {
+    appearance: none;
+    padding-right: 34px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1ac' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 11px center;
+    background-repeat: no-repeat;
+    background-size: 15px;
+}
+.modern-app select option {
+    color: var(--m-text);
+    background: var(--m-surface-3);
 }

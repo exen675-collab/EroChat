@@ -1,30 +1,21 @@
 import {
     Activity,
-    Archive,
-    Brain,
     CircleUserRound,
     Compass,
     GalleryHorizontalEnd,
     LogOut,
-    Menu,
-    PanelLeftClose,
-    PanelLeftOpen,
-    MessageCircle,
     MessagesSquare,
-    MoreHorizontal,
-    Settings,
+    Settings2,
     Users,
     WandSparkles,
     Zap
 } from 'lucide-react';
 import { logout } from './api.js';
-import { Avatar } from './components/character-visuals.js';
-import { IconButton } from './components/ui.js';
 import type { ViewId } from './types.js';
 import type { ModernController } from './useModernController.js';
 
-const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessageCircle }> = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle },
+const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessagesSquare }> = [
+    { id: 'chat', label: 'Chat', icon: MessagesSquare },
     { id: 'characters', label: 'Characters', icon: Users },
     { id: 'browse', label: 'Browse', icon: Compass },
     { id: 'generator', label: 'Create', icon: WandSparkles },
@@ -32,174 +23,66 @@ const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: typeof MessageCircle }
     { id: 'stats', label: 'Insights', icon: Activity }
 ];
 
-export function AppSidebar({
+export function AppRail({
     controller,
-    open,
-    onClose,
     onSettings
 }: {
     controller: ModernController;
-    open: boolean;
-    onClose: () => void;
     onSettings: () => void;
 }) {
     return (
-        <>
-            {open && (
-                <button
-                    className="m-mobile-scrim"
-                    aria-label="Close navigation"
-                    onClick={onClose}
-                />
-            )}
-            <aside className={`m-sidebar ${open ? 'is-open' : ''}`}>
-                <div className="m-brand">
-                    <span className="m-brand__mark">
-                        <img src="/favicon.png" alt="" />
-                    </span>
-                    <div>
-                        <strong>EroChat</strong>
-                        <span>Studio</span>
-                    </div>
-                </div>
-                <nav className="m-sidebar__nav" aria-label="Main navigation">
-                    {NAV_ITEMS.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                            <button
-                                key={item.id}
-                                aria-label={item.label}
-                                className={
-                                    controller.data.currentView === item.id ? 'is-active' : ''
-                                }
-                                onClick={() => {
-                                    controller.setView(item.id);
-                                    onClose();
-                                }}
-                            >
-                                <Icon size={20} />
-                                <span>{item.label}</span>
-                            </button>
-                        );
-                    })}
-                </nav>
-                <div className="m-sidebar__character">
-                    <span className="m-eyebrow">Active character</span>
+        <nav className="m-rail" aria-label="Main navigation">
+            <span className="m-rail__logo">
+                <img src="/favicon.png" alt="EroChat" />
+            </span>
+            {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
                     <button
-                        aria-label={`Chat with ${controller.currentCharacter?.name}`}
-                        onClick={() => {
-                            controller.setView('chat');
-                            onClose();
-                        }}
+                        key={item.id}
+                        aria-label={item.label}
+                        data-tip={item.label}
+                        className={controller.data.currentView === item.id ? 'is-active' : ''}
+                        onClick={() => controller.setView(item.id)}
                     >
-                        <Avatar
-                            character={controller.currentCharacter}
-                            galleryImages={controller.thumbnailImages}
-                            size="small"
-                        />
-                        <span>
-                            <strong>{controller.currentCharacter?.name}</strong>
-                            <small>{controller.messages.length} messages</small>
-                        </span>
-                        <MoreHorizontal size={18} />
+                        <Icon size={19} strokeWidth={1.75} />
                     </button>
-                </div>
-                <div className="m-sidebar__footer">
-                    <button aria-label="Settings" onClick={onSettings}>
-                        <Settings size={20} />
-                        <span>Settings</span>
-                    </button>
-                    <button aria-label="Log out" onClick={() => void logout()}>
-                        <LogOut size={20} />
-                        <span>Log out</span>
-                    </button>
-                </div>
-            </aside>
-        </>
+                );
+            })}
+            <span className="m-rail__spacer" />
+            <span
+                className="m-rail__credits"
+                title={`${controller.user.credits} credits`}
+                aria-label={`${controller.user.credits} credits`}
+            >
+                <Zap size={13} />
+                {controller.user.credits}
+            </span>
+            <button aria-label="Settings" data-tip="Settings" onClick={onSettings}>
+                <Settings2 size={19} strokeWidth={1.75} />
+            </button>
+            <button aria-label="Log out" data-tip="Log out" onClick={() => void logout()}>
+                <LogOut size={19} strokeWidth={1.75} />
+            </button>
+            <button
+                className="m-rail__me"
+                aria-label={`Profile @${controller.user.username}`}
+                data-tip={`@${controller.user.username}`}
+                onClick={onSettings}
+            >
+                {controller.user.username.slice(0, 1).toUpperCase()}
+            </button>
+        </nav>
     );
 }
 
-export function Topbar({
+export function MobileNav({
     controller,
-    onMenu,
-    collapsed,
-    onToggleSidebar,
     onSettings
 }: {
     controller: ModernController;
-    onMenu: () => void;
-    collapsed: boolean;
-    onToggleSidebar: () => void;
     onSettings: () => void;
 }) {
-    const activeMessages = controller.messages.filter(
-        (message) => !message.archivedFromModelContext
-    ).length;
-    const archivedMessages = controller.messages.length - activeMessages;
-    const contextLimit =
-        controller.currentCharacter?.contextMessageCount ||
-        controller.data.settings.contextMessageCount;
-    const memoryCount = controller.currentCharacter?.memorySnapshots?.length || 0;
-    const titles: Record<ViewId, [string, string]> = {
-        chat: ['Conversation', controller.currentCharacter?.name || 'Chat'],
-        characters: ['Your cast', 'Characters'],
-        browse: ['Community', 'Character Browse'],
-        generator: ['Creative suite', 'Image generator'],
-        gallery: ['Media library', 'Gallery'],
-        stats: ['Your activity', 'Insights']
-    };
-    return (
-        <header className="m-topbar">
-            <IconButton
-                label={collapsed ? 'Show sidebar' : 'Hide sidebar'}
-                className="m-sidebar-toggle"
-                onClick={onToggleSidebar}
-            >
-                {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
-            </IconButton>
-            <IconButton label="Open navigation" className="m-menu-button" onClick={onMenu}>
-                <Menu size={22} />
-            </IconButton>
-            <div className="m-topbar__title">
-                <span>{titles[controller.data.currentView][0]}</span>
-                <div className="m-topbar__title-row">
-                    <h1>{titles[controller.data.currentView][1]}</h1>
-                    {controller.data.currentView === 'chat' && (
-                        <div
-                            className="m-topbar__chat-stats"
-                            aria-label="Conversation memory status"
-                        >
-                            <span title={`${activeMessages}/${contextLimit * 2} active messages`}>
-                                <MessagesSquare size={12} /> {activeMessages}/{contextLimit * 2}{' '}
-                                <small>active messages</small>
-                            </span>
-                            <span title={`${archivedMessages} archived messages`}>
-                                <Archive size={12} /> {archivedMessages} <small>archived</small>
-                            </span>
-                            <span title={`${memoryCount} memories`}>
-                                <Brain size={12} /> {memoryCount} <small>memories</small>
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className="m-topbar__status">
-                <span className="m-status">
-                    <i /> Connected
-                </span>
-                <span className="m-credit">
-                    <Zap size={15} /> {controller.user.credits}
-                </span>
-                <button className="m-user-button" aria-label="Open settings" onClick={onSettings}>
-                    <CircleUserRound size={20} />
-                    <span>@{controller.user.username}</span>
-                </button>
-            </div>
-        </header>
-    );
-}
-
-export function MobileNav({ controller }: { controller: ModernController }) {
     return (
         <nav className="m-bottom-nav" aria-label="Mobile navigation">
             {NAV_ITEMS.map((item) => {
@@ -211,11 +94,15 @@ export function MobileNav({ controller }: { controller: ModernController }) {
                         className={controller.data.currentView === item.id ? 'is-active' : ''}
                         onClick={() => controller.setView(item.id)}
                     >
-                        <Icon size={20} />
+                        <Icon size={20} strokeWidth={1.75} />
                         <span>{item.label}</span>
                     </button>
                 );
             })}
+            <button aria-label="Profile" onClick={onSettings}>
+                <CircleUserRound size={20} strokeWidth={1.75} />
+                <span>You</span>
+            </button>
         </nav>
     );
 }
