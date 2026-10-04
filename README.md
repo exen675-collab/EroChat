@@ -182,7 +182,18 @@ To set a generated thumbnail, create or select an image in the Gallery and choos
 ```text
 EroChat/
 |-- src/
-|   |-- server.ts
+|   |-- server.ts             # runtime directories, database initialization, HTTP listener
+|   |-- server/
+|   |   |-- app.ts            # Express middleware, routes, static files, error handling
+|   |   |-- config.ts         # environment settings and limits
+|   |   |-- database.ts       # SQLite connection and query interface
+|   |   |-- schema.ts         # schema migrations and default admin account
+|   |   |-- characters.ts     # character validation and response mapping
+|   |   |-- generator.ts      # job/asset validation, mapping, and asset lookup
+|   |   |-- utils.ts          # shared JSON, integer, text, and ID helpers
+|   |   |-- middleware/       # authentication, admin access, multipart uploads
+|   |   |-- routes/           # auth, media, characters, providers, admin, generator
+|   |   `-- services/         # media storage/import and provider response helpers
 |   |-- character-card-import.ts
 |   `-- client/
 |       |-- main.tsx
