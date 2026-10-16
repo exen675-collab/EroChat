@@ -1,6 +1,8 @@
 import { Eraser, GalleryHorizontalEnd, LoaderCircle, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
 import { getCharacterThumbnailUrl } from '../../character-thumbnails.js';
+import { Button, Modal } from '../../components/ui.js';
+import type { MemorySnapshot } from '../../types.js';
 import type { ModernController } from '../../useModernController.js';
 
 export function CharacterPanel({
@@ -15,6 +17,7 @@ export function CharacterPanel({
     onLightbox: (url: string) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
+    const [editingMemory, setEditingMemory] = useState<MemorySnapshot | null>(null);
     const character = controller.currentCharacter;
     if (!character) return null;
 
@@ -150,10 +153,15 @@ export function CharacterPanel({
                     </button>
                 </div>
                 {memories.length ? (
-                    memories.slice(0, 4).map((memory) => (
-                        <p className="m-panel__memory" key={memory.id}>
+                    memories.map((memory) => (
+                        <button
+                            className="m-panel__memory"
+                            key={memory.id}
+                            title="Edit or forget this memory"
+                            onClick={() => setEditingMemory(memory)}
+                        >
                             {memory.finalText}
-                        </p>
+                        </button>
                     ))
                 ) : (
                     <p className="m-panel__desc">
@@ -189,6 +197,70 @@ export function CharacterPanel({
                     </div>
                 </section>
             )}
+            {editingMemory && (
+                <MemoryEditor
+                    memory={editingMemory}
+                    onSave={(text) => {
+                        controller.updateMemory(editingMemory.id, text);
+                        setEditingMemory(null);
+                    }}
+                    onForget={() => {
+                        controller.forgetMemory(editingMemory.id);
+                        setEditingMemory(null);
+                        controller.notify(
+                            'Memory forgotten. Its messages are back in the context.',
+                            'success'
+                        );
+                    }}
+                    onClose={() => setEditingMemory(null)}
+                />
+            )}
         </div>
+    );
+}
+
+function MemoryEditor({
+    memory,
+    onSave,
+    onForget,
+    onClose
+}: {
+    memory: MemorySnapshot;
+    onSave: (text: string) => void;
+    onForget: () => void;
+    onClose: () => void;
+}) {
+    const [text, setText] = useState(memory.finalText);
+    const count = memory.messageIds?.length || 0;
+    return (
+        <Modal title="Memory" onClose={onClose} size="small">
+            <label className="m-field">
+                <span>Sent to the model in place of the messages it summarizes</span>
+                <textarea rows={8} value={text} onChange={(event) => setText(event.target.value)} />
+            </label>
+            <div className="m-modal-actions">
+                <Button
+                    variant="danger"
+                    onClick={() =>
+                        window.confirm(
+                            count
+                                ? `Forget this memory? The ${count} ${count === 1 ? 'message' : 'messages'} it summarizes go back into the context.`
+                                : 'Forget this memory?'
+                        ) && onForget()
+                    }
+                >
+                    Forget
+                </Button>
+                <span />
+                <Button onClick={onClose}>Cancel</Button>
+                <Button
+                    variant="primary"
+                    disabled={!text.trim() || text.trim() === memory.finalText}
+                    onClick={() => onSave(text)}
+                >
+                    Save
+                </Button>
+            </div>
+        </Modal>
     );
 }

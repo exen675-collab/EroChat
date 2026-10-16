@@ -841,6 +841,53 @@ export function useModernController(initialUser: BootstrapUser) {
         [memoryDraft, notify]
     );
 
+    const updateMemory = useCallback((snapshotId: string, text: string) => {
+        setData((current) => ({
+            ...current,
+            characters: current.characters.map((character) =>
+                character.id === current.currentCharacterId
+                    ? {
+                          ...character,
+                          memorySnapshots: (character.memorySnapshots || []).map((snapshot) =>
+                              snapshot.id === snapshotId
+                                  ? { ...snapshot, finalText: text.trim() }
+                                  : snapshot
+                          )
+                      }
+                    : character
+            )
+        }));
+    }, []);
+
+    /** Drops a memory and returns the messages it summarized to the model's context. */
+    const forgetMemory = useCallback((snapshotId: string) => {
+        setData((current) => ({
+            ...current,
+            characters: current.characters.map((character) => {
+                if (character.id !== current.currentCharacterId) return character;
+                const snapshot = character.memorySnapshots?.find((item) => item.id === snapshotId);
+                if (!snapshot) return character;
+                const summarized = new Set(snapshot.messageIds || []);
+                return {
+                    ...character,
+                    memorySnapshots: character.memorySnapshots.filter(
+                        (item) => item.id !== snapshotId
+                    ),
+                    messages: character.messages.map((message) =>
+                        message.archivedMemorySnapshotId === snapshotId ||
+                        (!message.archivedMemorySnapshotId && summarized.has(message.id))
+                            ? {
+                                  ...message,
+                                  archivedFromModelContext: false,
+                                  archivedMemorySnapshotId: undefined
+                              }
+                            : message
+                    )
+                };
+            })
+        }));
+    }, []);
+
     const increaseContextLimit = useCallback((amount: number) => {
         setData((current) => ({
             ...current,
@@ -1042,6 +1089,8 @@ export function useModernController(initialUser: BootstrapUser) {
         fetchSuggestions,
         compressMemory,
         acceptMemory,
+        updateMemory,
+        forgetMemory,
         increaseContextLimit,
         clearChat,
         playTts,

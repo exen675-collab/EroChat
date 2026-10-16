@@ -1484,6 +1484,49 @@ describe('ModernApp', () => {
         }
         const stream = () => document.querySelector<HTMLElement>('.m-chat__stream')!;
 
+        it('edits a memory and forgets one to restore its messages', async () => {
+            seedChat(
+                [
+                    {
+                        id: 'old',
+                        role: 'user',
+                        content: 'An old line.',
+                        archivedFromModelContext: true,
+                        archivedMemorySnapshotId: 'm1'
+                    },
+                    { id: 'new', role: 'assistant', content: 'A recent reply.' }
+                ],
+                {
+                    memorySnapshots: [
+                        { id: 'm1', finalText: 'They met.', createdAt: '2026', messageIds: ['old'] }
+                    ]
+                }
+            );
+            vi.spyOn(window, 'confirm').mockReturnValue(true);
+            await renderApp(<ModernApp user={user} />);
+            if (!screen.queryByTitle('Edit or forget this memory')) {
+                await userEvent.click(document.querySelector('.m-chat__head [aria-pressed]')!);
+            }
+            await userEvent.click(screen.getByTitle('Edit or forget this memory'));
+            const dialog = screen.getByRole('dialog', { name: 'Memory' });
+            const field = within(dialog).getByRole('textbox');
+            await userEvent.clear(field);
+            await userEvent.type(field, 'They met at dawn.');
+            await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+            await waitFor(() =>
+                expect(savedState?.characters[0].memorySnapshots[0].finalText).toBe(
+                    'They met at dawn.'
+                )
+            );
+
+            await userEvent.click(screen.getByTitle('Edit or forget this memory'));
+            await userEvent.click(screen.getByRole('button', { name: 'Forget' }));
+            await waitFor(() => expect(savedState?.characters[0].memorySnapshots).toEqual([]));
+            const old = savedState.characters[0].messages.find((item: any) => item.id === 'old');
+            expect(old.archivedFromModelContext).toBe(false);
+            expect(within(stream()).getByText('An old line.')).toBeInTheDocument();
+        });
+
         it('collapses messages that were archived into memory', async () => {
             seedChat([
                 {
