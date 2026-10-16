@@ -80,3 +80,28 @@ export function matchingAspectRatio(width: number, height: number): string {
         }) || 'auto'
     );
 }
+
+export type LoraSetting = MediaGenerationPreset['loras'][number];
+
+export function formatLoras(loras: LoraSetting[] = []): string {
+    return loras.map((lora) => `${lora.name}:${lora.weight}`).join(', ');
+}
+
+/** Reads "name:weight, name" text; a missing or unreadable weight is 1. */
+export function parseLoras(text: string): LoraSetting[] {
+    return text
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => {
+            const separator = item.lastIndexOf(':');
+            if (separator < 0) return { name: item, weight: 1 };
+            const weightText = item.slice(separator + 1).trim();
+            const weight = Number(weightText);
+            if (!weightText) return { name: item.slice(0, separator).trim(), weight: 1 };
+            // A suffix that is not a number belongs to the name, as in "style:v2".
+            if (!Number.isFinite(weight)) return { name: item, weight: 1 };
+            return { name: item.slice(0, separator).trim(), weight };
+        })
+        .filter((lora) => lora.name);
+}

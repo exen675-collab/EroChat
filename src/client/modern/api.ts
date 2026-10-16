@@ -357,6 +357,11 @@ export interface GenerateOptions {
     seedMode?: string;
     baseSeed?: number;
     model?: string;
+    loras?: Array<{ name: string; weight: number }>;
+}
+
+function activeLoras(options: GenerateOptions) {
+    return (options.loras || []).filter((lora) => lora?.name?.trim());
 }
 
 function randomSeed(): number {
@@ -391,6 +396,11 @@ async function generateSwarm(settings: ModernSettings, options: GenerateOptions)
         aspectratio: 'Custom',
         automaticvae: true
     };
+    const loras = activeLoras(options);
+    if (loras.length) {
+        body.loras = loras.map((lora) => lora.name.trim()).join(',');
+        body.loraweights = loras.map((lora) => String(lora.weight)).join(',');
+    }
     let payload: any;
     try {
         payload = await jsonRequest(
@@ -419,12 +429,34 @@ async function generateSwarm(settings: ModernSettings, options: GenerateOptions)
 
 function comfyWorkflow(settings: ModernSettings, options: GenerateOptions, seed: number) {
     const model = options.model || settings.comfyModel;
+    // Each LoRA loader takes the model and CLIP from the node before it; the sampler and prompt
+    // encoders use whichever node comes last.
+    const loraNodes: Record<string, unknown> = {};
+    let source = '1';
+    activeLoras(options).forEach((lora, index) => {
+        const id = String(10 + index);
+        loraNodes[id] = {
+            class_type: 'LoraLoader',
+            inputs: {
+                lora_name: lora.name.trim(),
+                strength_model: lora.weight,
+                strength_clip: lora.weight,
+                model: [source, 0],
+                clip: [source, 1]
+            }
+        };
+        source = id;
+    });
     return {
         1: { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: model } },
-        2: { class_type: 'CLIPTextEncode', inputs: { text: options.prompt, clip: ['1', 1] } },
+        ...loraNodes,
+        2: { class_type: 'CLIPTextEncode', inputs: { text: options.prompt, clip: [source, 1] } },
         3: {
             class_type: 'CLIPTextEncode',
-            inputs: { text: options.negativePrompt || 'bad quality, worst quality', clip: ['1', 1] }
+            inputs: {
+                text: options.negativePrompt || 'bad quality, worst quality',
+                clip: [source, 1]
+            }
         },
         4: {
             class_type: 'EmptyLatentImage',
@@ -443,7 +475,7 @@ function comfyWorkflow(settings: ModernSettings, options: GenerateOptions, seed:
                 sampler_name: normalizeSwarmSampler(options.sampler || settings.sampler),
                 scheduler: normalizeImageScheduler(options.scheduler || settings.scheduler),
                 denoise: 1,
-                model: ['1', 0],
+                model: [source, 0],
                 positive: ['2', 0],
                 negative: ['3', 0],
                 latent_image: ['4', 0]

@@ -15,7 +15,9 @@ import {
     ASPECT_RATIOS,
     dimensionsForAspectRatio,
     findMediaPreset,
-    matchingAspectRatio
+    formatLoras,
+    matchingAspectRatio,
+    parseLoras
 } from '../media-presets.js';
 import type { MediaGenerationPreset } from '../types.js';
 import type { ModernController } from '../useModernController.js';
@@ -32,6 +34,8 @@ const PROMPT_CHIPS = [
 export function GeneratorView({ controller }: { controller: ModernController }) {
     const prefs = controller.data.generatorPrefs;
     const [presetName, setPresetName] = useState('');
+    // Text being typed into the LoRA field; reformatting it on every keystroke would eat commas.
+    const [loraText, setLoraText] = useState<string | null>(null);
     const [models, setModels] = useState<Record<string, string[]>>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -352,33 +356,15 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                         <label className="m-field">
                             <span>LoRAs</span>
                             <input
-                                value={selectedPreset.loras
-                                    .map((lora) => `${lora.name}:${lora.weight}`)
-                                    .join(', ')}
-                                onChange={(event) =>
-                                    patchPreset({
-                                        loras: event.target.value
-                                            .split(',')
-                                            .map((item) => item.trim())
-                                            .filter(Boolean)
-                                            .map((item) => {
-                                                const separator = item.lastIndexOf(':');
-                                                const weight = Number(item.slice(separator + 1));
-                                                return {
-                                                    name:
-                                                        separator > 0
-                                                            ? item.slice(0, separator).trim()
-                                                            : item,
-                                                    weight:
-                                                        separator > 0 && Number.isFinite(weight)
-                                                            ? weight
-                                                            : 1
-                                                };
-                                            })
-                                    })
-                                }
+                                value={loraText ?? formatLoras(selectedPreset.loras)}
+                                onChange={(event) => {
+                                    setLoraText(event.target.value);
+                                    patchPreset({ loras: parseLoras(event.target.value) });
+                                }}
+                                onBlur={() => setLoraText(null)}
                                 placeholder="portrait-style:0.8, detail:1"
                             />
+                            <small>Applied by SwarmUI and ComfyUI.</small>
                         </label>
                     </div>
                 </details>

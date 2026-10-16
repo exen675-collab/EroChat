@@ -868,6 +868,26 @@ describe('ModernApp', () => {
         );
     });
 
+    it('lets LoRAs be typed as written and saves them on the preset', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Create' })[0]);
+        const field = screen.getByRole('textbox', { name: /LoRAs/ });
+        await userEvent.type(field, 'style:0.5, detail');
+        expect(field).toHaveValue('style:0.5, detail');
+        await waitFor(() =>
+            expect(savedState?.generatorPrefs.presets).toContainEqual(
+                expect.objectContaining({
+                    loras: [
+                        { name: 'style', weight: 0.5 },
+                        { name: 'detail', weight: 1 }
+                    ]
+                })
+            )
+        );
+        await userEvent.tab();
+        expect(field).toHaveValue('style:0.5, detail:1');
+    });
+
     it('reshapes the preset size when an aspect ratio is chosen', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: 'Create' })[0]);
