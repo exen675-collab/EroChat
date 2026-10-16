@@ -228,10 +228,11 @@ export function CharactersView({ controller }: { controller: ModernController })
             const raw = result.card?.data;
             if (!raw?.name) throw new Error('The character card payload was malformed.');
             const name = String(raw.name).trim();
+            // Replacer functions keep "$&"-style sequences in a name or username literal.
             const replace = (value: unknown) =>
                 String(value || '')
-                    .replace(/\{\{\s*char\s*\}\}/gi, name)
-                    .replace(/\{\{\s*user\s*\}\}/gi, controller.user.username)
+                    .replace(/\{\{\s*char\s*\}\}/gi, () => name)
+                    .replace(/\{\{\s*user\s*\}\}/gi, () => controller.user.username)
                     .trim();
             const greeting = replace(raw.first_mes);
             const description = replace(raw.description);
