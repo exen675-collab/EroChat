@@ -33,6 +33,7 @@ export function createApp(db: Database) {
     app.disable('x-powered-by');
     app.use(express.json({ limit: MAX_JSON_BODY_BYTES }));
     app.use((req, res, next) => {
+        res.set('X-Content-Type-Options', 'nosniff');
         if (req.path === '/' || req.path.startsWith('/app')) {
             res.set('Cache-Control', 'no-store');
         }
@@ -91,7 +92,17 @@ export function createApp(db: Database) {
     });
 
     app.use('/app', requireAuth, express.static(path.join(ROOT_DIR, 'dist', 'client')));
-    app.use('/app/media', requireAuth, express.static(MEDIA_DIR));
+    // Stored media is user-supplied and only checked by its declared type, so opening a file
+    // directly must never run it as a page.
+    app.use(
+        '/app/media',
+        requireAuth,
+        (req, res, next) => {
+            res.set('Content-Security-Policy', 'sandbox; default-src none');
+            next();
+        },
+        express.static(MEDIA_DIR)
+    );
 
     app.use((error, req, res, next) => {
         if (error instanceof multer.MulterError) {

@@ -86,6 +86,19 @@ describe.sequential('server route composition', () => {
         expect(pageMissing.headers.get('content-type')).toContain('text/html');
     });
 
+    it('serves stored media without letting it run as a page', async () => {
+        const html = Buffer.from('<script>alert(1)</script>').toString('base64');
+        const stored = await request('/api/media/store', {
+            dataUrl: `data:image/png;base64,${html}`
+        });
+        expect(stored.status).toBe(201);
+        const media = await request((await stored.json()).url, undefined, 'GET');
+        expect(media.status).toBe(200);
+        expect(media.headers.get('content-type')).toBe('image/png');
+        expect(media.headers.get('x-content-type-options')).toBe('nosniff');
+        expect(media.headers.get('content-security-policy')).toContain('sandbox');
+    });
+
     it('applies authentication before validation across every route group', async () => {
         const routes = [
             ['POST', '/api/media/store'],
