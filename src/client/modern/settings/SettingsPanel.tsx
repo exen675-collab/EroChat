@@ -26,6 +26,13 @@ import type { ModernController } from '../useModernController.js';
 import { ProviderSettings } from './ProviderSettings.js';
 import { SettingsSection } from './SettingsSection.js';
 
+// Matches the server's rule for a credit balance: a whole number from 0 to 1,000,000,000.
+function isValidCreditAmount(value: string | number) {
+    const text = String(value).trim();
+    const amount = Number(text);
+    return text !== '' && Number.isInteger(amount) && amount >= 0 && amount <= 1000000000;
+}
+
 export function SettingsPanel({
     controller,
     onClose
@@ -45,7 +52,8 @@ export function SettingsPanel({
         confirmPassword: ''
     });
     const [adminUsers, setAdminUsers] = useState<any[]>([]);
-    const [credits, setCredits] = useState<Record<number, number>>({});
+    // Typed but unsaved credit amounts, kept as text so an empty field is not read as 0.
+    const [creditEdits, setCreditEdits] = useState<Record<number, string>>({});
     const update = (patch: Partial<ModernSettings>) =>
         setSettings((current) => ({ ...current, ...patch }));
     async function loadTextModels() {
@@ -64,7 +72,6 @@ export function SettingsPanel({
         try {
             const users = await fetchAdminUsers();
             setAdminUsers(users);
-            setCredits(Object.fromEntries(users.map((user: any) => [user.id, user.credits])));
         } catch (error) {
             controller.notify((error as Error).message, 'error');
         }
@@ -569,21 +576,31 @@ export function SettingsPanel({
                                             aria-label={`Credits for ${adminUser.username}`}
                                             type="number"
                                             min={0}
-                                            value={credits[adminUser.id] ?? adminUser.credits}
+                                            value={creditEdits[adminUser.id] ?? adminUser.credits}
                                             onChange={(event) =>
-                                                setCredits({
-                                                    ...credits,
-                                                    [adminUser.id]: Number(event.target.value)
+                                                setCreditEdits({
+                                                    ...creditEdits,
+                                                    [adminUser.id]: event.target.value
                                                 })
                                             }
                                         />
                                         <Button
+                                            disabled={
+                                                !isValidCreditAmount(
+                                                    creditEdits[adminUser.id] ?? adminUser.credits
+                                                )
+                                            }
                                             onClick={async () => {
                                                 try {
                                                     await updateAdminCredits(
                                                         adminUser.id,
-                                                        credits[adminUser.id]
+                                                        Number(creditEdits[adminUser.id])
                                                     );
+                                                    setCreditEdits((current) => {
+                                                        const next = { ...current };
+                                                        delete next[adminUser.id];
+                                                        return next;
+                                                    });
                                                     controller.notify(
                                                         `Updated @${adminUser.username}.`,
                                                         'success'

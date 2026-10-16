@@ -196,6 +196,54 @@ describe('ModernApp', () => {
         expect(screen.queryByRole('button', { name: /Generate/i })).not.toBeInTheDocument();
     });
 
+    it('does not save a cleared credit amount as zero', async () => {
+        const requests: Array<{ url: string; method: string; body?: string }> = [];
+        vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+            const url = String(input);
+            requests.push({ url, method: init?.method ?? 'GET', body: init?.body as string });
+            if (url === '/api/admin/users' && (init?.method ?? 'GET') === 'GET') {
+                return new Response(
+                    JSON.stringify({
+                        users: [
+                            {
+                                id: 5,
+                                username: 'member',
+                                credits: 40,
+                                isAdmin: false,
+                                createdAt: '2026-01-01T00:00:00Z'
+                            }
+                        ]
+                    })
+                );
+            }
+            if (url.startsWith('/api/generator/')) {
+                return new Response(JSON.stringify({ jobs: [], assets: [] }));
+            }
+            return new Response(JSON.stringify({ user: { id: 5, credits: 55 } }));
+        });
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
+
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /Admin/i }));
+        const input = await screen.findByRole('spinbutton', { name: 'Credits for member' });
+        const row = input.closest('article')!;
+        const update = within(row).getByRole('button', { name: 'Update' });
+
+        await userEvent.clear(input);
+        expect(update).toBeDisabled();
+        expect(requests.some((request) => request.method === 'PATCH')).toBe(false);
+
+        await userEvent.type(input, '55');
+        expect(update).toBeEnabled();
+        await userEvent.click(update);
+        await waitFor(() =>
+            expect(requests.find((request) => request.method === 'PATCH')).toBeDefined()
+        );
+        const patch = requests.find((request) => request.method === 'PATCH')!;
+        expect(patch.url).toBe('/api/admin/users/5/credits');
+        expect(JSON.parse(patch.body!)).toEqual({ credits: 55 });
+    });
+
     it('editing a character keeps the active chat character and its messages', async () => {
         localStorage.setItem(
             'erochat_data_user_42',
