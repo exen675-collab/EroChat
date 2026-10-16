@@ -2,6 +2,7 @@ import { limitedText, normalizePositiveInt } from './utils';
 import { ADMIN_CHARACTER_REFERENCE_LIMIT } from './config';
 
 export const PUBLIC_CHARACTER_SORTS = new Set(['newest', 'popular', 'name']);
+export const PUBLIC_CHARACTER_PAGE_SIZE = 60;
 
 export function normalizePublicCharacterPayload(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;

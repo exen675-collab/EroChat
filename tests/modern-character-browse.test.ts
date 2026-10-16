@@ -33,7 +33,10 @@ describe('character browse API', () => {
         );
         vi.stubGlobal('fetch', fetchMock);
 
-        await expect(fetchPublicCharacters('sera', 'popular')).resolves.toEqual([publicCharacter]);
+        await expect(fetchPublicCharacters('sera', 'popular')).resolves.toEqual({
+            characters: [publicCharacter],
+            hasMore: false
+        });
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/characters/browse?sort=popular&q=sera',
             expect.objectContaining({ cache: 'no-store' })

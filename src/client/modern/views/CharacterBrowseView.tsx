@@ -406,6 +406,10 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
     const [query, setQuery] = useState('');
     const [sort, setSort] = useState<'newest' | 'popular' | 'name'>('newest');
     const [loading, setLoading] = useState(true);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    // Identifies the current search, so a page requested for an earlier one is discarded.
+    const listGeneration = useRef(0);
     const [busyId, setBusyId] = useState<number | null>(null);
     const [reload, setReload] = useState(0);
     const [generatorOpen, setGeneratorOpen] = useState(false);
@@ -416,12 +420,16 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
 
     useEffect(() => {
         let cancelled = false;
+        const generation = ++listGeneration.current;
+        setLoadingMore(false);
         const timer = window.setTimeout(
             () => {
                 setLoading(true);
                 void fetchPublicCharacters(query, sort)
-                    .then((items) => {
-                        if (!cancelled) setCharacters(items);
+                    .then((page) => {
+                        if (cancelled || generation !== listGeneration.current) return;
+                        setCharacters(page.characters);
+                        setHasMore(page.hasMore);
                     })
                     .catch((error) => {
                         if (!cancelled) controller.notify((error as Error).message, 'error');
@@ -437,6 +445,26 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
             window.clearTimeout(timer);
         };
     }, [controller.notify, query, reload, sort]);
+
+    async function loadMore() {
+        const generation = listGeneration.current;
+        setLoadingMore(true);
+        try {
+            const page = await fetchPublicCharacters(query, sort, characters.length);
+            if (generation !== listGeneration.current) return;
+            setCharacters((current) => {
+                const known = new Set(current.map((character) => character.id));
+                return [...current, ...page.characters.filter((item) => !known.has(item.id))];
+            });
+            setHasMore(page.hasMore);
+        } catch (error) {
+            if (generation === listGeneration.current) {
+                controller.notify((error as Error).message, 'error');
+            }
+        } finally {
+            if (generation === listGeneration.current) setLoadingMore(false);
+        }
+    }
 
     function toggleReference(character: PublicCharacter) {
         setSelectedReferences((current) => {
@@ -694,6 +722,14 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
                         );
                     })}
                 </section>
+            )}
+            {!loading && hasMore && (
+                <div className="m-browse-more">
+                    <Button disabled={loadingMore} onClick={() => void loadMore()}>
+                        {loadingMore && <LoaderCircle className="spin" size={16} />} Load more
+                        characters
+                    </Button>
+                </div>
             )}
             {isAdmin && generatorOpen && (
                 <AdminCharacterGeneratorModal

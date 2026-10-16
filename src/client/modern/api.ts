@@ -656,11 +656,14 @@ export async function importCharacterCard(file: File) {
 
 export async function fetchPublicCharacters(
     query = '',
-    sort: 'newest' | 'popular' | 'name' = 'newest'
-): Promise<PublicCharacter[]> {
+    sort: 'newest' | 'popular' | 'name' = 'newest',
+    offset = 0
+): Promise<{ characters: PublicCharacter[]; hasMore: boolean }> {
     const params = new URLSearchParams({ sort });
     if (query.trim()) params.set('q', query.trim());
-    return (await jsonRequest(`/api/characters/browse?${params}`)).characters || [];
+    if (offset > 0) params.set('offset', String(offset));
+    const payload = await jsonRequest(`/api/characters/browse?${params}`);
+    return { characters: payload.characters || [], hasMore: payload.hasMore === true };
 }
 
 export async function generateAdminCharacter(input: {

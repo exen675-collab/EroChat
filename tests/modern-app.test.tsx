@@ -765,6 +765,51 @@ describe('ModernApp', () => {
         await screen.findByText('No characters published yet');
         expect(screen.queryByText(/originality reference/)).not.toBeInTheDocument();
     });
+    it('loads further pages of the public catalog on request', async () => {
+        const publication = (id: number) => ({
+            id,
+            sourceCharacterId: `c-${id}`,
+            creator: 'author',
+            creatorId: 9,
+            isOwner: false,
+            name: `Character ${id}`,
+            avatar: '✨',
+            systemPrompt: 'Prompt.',
+            contextMessageCount: 20,
+            imports: 0
+        });
+        const browseRequests: string[] = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                const url = String(input);
+                if (url.startsWith('/api/characters/browse?')) {
+                    browseRequests.push(url);
+                    const more = url.includes('offset=1');
+                    return new Response(
+                        JSON.stringify({
+                            characters: [publication(more ? 2 : 1)],
+                            hasMore: !more
+                        }),
+                        { status: 200 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
+        await screen.findByText('Character 1');
+        await userEvent.click(screen.getByRole('button', { name: /Load more characters/ }));
+
+        expect(await screen.findByText('Character 2')).toBeInTheDocument();
+        expect(screen.getByText('Character 1')).toBeInTheDocument();
+        expect(browseRequests.at(-1)).toBe('/api/characters/browse?sort=newest&offset=1');
+        expect(
+            screen.queryByRole('button', { name: /Load more characters/ })
+        ).not.toBeInTheDocument();
+    });
     describe('chat conversation', () => {
         function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
             localStorage.setItem(

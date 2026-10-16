@@ -214,6 +214,35 @@ describe.sequential('server route composition', () => {
         expect((await request(`/api/characters/browse/${saved.id}/import`, {})).status).toBe(404);
     });
 
+    it('pages through the public catalog without repeats or gaps', async () => {
+        for (let index = 0; index < 62; index += 1) {
+            const character = {
+                sourceCharacterId: `paged-${index}`,
+                // Equal names exercise the tiebreak that keeps pages stable.
+                name: `Paged ${index < 30 ? 'Twin' : index}`,
+                systemPrompt: 'A paged character.'
+            };
+            expect((await request('/api/characters/publish', { character })).status).toBe(201);
+        }
+        const page = async (offset: number) =>
+            (
+                await request(
+                    `/api/characters/browse?q=Paged&sort=name&offset=${offset}`,
+                    undefined,
+                    'GET'
+                )
+            ).json();
+
+        const first = await page(0);
+        expect(first.characters).toHaveLength(60);
+        expect(first.hasMore).toBe(true);
+        const second = await page(60);
+        expect(second.characters).toHaveLength(2);
+        expect(second.hasMore).toBe(false);
+        const ids = [...first.characters, ...second.characters].map((item) => item.id);
+        expect(new Set(ids).size).toBe(62);
+    });
+
     it('preserves admin credit updates, profile changes, and logout sessions', async () => {
         const signup = await request(
             '/api/auth/signup',

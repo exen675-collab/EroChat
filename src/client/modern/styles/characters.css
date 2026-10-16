@@ -227,6 +227,11 @@
     border-color: rgba(255, 255, 255, 0.25);
     background: rgba(10, 10, 12, 0.65);
 }
+.m-browse-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
 .m-browse-tools {
     display: grid;
     grid-template-columns: minmax(260px, 1fr) minmax(160px, 210px);

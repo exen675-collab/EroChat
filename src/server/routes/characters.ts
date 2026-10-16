@@ -7,6 +7,7 @@ import { MAX_UPLOADED_MEDIA_BYTES } from '../config';
 import { storeMediaBuffer } from '../services/media';
 import { limitedText, normalizePositiveInt } from '../utils';
 import {
+    PUBLIC_CHARACTER_PAGE_SIZE,
     PUBLIC_CHARACTER_SORTS,
     normalizePublicCharacterPayload,
     mapPublicCharacterRow
@@ -58,12 +59,14 @@ export function registerCharacterRoutes(app: Express, db: Database) {
         const search = limitedText(req.query?.q, 100) || '';
         const requestedSort = limitedText(req.query?.sort, 20) || 'newest';
         const sort = PUBLIC_CHARACTER_SORTS.has(requestedSort) ? requestedSort : 'newest';
+        // The id tiebreak keeps the order stable, so consecutive pages neither repeat nor skip.
         const orderBy =
             sort === 'popular'
-                ? 'c.import_count DESC, c.updated_at DESC'
+                ? 'c.import_count DESC, c.updated_at DESC, c.id DESC'
                 : sort === 'name'
-                  ? 'c.name COLLATE NOCASE ASC, c.updated_at DESC'
-                  : 'c.updated_at DESC';
+                  ? 'c.name COLLATE NOCASE ASC, c.updated_at DESC, c.id DESC'
+                  : 'c.updated_at DESC, c.id DESC';
+        const offset = normalizePositiveInt(req.query?.offset, 0, 0, Number.MAX_SAFE_INTEGER);
         const params = [];
         let where = '';
 
@@ -83,11 +86,16 @@ export function registerCharacterRoutes(app: Express, db: Database) {
       JOIN users u ON u.id = c.user_id
       ${where}
       ORDER BY ${orderBy}
-      LIMIT 120
+      LIMIT ? OFFSET ?
     `,
-                params
+                // One extra row reveals whether another page exists.
+                [...params, PUBLIC_CHARACTER_PAGE_SIZE + 1, offset]
             );
-            res.json({ characters: rows.map((row) => mapPublicCharacterRow(row, userId)) });
+            const page = rows.slice(0, PUBLIC_CHARACTER_PAGE_SIZE);
+            res.json({
+                characters: page.map((row) => mapPublicCharacterRow(row, userId)),
+                hasMore: rows.length > PUBLIC_CHARACTER_PAGE_SIZE
+            });
         } catch (error) {
             console.error('Failed to browse public characters:', error);
             res.status(500).json({ error: 'Failed to load public characters.' });
