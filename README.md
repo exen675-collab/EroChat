@@ -55,6 +55,8 @@ Open:
 - User/session database files are persisted in `./data`
 - Existing databases must already use the current schema; startup does not run historical schema upgrades
 - Set a real `SESSION_SECRET` in production
+- The first start creates an administrator account `admin` with password `admin`. Sign in and change
+  it under **Settings > Account**. The server logs a warning at startup while either default is in use
 - Set `COOKIE_SECURE=true` only when running behind HTTPS
 - Optional credit environment variable: `DEFAULT_USER_CREDITS` (default: 100)
 
