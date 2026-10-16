@@ -17,7 +17,8 @@ import {
     normalizeGeneratorStatus,
     isTerminalGeneratorStatus,
     mapGeneratorJobRow,
-    getGeneratorAssetsByIds
+    getGeneratorAssetsByIds,
+    settleStaleGeneratorJobs
 } from '../generator';
 
 export function registerGeneratorJobRoutes(app: Express, db: Database) {
@@ -38,6 +39,12 @@ export function registerGeneratorJobRoutes(app: Express, db: Database) {
 
         const params: any[] = [userId];
         let query = 'SELECT * FROM generator_jobs WHERE user_id = ?';
+
+        try {
+            await settleStaleGeneratorJobs(db, userId);
+        } catch (error) {
+            console.error('Failed to settle stale generator jobs:', error);
+        }
 
         if (statusFilter) {
             query += ' AND status = ?';

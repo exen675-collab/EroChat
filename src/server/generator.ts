@@ -141,3 +141,36 @@ export async function getGeneratorAssetsByIds(db: Database, userId, assetIds) {
 
     return rows.map(mapGeneratorAssetRow);
 }
+
+export const STALE_GENERATOR_JOB_MINUTES = 30;
+const PENDING_GENERATOR_STATUSES = [
+    'queued',
+    'starting',
+    'loading',
+    'generating',
+    'running',
+    'polling'
+];
+
+// Jobs are driven by the browser that started them, and every step touches updated_at. A job left
+// pending this long belonged to a page that closed, so it can never finish; it is marked
+// interrupted instead of showing as in progress forever.
+export async function settleStaleGeneratorJobs(db: Database, userId) {
+    const placeholders = PENDING_GENERATOR_STATUSES.map(() => '?').join(', ');
+    await db.run(
+        `UPDATE generator_jobs
+         SET status = 'interrupted',
+             error_message = COALESCE(error_message, ?),
+             completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?
+           AND status IN (${placeholders})
+           AND updated_at < datetime('now', ?)`,
+        [
+            'The page running this job closed before it finished.',
+            userId,
+            ...PENDING_GENERATOR_STATUSES,
+            `-${STALE_GENERATOR_JOB_MINUTES} minutes`
+        ]
+    );
+}
