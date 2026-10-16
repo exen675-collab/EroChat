@@ -147,8 +147,8 @@ export function SettingsPanel({
                                 {settings.textProvider === 'grok-cli' ? (
                                     <div className="m-provider-box">
                                         <p>
-                                            Uses Grok Build signed in on the Wink server. All
-                                            users share that account’s usage allowance.
+                                            Uses Grok Build signed in on the Wink server. All users
+                                            share that account’s usage allowance.
                                         </p>
                                         <p>
                                             For Docker, start the host bridge with{' '}

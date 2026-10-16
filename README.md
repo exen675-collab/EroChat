@@ -256,7 +256,6 @@ Each request supplies the current conversation (including memory) to a fresh CLI
 
 This first version returns complete replies, not token streaming. It allows one request at a time, a 120-second timeout, and up to 512 KB of conversation text. OpenRouter sampling/reasoning settings do not apply. The temporary prompt is deleted afterward; Grok's own session retention and account policies still apply. Subscription allowances and content restrictions remain in effect; this is not unlimited or guaranteed cheaper usage. See [Grok headless integration](https://docs.x.ai/build/cli/headless-scripting) and [subscription usage limits](https://docs.x.ai/grok/faq#usage--limits).
 
-
 #### Docker with Grok installed on your PC
 
 Run these commands from the project folder **on your PC**, using the OS account already signed in to Grok:

@@ -118,6 +118,7 @@ The user ID prevents accounts using the same browser from sharing chat data. `st
 Chats, settings (including provider API keys), characters, gallery entries, and statistics are stored in the server database and scoped to the authenticated account. Protect the database and its backups accordingly. `useDatabaseState.ts` loads and migrates data before editing, serializes saves, checks revisions to reject stale writes, and offers retry/download recovery when saving fails. Legacy browser entries remain untouched.
 
 Generator jobs and generated asset metadata also remain in the database; media files remain in the server data directory.
+
 ## Chat request flow
 
 1. The controller appends the user's draft to the active character's messages.
