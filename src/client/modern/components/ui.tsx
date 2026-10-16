@@ -1,5 +1,11 @@
 import { X } from 'lucide-react';
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import {
+    useEffect,
+    useRef,
+    type ButtonHTMLAttributes,
+    type ReactNode,
+    type RefObject
+} from 'react';
 
 export function Button({
     children,
@@ -28,6 +34,39 @@ export function IconButton({
     );
 }
 
+/**
+ * Shared dialog behavior: Escape closes it, focus moves into it on open (to the first field inside
+ * `fieldScope`, or the dialog itself) and returns to whatever opened it on close.
+ */
+export function useDialog(
+    dialogRef: RefObject<HTMLElement | null>,
+    onClose: () => void,
+    fieldScope?: string
+) {
+    useEffect(() => {
+        const handler = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [onClose]);
+    useEffect(() => {
+        const opener = document.activeElement as HTMLElement | null;
+        const dialog = dialogRef.current;
+        if (dialog && !dialog.contains(document.activeElement)) {
+            const field = fieldScope
+                ? dialog.querySelector<HTMLElement>(
+                      ['input:not([type="hidden"])', 'textarea', 'select']
+                          .map((selector) => `${fieldScope} ${selector}:not([disabled])`)
+                          .join(', ')
+                  )
+                : null;
+            (field || dialog).focus();
+        }
+        return () => {
+            if (opener?.isConnected) opener.focus();
+        };
+    }, []);
+}
+
 export function Modal({
     title,
     children,
@@ -40,26 +79,7 @@ export function Modal({
     size?: 'small' | 'medium' | 'large';
 }) {
     const dialogRef = useRef<HTMLElement>(null);
-    useEffect(() => {
-        const handler = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [onClose]);
-    // Focus moves into the dialog when it opens, so keyboard and screen reader users land in it,
-    // and returns to whatever opened it when it closes.
-    useEffect(() => {
-        const opener = document.activeElement as HTMLElement | null;
-        const dialog = dialogRef.current;
-        if (dialog && !dialog.contains(document.activeElement)) {
-            const field = dialog.querySelector<HTMLElement>(
-                '.m-modal__body input:not([type="hidden"]):not([disabled]), .m-modal__body textarea:not([disabled]), .m-modal__body select:not([disabled])'
-            );
-            (field || dialog).focus();
-        }
-        return () => {
-            if (opener?.isConnected) opener.focus();
-        };
-    }, []);
+    useDialog(dialogRef, onClose, '.m-modal__body');
     return (
         <div
             className="m-modal-backdrop"

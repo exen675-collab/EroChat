@@ -15,6 +15,7 @@
         opacity: 0;
     }
 }
+.m-settings:focus,
 .m-modal:focus {
     outline: none;
 }

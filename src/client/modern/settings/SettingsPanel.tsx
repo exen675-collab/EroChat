@@ -12,7 +12,7 @@ import {
     WandSparkles,
     X
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     fetchAdminUsers,
     fetchOpenRouterModels,
@@ -20,7 +20,7 @@ import {
     updateAdminCredits,
     updateProfile
 } from '../api.js';
-import { Button, IconButton } from '../components/ui.js';
+import { Button, IconButton, useDialog } from '../components/ui.js';
 import type { ModernSettings } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 import { ProviderSettings } from './ProviderSettings.js';
@@ -54,6 +54,8 @@ export function SettingsPanel({
     const [adminUsers, setAdminUsers] = useState<any[]>([]);
     // Typed but unsaved credit amounts, kept as text so an empty field is not read as 0.
     const [creditEdits, setCreditEdits] = useState<Record<number, string>>({});
+    const panelRef = useRef<HTMLElement>(null);
+    useDialog(panelRef, onClose);
     const update = (patch: Partial<ModernSettings>) =>
         setSettings((current) => ({ ...current, ...patch }));
     async function loadTextModels() {
@@ -91,7 +93,14 @@ export function SettingsPanel({
             className="m-settings-backdrop"
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
         >
-            <aside className="m-settings" role="dialog" aria-modal="true" aria-label="Settings">
+            <aside
+                ref={panelRef}
+                tabIndex={-1}
+                className="m-settings"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Settings"
+            >
                 <header>
                     <div>
                         <span className="m-eyebrow">Workspace</span>

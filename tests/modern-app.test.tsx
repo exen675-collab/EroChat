@@ -87,6 +87,14 @@ describe('ModernApp', () => {
         expect(toggle.getAttribute('aria-pressed')).not.toBe(before);
     });
 
+    it('focuses Settings when it opens and closes it with Escape', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        expect(screen.getByRole('dialog', { name: 'Settings' })).toHaveFocus();
+        await userEvent.keyboard('{Escape}');
+        expect(screen.queryByRole('dialog', { name: 'Settings' })).not.toBeInTheDocument();
+    });
+
     it('shows only the current settings sections', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
