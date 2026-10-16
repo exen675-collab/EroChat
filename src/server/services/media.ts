@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import net from 'node:net';
 import { MEDIA_DIR, MAX_UPLOADED_MEDIA_BYTES, MAX_REMOTE_MEDIA_BYTES } from '../config';
 import { generateId, normalizePositiveInt } from '../utils';
+import { fetchPublicUrl, readBodyWithLimit } from './remote-fetch';
 
 function normalizeMimeType(mimeType) {
     return String(mimeType || '')
@@ -90,55 +90,22 @@ export async function storeMediaBuffer(buffer, mimeType, maxBytes = MAX_UPLOADED
     };
 }
 
-function isBlockedRemoteHost(hostname) {
-    const host = String(hostname || '')
-        .trim()
-        .toLowerCase();
-    if (!host) return true;
-    if (host === 'localhost' || host === '0.0.0.0' || host === '::1' || host.endsWith('.local')) {
-        return true;
-    }
+const REMOTE_MEDIA_TIMEOUT_MS = 60 * 1000;
 
-    const normalized = host.replace(/^\[|\]$/g, '');
-    if (net.isIP(normalized) === 4) {
-        return /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|169\.254\.)/.test(normalized);
-    }
-    if (net.isIP(normalized) === 6) {
-        return (
-            normalized === '::1' ||
-            normalized.startsWith('fc') ||
-            normalized.startsWith('fd') ||
-            normalized.startsWith('fe80:')
-        );
-    }
-
-    return false;
-}
-
-export function validateRemoteMediaUrl(rawUrl) {
-    let parsed;
-    try {
-        parsed = new URL(rawUrl);
-    } catch {
-        throw new Error('A valid remote URL is required.');
-    }
-
-    if (!/^https?:$/i.test(parsed.protocol)) {
-        throw new Error('Only http or https media URLs are supported.');
-    }
-
-    if (isBlockedRemoteHost(parsed.hostname)) {
-        throw new Error('Importing media from local or private addresses is not allowed.');
-    }
-
-    return parsed;
+// Drops an unused response so its connection is released before the error is raised.
+function rejectRemoteResponse(response: Response, message: string): never {
+    void response.body?.cancel().catch(() => undefined);
+    throw new Error(message);
 }
 
 export async function importRemoteMedia(remoteUrl) {
-    const parsed = validateRemoteMediaUrl(remoteUrl);
-    const response = await fetch(parsed.toString());
+    const response = await fetchPublicUrl(remoteUrl, {
+        method: 'GET',
+        timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
+        followRedirects: true
+    });
     if (!response.ok) {
-        throw new Error(`Failed to fetch remote media (${response.status}).`);
+        rejectRemoteResponse(response, `Failed to fetch remote media (${response.status}).`);
     }
 
     const contentLength = normalizePositiveInt(
@@ -148,15 +115,14 @@ export async function importRemoteMedia(remoteUrl) {
         Number.MAX_SAFE_INTEGER
     );
     if (contentLength > MAX_REMOTE_MEDIA_BYTES) {
-        throw new Error('Remote media file is too large to import.');
+        rejectRemoteResponse(response, 'Remote media file is too large to import.');
     }
 
     const mimeType = normalizeMimeType(response.headers.get('content-type'));
     if (!mediaTypeForMimeType(mimeType)) {
-        throw new Error('Remote media type is not supported.');
+        rejectRemoteResponse(response, 'Remote media type is not supported.');
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = await readBodyWithLimit(response, MAX_REMOTE_MEDIA_BYTES);
     return storeMediaBuffer(buffer, mimeType, MAX_REMOTE_MEDIA_BYTES);
 }

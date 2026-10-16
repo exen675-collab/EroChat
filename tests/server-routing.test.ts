@@ -144,7 +144,16 @@ describe.sequential('server route composition', () => {
         });
         expect(remote.status).toBe(400);
         expect(await remote.json()).toEqual({
-            error: 'Importing media from local or private addresses is not allowed.'
+            error: 'Requests to local or private network addresses are not allowed.'
+        });
+
+        const proxied = await request('/api/nanogpt/images/models', {
+            baseUrl: 'http://[::ffff:127.0.0.1]:9',
+            apiKey: 'not-a-real-key'
+        });
+        expect(proxied.status).toBe(400);
+        expect(await proxied.json()).toEqual({
+            error: 'Requests to local or private network addresses are not allowed.'
         });
     });
 

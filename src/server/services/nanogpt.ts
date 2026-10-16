@@ -1,10 +1,12 @@
-import { validateRemoteMediaUrl } from './media';
+import { fetchPublicUrl } from './remote-fetch';
+
+// Image generation can run for minutes; this bounds stalled connections rather than typical use.
+const NANOGPT_REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 
 function buildNanoGptApiUrl(baseUrl, pathname) {
     const trimmedBaseUrl =
         typeof baseUrl === 'string' && baseUrl.trim() ? baseUrl.trim() : 'https://nano-gpt.com';
-    const parsed = validateRemoteMediaUrl(new URL(pathname, trimmedBaseUrl).toString());
-    return parsed.toString();
+    return new URL(pathname, trimmedBaseUrl).toString();
 }
 
 async function readNanoGptResponse(response) {
@@ -37,10 +39,11 @@ export async function proxyNanoGptJsonRequest({
         headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(targetUrl, {
+    const response = await fetchPublicUrl(targetUrl, {
         method,
         headers,
-        body: body != null ? JSON.stringify(body) : undefined
+        body: body != null ? JSON.stringify(body) : undefined,
+        timeoutMs: NANOGPT_REQUEST_TIMEOUT_MS
     });
     const payload = await readNanoGptResponse(response);
 
