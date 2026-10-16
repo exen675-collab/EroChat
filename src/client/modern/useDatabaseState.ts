@@ -1,11 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     createModernDefaultState,
+    fetchServerModernState,
     loadModernState,
     persistModernState,
     serializeModernState
 } from './storage.js';
 import type { ModernPersistedState } from './types.js';
+
+interface SaveSession {
+    revision: number;
+    saved: string;
+}
+
+// After a 409 on our own write, the earlier attempt may have committed with its response lost.
+// If the server already holds this exact state, adopt its revision rather than report a conflict.
+async function adoptCommittedWrite(session: SaveSession, serialized: string): Promise<boolean> {
+    try {
+        const { state, revision } = await fetchServerModernState();
+        if (serializeModernState(state) !== serialized) return false;
+        session.revision = revision;
+        session.saved = serialized;
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 export function useDatabaseState(userId: number | string) {
     const [data, setData] = useState(createModernDefaultState);
@@ -73,7 +93,10 @@ export function useDatabaseState(userId: number | string) {
             current.saved = serialized;
             if (!current.stopped) setError('');
         } catch (reason) {
-            if (!current.stopped) setError((reason as Error).message);
+            const committed =
+                (reason as { status?: number }).status === 409 &&
+                (await adoptCommittedWrite(current, serialized));
+            if (!current.stopped) setError(committed ? '' : (reason as Error).message);
         } finally {
             current.running = false;
             if (!current.stopped) setSaving(false);

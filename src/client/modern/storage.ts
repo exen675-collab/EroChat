@@ -227,8 +227,13 @@ async function stateRequest(path: string, method: string, body: unknown) {
         body: JSON.stringify(body)
     });
     const result = await response.json();
-    if (!response.ok)
-        throw new Error(result.error || `Database request failed (${response.status}).`);
+    if (!response.ok) {
+        const error = new Error(
+            result.error || `Database request failed (${response.status}).`
+        ) as Error & { status: number };
+        error.status = response.status;
+        throw error;
+    }
     if (!Number.isSafeInteger(result.revision))
         throw new Error('Invalid database response. Your data has not been saved.');
     return result;
@@ -242,6 +247,14 @@ export async function loadModernState(
     const result = await stateRequest('/load', 'POST', {
         localState: storage.getItem(getModernStorageKey(userId))
     });
+    const state =
+        result.state == null ? createModernDefaultState() : normalizeModernState(result.state);
+    return { state, revision: result.revision as number };
+}
+
+// Reads the server copy without sending any local data, so nothing is imported or rewritten.
+export async function fetchServerModernState() {
+    const result = await stateRequest('/load', 'POST', { localState: null });
     const state =
         result.state == null ? createModernDefaultState() : normalizeModernState(result.state);
     return { state, revision: result.revision as number };

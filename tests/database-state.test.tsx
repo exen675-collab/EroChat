@@ -98,3 +98,71 @@ it('leaves an unreadable server state unsaved instead of replacing it with defau
     expect(result.current.persistence.loaded).toBe(false);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(['/api/user-state/load']);
 });
+
+it('recognizes a write whose response was lost instead of reporting a conflict', async () => {
+    let serverState: any = null;
+    let serverRevision = 0;
+    let loseNextResponse = true;
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/load'))
+                return new Response(
+                    JSON.stringify({ state: serverState, revision: serverRevision })
+                );
+            const body = JSON.parse(String(init?.body));
+            if (body.revision !== serverRevision)
+                return new Response(JSON.stringify({ error: 'Another tab changed your data.' }), {
+                    status: 409
+                });
+            serverState = body.state;
+            serverRevision += 1;
+            if (loseNextResponse) {
+                loseNextResponse = false;
+                throw new TypeError('network connection lost');
+            }
+            return new Response(JSON.stringify({ revision: serverRevision }));
+        })
+    );
+
+    const { result } = renderHook(() => useDatabaseState(7));
+    await waitFor(() => expect(result.current.persistence.loaded).toBe(true));
+    act(() => result.current.setData((state) => ({ ...state, gallerySearchQuery: 'kept' })));
+    await waitFor(() => expect(result.current.persistence.error).toBe('network connection lost'));
+
+    // retry() clears the error at once, so wait for the retried save to settle before asserting.
+    act(() => result.current.persistence.retry());
+    await waitFor(() => expect(result.current.persistence.saving).toBe(false));
+    expect(result.current.persistence.error).toBe('');
+    expect(serverState.gallerySearchQuery).toBe('kept');
+});
+
+it('still reports a conflict when another tab changed the data', async () => {
+    let serverRevision = 3;
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/load'))
+                return new Response(
+                    JSON.stringify({
+                        state: { ...createModernDefaultState(), gallerySearchQuery: 'theirs' },
+                        revision: serverRevision
+                    })
+                );
+            const body = JSON.parse(String(init?.body));
+            if (body.revision !== serverRevision)
+                return new Response(JSON.stringify({ error: 'Another tab changed your data.' }), {
+                    status: 409
+                });
+            return new Response(JSON.stringify({ revision: serverRevision + 1 }));
+        })
+    );
+
+    const { result } = renderHook(() => useDatabaseState(7));
+    await waitFor(() => expect(result.current.persistence.loaded).toBe(true));
+    serverRevision = 4;
+    act(() => result.current.setData((state) => ({ ...state, gallerySearchQuery: 'mine' })));
+    await waitFor(() =>
+        expect(result.current.persistence.error).toBe('Another tab changed your data.')
+    );
+});
