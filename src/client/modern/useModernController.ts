@@ -12,7 +12,7 @@ import {
 } from './api.js';
 import { runMediaGeneration } from './media-generation.js';
 import { recordPromptUsage } from './stats.js';
-import { selectReplyVersion, succeedingVersion } from './reply-versions.js';
+import { greetingMessage, selectReplyVersion, succeedingVersion } from './reply-versions.js';
 import { chatMediaPreset } from './media-presets.js';
 import { useDatabaseState } from './useDatabaseState.js';
 import type {
@@ -648,15 +648,20 @@ export function useModernController(initialUser: BootstrapUser) {
         if (!greeting || messages.length) return;
         setData((current) =>
             syncCurrentMessages(current, [
-                {
-                    id: id(),
-                    role: 'assistant',
-                    content: greeting,
-                    createdAt: new Date().toISOString()
-                }
+                greetingMessage(
+                    id(),
+                    greeting,
+                    currentCharacter?.alternateGreetings,
+                    new Date().toISOString()
+                )
             ])
         );
-    }, [currentCharacter?.greeting, messages.length, setData]);
+    }, [
+        currentCharacter?.alternateGreetings,
+        currentCharacter?.greeting,
+        messages.length,
+        setData
+    ]);
 
     const editMessage = useCallback((messageId: string, content: string) => {
         setData((current) => {

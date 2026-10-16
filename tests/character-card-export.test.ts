@@ -73,4 +73,13 @@ describe('character card export', () => {
     it('ignores cards without a Wink profile', () => {
         expect(readWinkCardExtension({ name: 'Other', extensions: {} })).toBeNull();
     });
+
+    it('exports alternate greetings in the standard field', () => {
+        const card = buildCharacterCard(
+            { ...character, alternateGreetings: ['Back again?'] },
+            'tester'
+        );
+        expect(card.data.alternate_greetings).toEqual(['Back again?']);
+        expect(buildCharacterCard(character, 'tester').data.alternate_greetings).toEqual([]);
+    });
 });

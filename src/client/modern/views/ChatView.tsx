@@ -118,8 +118,9 @@ function MessageItem({
     const versionCount = message.otherVersions?.length ? replyVersions(message).length : 1;
     const versionIndex = Math.min(message.versionIndex ?? versionCount - 1, versionCount - 1);
     // A pending scene image belongs to the shown version, so it has to finish first.
+    // Versions switch on the last reply while idle (canContinue), including a card's greetings.
     const canSwitchVersion =
-        canRegenerate &&
+        canContinue &&
         !['queued', 'starting', 'loading', 'generating'].includes(message.mediaStatus || '');
 
     if (!assistant) {

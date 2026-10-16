@@ -41,3 +41,22 @@ export function selectReplyVersion(message: ModernMessage, index: number): Moder
         versionIndex: index
     };
 }
+
+/** The opening message; a card's alternate greetings become versions to page through. */
+export function greetingMessage(
+    id: string,
+    greeting: string,
+    alternates: string[] = [],
+    createdAt?: string
+): ModernMessage {
+    const others = [...new Set(alternates)].filter((text) => text && text !== greeting);
+    return {
+        id,
+        role: 'assistant',
+        content: greeting,
+        ...(createdAt ? { createdAt } : {}),
+        ...(others.length
+            ? { otherVersions: others.map((content) => ({ content })), versionIndex: 0 }
+            : {})
+    };
+}

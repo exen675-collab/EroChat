@@ -1297,6 +1297,60 @@ describe('ModernApp', () => {
         );
     });
 
+    it("offers a card's alternate greetings as versions of the opening message", async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                if (String(input) === '/api/characters/import-card') {
+                    return new Response(
+                        JSON.stringify({
+                            card: {
+                                data: {
+                                    name: 'Cass',
+                                    first_mes: 'Welcome aboard.',
+                                    alternate_greetings: [
+                                        '{{char}} waves at {{user}}.',
+                                        '',
+                                        'Welcome aboard.',
+                                        42
+                                    ]
+                                }
+                            },
+                            thumbnailUrl: null
+                        }),
+                        { status: 201 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+        await userEvent.upload(input, new File(['{}'], 'c.json', { type: 'application/json' }));
+        await screen.findByRole('heading', { name: 'Cass' });
+        await userEvent.click(screen.getByRole('button', { name: 'Select Cass' }));
+
+        expect(
+            within(document.querySelector<HTMLElement>('.m-chat__stream')!).getByText(
+                'Welcome aboard.'
+            )
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Reply version')).toHaveTextContent('1/2');
+        await userEvent.click(screen.getByRole('button', { name: 'Next version' }));
+        expect(
+            within(document.querySelector<HTMLElement>('.m-chat__stream')!).getByText(
+                'Cass waves at tester.'
+            )
+        ).toBeInTheDocument();
+        await waitFor(() =>
+            expect(savedState.characters.at(-1).alternateGreetings).toEqual([
+                'Cass waves at tester.',
+                'Welcome aboard.'
+            ])
+        );
+    });
+
     it('imports the same character card file again when chosen twice', async () => {
         let imports = 0;
         vi.stubGlobal(

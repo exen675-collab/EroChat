@@ -57,7 +57,7 @@ export function buildCharacterCard(character: ModernCharacter, creator: string) 
             creator_notes: '',
             system_prompt: wink.systemPrompt,
             post_history_instructions: '',
-            alternate_greetings: [],
+            alternate_greetings: character.alternateGreetings || [],
             tags: [],
             creator,
             character_version: '',

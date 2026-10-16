@@ -12,6 +12,7 @@ import {
 import { useRef, useState } from 'react';
 import { importCharacterCard, publishCharacter } from '../api.js';
 import { downloadCharacterCard, readWinkCardExtension } from '../character-card-export.js';
+import { greetingMessage } from '../reply-versions.js';
 import { sortCharactersByRecentUse } from '../character-sort.js';
 import { getCharacterThumbnailUrl } from '../character-thumbnails.js';
 import { CharacterVisual } from '../components/character-visuals.js';
@@ -257,6 +258,18 @@ export function CharactersView({ controller }: { controller: ModernController })
             const raw = result.card?.data;
             if (!raw?.name) throw new Error('The character card payload was malformed.');
             const name = String(raw.name).trim();
+            // Replacer functions keep "$&"-style sequences in a name or username literal.
+            const replace = (value: unknown) =>
+                String(value || '')
+                    .replace(/\{\{\s*char\s*\}\}/gi, () => name)
+                    .replace(/\{\{\s*user\s*\}\}/gi, () => controller.user.username)
+                    .trim();
+            const alternateGreetings = (
+                Array.isArray(raw.alternate_greetings) ? raw.alternate_greetings : []
+            )
+                .filter((text: unknown) => typeof text === 'string')
+                .map((text: string) => replace(text))
+                .filter(Boolean);
             // A card exported from Wink carries the exact profile; restore it as it was.
             const wink = readWinkCardExtension(raw);
             if (wink) {
@@ -271,8 +284,9 @@ export function CharactersView({ controller }: { controller: ModernController })
                     greeting: wink.greeting,
                     userInfo: '',
                     systemPrompt: wink.systemPrompt,
+                    alternateGreetings,
                     messages: wink.greeting
-                        ? [{ id: crypto.randomUUID(), role: 'assistant', content: wink.greeting }]
+                        ? [greetingMessage(crypto.randomUUID(), wink.greeting, alternateGreetings)]
                         : [],
                     memorySnapshots: [],
                     contextMessageCount:
@@ -282,12 +296,6 @@ export function CharactersView({ controller }: { controller: ModernController })
                 controller.notify('Character imported.', 'success');
                 return;
             }
-            // Replacer functions keep "$&"-style sequences in a name or username literal.
-            const replace = (value: unknown) =>
-                String(value || '')
-                    .replace(/\{\{\s*char\s*\}\}/gi, () => name)
-                    .replace(/\{\{\s*user\s*\}\}/gi, () => controller.user.username)
-                    .trim();
             const greeting = replace(raw.first_mes);
             const description = replace(raw.description);
             const background = [
@@ -318,8 +326,9 @@ export function CharactersView({ controller }: { controller: ModernController })
                         .filter(Boolean)
                         .join('\n\n')
                 ),
+                alternateGreetings,
                 messages: greeting
-                    ? [{ id: crypto.randomUUID(), role: 'assistant', content: greeting }]
+                    ? [greetingMessage(crypto.randomUUID(), greeting, alternateGreetings)]
                     : [],
                 memorySnapshots: [],
                 contextMessageCount: controller.data.settings.contextMessageCount,

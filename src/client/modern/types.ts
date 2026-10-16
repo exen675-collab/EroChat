@@ -76,6 +76,8 @@ export interface ModernCharacter {
     description?: string;
     background?: string;
     greeting?: string;
+    /** Other opening messages from an imported card. */
+    alternateGreetings?: string[];
     userInfo?: string;
     messages: ModernMessage[];
     memorySnapshots?: MemorySnapshot[];

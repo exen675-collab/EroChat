@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    greetingMessage,
     replyVersions,
     selectReplyVersion,
     succeedingVersion
@@ -67,5 +68,16 @@ describe('reply versions', () => {
         expect(selectReplyVersion(message, 0)).toBe(message);
         const user: ModernMessage = { id: 'u', role: 'user', content: 'Hi' };
         expect(succeedingVersion(user, reply('New.')).otherVersions).toBeUndefined();
+    });
+
+    it('builds an opening message whose alternate greetings are later versions', () => {
+        const message = greetingMessage('g', 'Hello.', ['Hi.', 'Hello.', 'Hi.', '']);
+        expect(replyVersions(message).map((version) => version.content)).toEqual(['Hello.', 'Hi.']);
+        expect(message.versionIndex).toBe(0);
+        expect(greetingMessage('g', 'Hello.')).toEqual({
+            id: 'g',
+            role: 'assistant',
+            content: 'Hello.'
+        });
     });
 });
