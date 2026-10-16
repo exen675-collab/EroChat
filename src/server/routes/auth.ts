@@ -8,9 +8,11 @@ import {
     LOGIN_RATE_LIMIT_MAX_ATTEMPTS
 } from '../config';
 
+const MAX_TRACKED_LOGIN_KEYS = 10000;
+
 export function registerAuthRoutes(app: Express, db: Database) {
     const { run, get } = db;
-    const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+    const loginFailures = new Map<string, { count: number; resetAt: number }>();
     function sanitizeUsername(username) {
         if (typeof username !== 'string') return '';
         return username.trim();
@@ -24,34 +26,34 @@ export function registerAuthRoutes(app: Express, db: Database) {
         return typeof password === 'string' && password.length >= 6 && password.length <= 128;
     }
 
-    function getClientIp(req) {
-        const fwd = req.headers['x-forwarded-for'];
-        if (typeof fwd === 'string' && fwd.length > 0) {
-            return fwd.split(',')[0].trim();
-        }
-        return req.ip || req.socket.remoteAddress || 'unknown';
+    // Failed attempts are counted per client address and per account. The address comes from
+    // req.ip, which honors the trust-proxy setting; the raw X-Forwarded-For header is never read
+    // here. The per-account count still limits guessing when the address can be rotated.
+    function isLoginLocked(key: string) {
+        const entry = loginFailures.get(key);
+        return Boolean(
+            entry && Date.now() <= entry.resetAt && entry.count >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+        );
     }
 
-    function isRateLimited(req) {
-        const ip = getClientIp(req);
+    function recordLoginFailure(key: string) {
         const now = Date.now();
-        const entry = loginAttempts.get(ip);
-
-        if (!entry || now > entry.resetAt) {
-            loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW_MS });
-            return false;
+        const entry = loginFailures.get(key);
+        if (entry && now <= entry.resetAt) {
+            entry.count += 1;
+            return;
         }
 
-        entry.count += 1;
-        if (entry.count > LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
-            return true;
+        if (loginFailures.size >= MAX_TRACKED_LOGIN_KEYS) {
+            for (const [staleKey, stale] of loginFailures) {
+                if (now > stale.resetAt) loginFailures.delete(staleKey);
+            }
         }
-
-        return false;
+        loginFailures.set(key, { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW_MS });
     }
 
-    function clearRateLimit(req) {
-        loginAttempts.delete(getClientIp(req));
+    function clearLoginFailures(key: string) {
+        loginFailures.delete(key);
     }
     app.post('/api/auth/signup', async (req, res) => {
         const username = sanitizeUsername(req.body?.username);
@@ -96,18 +98,26 @@ export function registerAuthRoutes(app: Express, db: Database) {
     });
 
     app.post('/api/auth/login', async (req, res) => {
-        if (isRateLimited(req)) {
+        const username = sanitizeUsername(req.body?.username);
+        const password = req.body?.password;
+        const addressKey = `address:${req.ip || req.socket.remoteAddress || 'unknown'}`;
+        const accountKey = `account:${username.toLowerCase()}`;
+
+        if (isLoginLocked(addressKey) || isLoginLocked(accountKey)) {
             res.status(429).json({ error: 'Too many login attempts. Try again later.' });
             return;
         }
-
-        const username = sanitizeUsername(req.body?.username);
-        const password = req.body?.password;
 
         if (!username || typeof password !== 'string') {
             res.status(400).json({ error: 'Username and password are required.' });
             return;
         }
+
+        const rejectLogin = () => {
+            recordLoginFailure(addressKey);
+            recordLoginFailure(accountKey);
+            res.status(401).json({ error: 'Invalid username or password.' });
+        };
 
         try {
             const user = await get(
@@ -116,17 +126,17 @@ export function registerAuthRoutes(app: Express, db: Database) {
             );
 
             if (!user) {
-                res.status(401).json({ error: 'Invalid username or password.' });
+                rejectLogin();
                 return;
             }
 
             const ok = await bcrypt.compare(password, user.password_hash);
             if (!ok) {
-                res.status(401).json({ error: 'Invalid username or password.' });
+                rejectLogin();
                 return;
             }
 
-            clearRateLimit(req);
+            clearLoginFailures(accountKey);
             req.session.userId = user.id;
             req.session.isAdmin = Number.parseInt(user.is_admin, 10) === 1;
 
