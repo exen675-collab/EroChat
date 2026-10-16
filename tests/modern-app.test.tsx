@@ -817,6 +817,7 @@ describe('ModernApp', () => {
             mediaType: 'image',
             url: `/app/media/${id}.png`,
             source: 'manual',
+            characterId: 'default',
             createdAt: `2026-08-0${id}T10:00:00Z`
         });
         const assetRequests: string[] = [];
@@ -847,6 +848,9 @@ describe('ModernApp', () => {
                 .getAllByRole('img', { name: 'Generated media' })
                 .map((img) => img.getAttribute('src'));
         await waitFor(() => expect(images()).toEqual(['/app/media/5.png']));
+        const card = screen.getByRole('img', { name: 'Generated media' }).closest('article')!;
+        expect(within(card).getByText('Generator')).toBeInTheDocument();
+        expect(within(card).getByText('Default Character')).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', { name: /Load older media/ }));
         await waitFor(() => expect(images()).toEqual(['/app/media/5.png', '/app/media/2.png']));

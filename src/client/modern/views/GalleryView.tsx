@@ -10,6 +10,13 @@ import { Button, Modal } from '../components/ui.js';
 import type { GalleryItem } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 
+const SOURCE_LABELS: Record<string, string> = {
+    chat: 'Chat',
+    manual: 'Generator',
+    regenerate: 'Regenerated',
+    'character-thumbnail': 'Thumbnail'
+};
+
 function mergedGallery(controller: ModernController): GalleryItem[] {
     const generated: GalleryItem[] = controller.generatorAssets.map((asset) => ({
         id: `generator-${asset.id}`,
@@ -64,6 +71,11 @@ export function GalleryView({ controller }: { controller: ModernController }) {
             controller.data.gallerySourceFilter,
             controller.data.galleryFilterCharacterId
         ]
+    );
+    const characterNames = useMemo(
+        () =>
+            new Map(controller.data.characters.map((character) => [character.id, character.name])),
+        [controller.data.characters]
     );
     return (
         <div className="m-page">
@@ -139,11 +151,12 @@ export function GalleryView({ controller }: { controller: ModernController }) {
                                         loading="lazy"
                                     />
                                 )}
-                                <span>{item.source || 'chat'}</span>
+                                <span>{SOURCE_LABELS[item.source || 'chat'] || item.source}</span>
                             </button>
                             <div>
                                 <strong>
                                     {item.characterName ||
+                                        characterNames.get(item.characterId || '') ||
                                         (item.source === 'manual' ? 'Generator' : 'Scene')}
                                 </strong>
                                 <small>
