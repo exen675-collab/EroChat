@@ -529,27 +529,34 @@ async function generateOpenRouter(settings: ModernSettings, options: GenerateOpt
     const results: Array<{ url: string }> = [];
     const batchCount = Math.max(1, Number(options.batchCount) || 1);
     for (let index = 0; index < batchCount; index += 1) {
-        const response = await fetch('https://openrouter.ai/api/v1/images', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${settings.openrouterKey}`,
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'Wink'
-            },
-            body: JSON.stringify({ model, prompt: options.prompt, n: 1 })
-        });
-        const payload = await responsePayload(response);
-        const images = Array.isArray(payload?.data) ? payload.data : [];
-        for (const image of images) {
-            const value = typeof image === 'string' ? image : image?.url || image?.b64_json;
-            if (!value) continue;
-            results.push({
-                url:
-                    String(value).startsWith('http') || String(value).startsWith('data:')
-                        ? String(value)
-                        : `data:${image?.media_type || 'image/png'};base64,${value}`
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${settings.openrouterKey}`,
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'Wink'
+                },
+                body: JSON.stringify({ model, prompt: options.prompt, n: 1 })
             });
+            const payload = await responsePayload(response);
+            const images = Array.isArray(payload?.data) ? payload.data : [];
+            for (const image of images) {
+                const value = typeof image === 'string' ? image : image?.url || image?.b64_json;
+                if (!value) continue;
+                results.push({
+                    url:
+                        String(value).startsWith('http') || String(value).startsWith('data:')
+                            ? String(value)
+                            : `data:${image?.media_type || 'image/png'};base64,${value}`
+                });
+            }
+        } catch (error) {
+            // Keep the images already generated. Stop here rather than spend more requests on a
+            // failure that is likely to repeat, and report the error only if nothing was produced.
+            if (!results.length) throw error;
+            break;
         }
     }
     if (!results.length) throw new Error('OpenRouter returned no images.');

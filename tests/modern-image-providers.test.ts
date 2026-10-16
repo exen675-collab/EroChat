@@ -101,7 +101,7 @@ describe('image generation results', () => {
     });
 
     it('starts a new Swarm session when the server URL changes', async () => {
-        const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+        const fetchMock = vi.fn<typeof fetch>(async (input) => {
             const url = String(input);
             if (url.endsWith('/API/GetNewSession')) {
                 return new Response(
@@ -137,5 +137,40 @@ describe('image generation results', () => {
             .filter(([url]) => String(url).endsWith('/API/GenerateText2Image'))
             .map(([, init]) => JSON.parse(String(init?.body)).session_id);
         expect(sessions).toEqual(['session-for-first.test', 'session-for-second.test']);
+    });
+
+    it('keeps images from earlier requests when a later request in the batch fails', async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ data: [{ url: 'https://images.test/first.png' }] }))
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ error: { message: 'Rate limited' } }), {
+                    status: 429
+                })
+            );
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(
+            generateImages(openRouterSettings(), { prompt: 'Two lanterns', batchCount: 3 })
+        ).resolves.toEqual([{ url: 'https://images.test/first.png' }]);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports the failure when a batch produced no images', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(JSON.stringify({ error: { message: 'Rate limited' } }), {
+                        status: 429
+                    })
+            )
+        );
+
+        await expect(
+            generateImages(openRouterSettings(), { prompt: 'Two lanterns', batchCount: 2 })
+        ).rejects.toThrow('Rate limited');
     });
 });
