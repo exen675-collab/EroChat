@@ -149,10 +149,20 @@ export function buildChatRequestPreview({
     };
 }
 
+// The displayed preview is often copied into bug reports or chats, so the bearer token is masked.
+// The request object keeps the real value for sending.
+function redactAuthorizationHeader(headers: Record<string, string> = {}) {
+    return Object.fromEntries(
+        Object.entries(headers).map(([name, value]) =>
+            name.toLowerCase() === 'authorization' ? [name, 'Bearer [redacted]'] : [name, value]
+        )
+    );
+}
+
 export function formatChatRequestPreview(preview) {
     const method = preview?.method || 'POST';
     const url = preview?.url || '';
-    const headers = JSON.stringify(preview?.headers || {}, null, 2);
+    const headers = JSON.stringify(redactAuthorizationHeader(preview?.headers), null, 2);
     const body = JSON.stringify(preview?.body || {}, null, 2);
 
     return `${method} ${url}

@@ -16,6 +16,23 @@ describe('chat request preview builder', () => {
         document.body.innerHTML = '';
     });
 
+    it('redacts the API key from the displayed preview but keeps it in the request headers', () => {
+        const preview = buildChatRequestPreview({
+            textProvider: 'openrouter',
+            draftMessage: 'Hello there',
+            systemPrompt: 'System prompt',
+            historyMessages: [],
+            contextMessageCount: 20,
+            openrouterKey: 'sk-or-secret-1234',
+            openrouterModel: 'openai/gpt-4.1-mini',
+            currentUrl: 'https://example.com/chat'
+        });
+
+        expect(preview.headers.Authorization).toBe('Bearer sk-or-secret-1234');
+        expect(preview.displayText).not.toContain('sk-or-secret-1234');
+        expect(preview.displayText).toContain('"Authorization": "Bearer [redacted]"');
+    });
+
     it('builds openrouter chat requests with the expected browser headers', () => {
         const preview = buildChatRequestPreview({
             textProvider: 'openrouter',
