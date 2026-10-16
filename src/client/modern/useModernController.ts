@@ -12,6 +12,7 @@ import {
 } from './api.js';
 import { runMediaGeneration } from './media-generation.js';
 import { recordPromptUsage } from './stats.js';
+import { buildSuggestionMessages, parseSuggestions } from './suggestions.js';
 import { greetingMessage, selectReplyVersion, succeedingVersion } from './reply-versions.js';
 import { chatMediaPreset } from './media-presets.js';
 import { useDatabaseState } from './useDatabaseState.js';
@@ -757,29 +758,18 @@ export function useModernController(initialUser: BootstrapUser) {
     const fetchSuggestions = useCallback(async () => {
         setBusy('suggestions');
         try {
-            const text = await sendUtilityRequest(data.settings, [
-                {
-                    role: 'system',
-                    content:
-                        'Suggest three short, distinct next user messages for this roleplay. Return one suggestion per line with no numbering.'
-                },
-                ...messages.slice(-8).map((message) => ({
-                    role: message.role,
-                    content: getAssistantVisibleText(message.content)
-                }))
-            ]);
-            return text
-                .split('\n')
-                .map((line) => line.replace(/^[-*\d.)\s]+/, '').trim())
-                .filter(Boolean)
-                .slice(0, 3);
+            const text = await sendUtilityRequest(
+                data.settings,
+                buildSuggestionMessages(currentCharacter?.name || 'the character', messages)
+            );
+            return parseSuggestions(text);
         } catch (error) {
             notify((error as Error).message, 'error');
             return [];
         } finally {
             setBusy(null);
         }
-    }, [data.settings, messages, notify]);
+    }, [currentCharacter?.name, data.settings, messages, notify]);
 
     const compressMemory = useCallback(async () => {
         if (busy || !currentCharacter) return;
