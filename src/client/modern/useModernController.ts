@@ -118,9 +118,11 @@ export function useModernController(user: BootstrapUser) {
     const [generatorAssets, setGeneratorAssets] = useState<any[]>([]);
     const [busy, setBusy] = useState<string | null>(null);
     const [notices, setNotices] = useState<Notice[]>([]);
-    const [memoryDraft, setMemoryDraft] = useState<{ text: string; messageIds: string[] } | null>(
-        null
-    );
+    const [memoryDraft, setMemoryDraft] = useState<{
+        characterId: string;
+        text: string;
+        messageIds: string[];
+    } | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -193,7 +195,6 @@ export function useModernController(user: BootstrapUser) {
             currentCharacterId: characterId,
             currentView: 'chat'
         }));
-        setMemoryDraft(null);
     }, []);
 
     // Saving a new character makes it the active one (branching relies on this). Editing an
@@ -684,6 +685,7 @@ export function useModernController(user: BootstrapUser) {
         const limit = currentCharacter.contextMessageCount || data.settings.contextMessageCount;
         const block = active.slice(0, Math.min(limit, active.length));
         if (!block.length) return;
+        const characterId = currentCharacter.id;
         setBusy('memory');
         try {
             const text = await sendUtilityRequest(data.settings, [
@@ -702,7 +704,9 @@ export function useModernController(user: BootstrapUser) {
                         .join('\n\n')
                 }
             ]);
-            setMemoryDraft({ text, messageIds: block.map((message) => message.id) });
+            // A summary that finishes after the user switched chats belongs to the chat it summarized,
+            // so the draft remembers that character and is shown and accepted only there.
+            setMemoryDraft({ characterId, text, messageIds: block.map((message) => message.id) });
         } catch (error) {
             notify((error as Error).message, 'error');
         } finally {
@@ -712,7 +716,7 @@ export function useModernController(user: BootstrapUser) {
 
     const acceptMemory = useCallback(
         (text: string) => {
-            if (!memoryDraft || !currentCharacter) return;
+            if (!memoryDraft) return;
             const snapshot: MemorySnapshot = {
                 id: id(),
                 finalText: text.trim(),
@@ -722,7 +726,7 @@ export function useModernController(user: BootstrapUser) {
             setData((current) => ({
                 ...current,
                 characters: current.characters.map((character) =>
-                    character.id === current.currentCharacterId
+                    character.id === memoryDraft.characterId
                         ? {
                               ...character,
                               memorySnapshots: [...(character.memorySnapshots || []), snapshot],
@@ -742,7 +746,7 @@ export function useModernController(user: BootstrapUser) {
             setMemoryDraft(null);
             notify('Memory snapshot accepted.', 'success');
         },
-        [currentCharacter, memoryDraft, notify]
+        [memoryDraft, notify]
     );
 
     const increaseContextLimit = useCallback((amount: number) => {
@@ -835,6 +839,10 @@ export function useModernController(user: BootstrapUser) {
         [data.galleryImages, generatorAssets]
     );
 
+    // A draft is shown only in the chat it summarizes, and waits there while the user is elsewhere.
+    const visibleMemoryDraft =
+        memoryDraft && memoryDraft.characterId === currentCharacter?.id ? memoryDraft : null;
+
     return {
         persistence,
         data,
@@ -852,7 +860,7 @@ export function useModernController(user: BootstrapUser) {
         notices,
         notify,
         dismissNotice,
-        memoryDraft,
+        memoryDraft: visibleMemoryDraft,
         setMemoryDraft,
         setView,
         updateSettings,

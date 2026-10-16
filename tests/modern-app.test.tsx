@@ -880,6 +880,55 @@ describe('ModernApp', () => {
             expect(screen.queryByText('Tell me more.')).not.toBeInTheDocument();
         });
 
+        it('keeps a memory summary with the chat it summarized', async () => {
+            localStorage.setItem(
+                'erochat_data_user_42',
+                JSON.stringify({
+                    settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                    characters: [
+                        {
+                            id: 'nova',
+                            name: 'Nova',
+                            avatar: 'N',
+                            systemPrompt: 'You are Nova.',
+                            messages: [{ id: 'u1', role: 'user', content: 'Hi.' }]
+                        },
+                        {
+                            id: 'other',
+                            name: 'Other',
+                            avatar: 'O',
+                            systemPrompt: 'You are Other.',
+                            messages: []
+                        }
+                    ],
+                    currentCharacterId: 'nova',
+                    currentView: 'chat'
+                })
+            );
+            const summary = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            await userEvent.click(screen.getByRole('menuitem', { name: /Compress memory/ }));
+            await userEvent.click(screen.getByRole('button', { name: 'Chat with Other' }));
+            await summary.finish(
+                new Response(
+                    JSON.stringify({ choices: [{ message: { content: 'Nova memory.' } }] })
+                )
+            );
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
+
+            await userEvent.click(screen.getByRole('button', { name: 'Chat with Nova' }));
+            await userEvent.click(await screen.findByRole('button', { name: 'Accept' }));
+            await waitFor(() => {
+                const [nova, other] = savedState.characters;
+                expect(nova.memorySnapshots).toEqual([
+                    expect.objectContaining({ finalText: 'Nova memory.', messageIds: ['u1'] })
+                ]);
+                expect(other.memorySnapshots || []).toEqual([]);
+            });
+        });
+
         it('disables memory review regeneration while a reply is streaming', async () => {
             seedChat([
                 { id: 'u1', role: 'user', content: 'Hi there.' },
