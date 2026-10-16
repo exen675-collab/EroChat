@@ -18,15 +18,18 @@ The Express backend provides:
 
 - Login-protected chat app
 - Chat with custom characters
+- Regenerate a reply and page back through earlier versions, or continue a reply that was cut off
 - Generate an image for each AI response (optional toggle)
 - Run standalone image-generation jobs and keep their history
 - Assign uploaded or generated media as character thumbnails
-- Import Character Card V2 JSON and PNG files, and export characters as V2 JSON
+- Import Character Card V2 JSON and PNG files (alternate greetings included), and export characters
+  as V2 JSON
 - Publish characters to a shared Character Browse catalog
 - Search, sort, import, and chat with community characters
 - Let administrators generate and publish new catalog characters with OpenRouter
 - Save chats, characters, memories, settings, gallery, presets, and statistics in SQLite
 - Keep app data separate per account and available across browsers
+- Download a backup of an account's data and restore it later
 - Per-user credits
 - Works on desktop and mobile layouts
 
