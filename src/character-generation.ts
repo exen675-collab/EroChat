@@ -283,8 +283,14 @@ function extractModelJsonCandidates(content: string) {
         );
     }
 
+    const candidates = [trimmed];
     const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-    return fencedMatch ? [trimmed, fencedMatch[1].trim()] : [trimmed];
+    if (fencedMatch) candidates.push(fencedMatch[1].trim());
+    // Models sometimes wrap an unfenced object in commentary ("Here is your character: {...}").
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
+    if (start > 0 && end > start) candidates.push(trimmed.slice(start, end + 1));
+    return candidates;
 }
 
 export function parseGeneratedCharacterDraft(content: unknown): GeneratedCharacterDraft {
@@ -304,7 +310,7 @@ export function parseGeneratedCharacterDraft(content: unknown): GeneratedCharact
             didParse = true;
             break;
         } catch {
-            // Try a fenced candidate, if one was present.
+            // Try the next candidate: a fenced block or the outermost braces.
         }
     }
     if (!didParse) {

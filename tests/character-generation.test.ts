@@ -170,6 +170,12 @@ describe('generated character response parsing', () => {
         expect(parseGeneratedCharacterDraft(response)).toEqual(createDraft());
     });
 
+    it('extracts an unfenced JSON object wrapped in model commentary', () => {
+        const response = `Here is your character:\n${JSON.stringify(createDraft())}\nEnjoy!`;
+
+        expect(parseGeneratedCharacterDraft(response)).toEqual(createDraft());
+    });
+
     it('prefers a valid raw JSON response even when a field contains Markdown fences', () => {
         const draft = createDraft({
             systemPrompt:
