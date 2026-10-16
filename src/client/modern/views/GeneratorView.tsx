@@ -26,9 +26,6 @@ const PROMPT_CHIPS = [
 
 export function GeneratorView({ controller }: { controller: ModernController }) {
     const prefs = controller.data.generatorPrefs;
-    const [prompt, setPrompt] = useState(prefs.prompt || '');
-    const [negative, setNegative] = useState(prefs.negativePrompt || '');
-    const [batch, setBatch] = useState(Number(prefs.batchCount) || 1);
     const [presetName, setPresetName] = useState('');
     const [models, setModels] = useState<Record<string, string[]>>({});
     const [loadingModels, setLoadingModels] = useState(false);
@@ -41,6 +38,14 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
             generatorPrefs: { ...current.generatorPrefs, ...patch }
         }));
     }
+    // The prompt fields are read from and written to the saved preferences, so they survive
+    // leaving this view and reloading.
+    const prompt = prefs.prompt || '';
+    const negative = prefs.negativePrompt || '';
+    const batch = Math.min(4, Math.max(1, Math.trunc(Number(prefs.batchCount)) || 1));
+    const setPrompt = (value: string) => patchPrefs({ prompt: value });
+    const setNegative = (value: string) => patchPrefs({ negativePrompt: value });
+    const setBatch = (value: number) => patchPrefs({ batchCount: value });
     function patchPreset(patch: Partial<MediaGenerationPreset>) {
         patchPrefs({
             presets: mediaPresets.map((preset) =>
@@ -152,13 +157,16 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     </label>
                     <label className="m-field">
                         <span>Batch size</span>
-                        <input
-                            type="number"
-                            min={1}
-                            max={4}
+                        <select
                             value={batch}
                             onChange={(event) => setBatch(Number(event.target.value))}
-                        />
+                        >
+                            {[1, 2, 3, 4].map((count) => (
+                                <option key={count} value={count}>
+                                    {count}
+                                </option>
+                            ))}
+                        </select>
                     </label>
                     <label className="m-field">
                         <span>Aspect ratio</span>
@@ -180,10 +188,7 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     <textarea
                         rows={7}
                         value={prompt}
-                        onChange={(event) => {
-                            setPrompt(event.target.value);
-                            patchPrefs({ prompt: event.target.value });
-                        }}
+                        onChange={(event) => setPrompt(event.target.value)}
                         placeholder="Describe the scene, subject, camera, light, and mood…"
                     />
                 </label>
@@ -191,9 +196,7 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     {PROMPT_CHIPS.map((chip) => (
                         <button
                             key={chip}
-                            onClick={() =>
-                                setPrompt((current) => `${current}${current ? ', ' : ''}${chip}`)
-                            }
+                            onClick={() => setPrompt(`${prompt}${prompt ? ', ' : ''}${chip}`)}
                         >
                             {chip}
                         </button>

@@ -844,6 +844,30 @@ describe('ModernApp', () => {
             screen.queryByRole('button', { name: /Load more characters/ })
         ).not.toBeInTheDocument();
     });
+    it('keeps the Create prompt, chips, negative prompt, and batch size after leaving', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Create' })[0]);
+        await userEvent.type(screen.getByRole('textbox', { name: 'Prompt' }), 'A harbor');
+        await userEvent.click(screen.getByRole('button', { name: 'cinematic lighting' }));
+        await userEvent.type(screen.getByRole('textbox', { name: 'Negative prompt' }), 'blur');
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Batch size' }), '3');
+
+        await userEvent.click(screen.getAllByRole('button', { name: 'Gallery' })[0]);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Create' })[0]);
+        expect(screen.getByRole('textbox', { name: 'Prompt' })).toHaveValue(
+            'A harbor, cinematic lighting'
+        );
+        expect(screen.getByRole('textbox', { name: 'Negative prompt' })).toHaveValue('blur');
+        expect(screen.getByRole('combobox', { name: 'Batch size' })).toHaveValue('3');
+        await waitFor(() =>
+            expect(savedState?.generatorPrefs).toMatchObject({
+                prompt: 'A harbor, cinematic lighting',
+                negativePrompt: 'blur',
+                batchCount: 3
+            })
+        );
+    });
+
     it('loads older generated media into the gallery on request', async () => {
         const asset = (id: number) => ({
             id,
