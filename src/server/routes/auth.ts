@@ -10,7 +10,12 @@ import {
 
 const MAX_TRACKED_LOGIN_KEYS = 10000;
 
-export function registerAuthRoutes(app: Express, db: Database) {
+export interface SessionRevoker {
+    // Ends every session for the user except the one identified by keepSessionId.
+    revokeOtherSessions(userId: number, keepSessionId: string): Promise<void>;
+}
+
+export function registerAuthRoutes(app: Express, db: Database, sessions: SessionRevoker) {
     const { run, get } = db;
     const loginFailures = new Map<string, { count: number; resetAt: number }>();
     function sanitizeUsername(username) {
@@ -271,11 +276,21 @@ export function registerAuthRoutes(app: Express, db: Database) {
                     return;
                 }
 
+                // The current-password check guesses a secret just like login does, so it shares
+                // the account's failure count.
+                const accountKey = `account:${String(user.username || '').toLowerCase()}`;
+                if (isLoginLocked(accountKey)) {
+                    res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+                    return;
+                }
+
                 const passwordOk = await bcrypt.compare(currentPassword, user.password_hash);
                 if (!passwordOk) {
+                    recordLoginFailure(accountKey);
                     res.status(401).json({ error: 'Current password is incorrect.' });
                     return;
                 }
+                clearLoginFailures(accountKey);
 
                 updates.push('password_hash = ?');
                 params.push(await bcrypt.hash(newPassword, 12));
@@ -286,6 +301,12 @@ export function registerAuthRoutes(app: Express, db: Database) {
                     ...params,
                     userId
                 ]);
+            }
+
+            // A new password must end sessions that were opened with the old one. The session making
+            // this request stays signed in.
+            if (newPassword) {
+                await sessions.revokeOtherSessions(userId, req.sessionID);
             }
 
             const updated = await get(

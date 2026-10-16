@@ -12,7 +12,7 @@ import {
     SESSION_SECRET,
     COOKIE_SECURE
 } from './config';
-import type { Database } from './database';
+import { openDatabase, type Database } from './database';
 import { requireAuth, requireApiAuth } from './middleware/auth';
 import { registerAuthRoutes } from './routes/auth';
 import { registerMediaRoutes } from './routes/media';
@@ -26,6 +26,9 @@ import { registerGeneratorAssetRoutes } from './routes/generator-assets';
 export function createApp(db: Database) {
     const app = express();
     const SQLiteStore = SQLiteStoreFactory(session);
+    // Second connection to the session store, used to end a user's other sessions. The store itself
+    // creates the table, which exists before any request runs.
+    const sessionsDb = openDatabase(path.join(DATA_DIR, 'sessions.sqlite'));
     app.set('trust proxy', 1);
     app.disable('x-powered-by');
     app.use(express.json({ limit: MAX_JSON_BODY_BYTES }));
@@ -66,7 +69,15 @@ export function createApp(db: Database) {
         res.sendFile(path.join(ROOT_DIR, 'login.html'));
     });
 
-    registerAuthRoutes(app, db);
+    registerAuthRoutes(app, db, {
+        revokeOtherSessions: (userId, keepSessionId) =>
+            sessionsDb
+                .run("DELETE FROM sessions WHERE sid <> ? AND json_extract(sess, '$.userId') = ?", [
+                    keepSessionId,
+                    userId
+                ])
+                .then(() => undefined)
+    });
     registerMediaRoutes(app);
     registerCharacterRoutes(app, db);
     registerProviderRoutes(app);
