@@ -193,7 +193,7 @@ function PublishCharacterModal({
                     Cancel
                 </Button>
                 <Button variant="primary" disabled={busy} onClick={onPublish}>
-                    {busy ? <LoaderCircle className="m-spin" size={17} /> : <Share2 size={17} />}{' '}
+                    {busy ? <LoaderCircle className="spin" size={17} /> : <Share2 size={17} />}{' '}
                     Publish to Browse
                 </Button>
             </div>
@@ -341,7 +341,7 @@ export function CharactersView({ controller }: { controller: ModernController })
                                     onClick={() => setPublishing(character)}
                                 >
                                     {publishingId === character.id ? (
-                                        <LoaderCircle className="m-spin" size={16} />
+                                        <LoaderCircle className="spin" size={16} />
                                     ) : (
                                         <Share2 size={16} />
                                     )}{' '}

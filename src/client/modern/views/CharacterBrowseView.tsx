@@ -172,7 +172,7 @@ function AdminCharacterGeneratorModal({
                         </label>
                         <Button disabled={modelsLoading} onClick={() => void loadModels()}>
                             {modelsLoading ? (
-                                <LoaderCircle className="m-spin" size={16} />
+                                <LoaderCircle className="spin" size={16} />
                             ) : (
                                 <RefreshCw size={16} />
                             )}{' '}
@@ -255,7 +255,7 @@ function AdminCharacterGeneratorModal({
                             onClick={() => void handleGenerate()}
                         >
                             {busy === 'generate' ? (
-                                <LoaderCircle className="m-spin" size={17} />
+                                <LoaderCircle className="spin" size={17} />
                             ) : (
                                 <WandSparkles size={17} />
                             )}{' '}
@@ -387,7 +387,7 @@ function AdminCharacterGeneratorModal({
                                 onClick={() => void handlePublish()}
                             >
                                 {busy === 'publish' ? (
-                                    <LoaderCircle className="m-spin" size={17} />
+                                    <LoaderCircle className="spin" size={17} />
                                 ) : (
                                     <Share2 size={17} />
                                 )}{' '}
@@ -594,7 +594,7 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
             )}
             {loading ? (
                 <div className="m-empty-panel large">
-                    <LoaderCircle className="m-spin" size={28} />
+                    <LoaderCircle className="spin" size={28} />
                     <span>Loading public characters...</span>
                 </div>
             ) : characters.length === 0 ? (
@@ -675,7 +675,7 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
                                             onClick={() => void handleImport(character)}
                                         >
                                             {busyId === character.id ? (
-                                                <LoaderCircle className="m-spin" size={16} />
+                                                <LoaderCircle className="spin" size={16} />
                                             ) : (
                                                 <Download size={16} />
                                             )}{' '}
