@@ -450,6 +450,54 @@ describe('ModernApp', () => {
         );
     });
 
+    it('asks before discarding a generated character under review', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({ settings: { openrouterKey: 'sk-admin', openrouterModel: 'a/model' } })
+        );
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                const url = String(input);
+                if (url === 'https://openrouter.ai/api/v1/models') {
+                    return new Response(JSON.stringify({ data: [{ id: 'a/model' }] }));
+                }
+                if (url === '/api/admin/characters/generate') {
+                    return new Response(
+                        JSON.stringify({
+                            draft: {
+                                name: 'Mara',
+                                avatar: '🧭',
+                                description: '',
+                                appearance: '',
+                                background: '',
+                                greeting: '',
+                                systemPrompt: 'You are Mara.',
+                                contextMessageCount: 20
+                            }
+                        })
+                    );
+                }
+                return new Response(JSON.stringify({ characters: [], jobs: [], assets: [] }));
+            })
+        );
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
+        await userEvent.click(await screen.findByRole('button', { name: 'Generate character' }));
+        await userEvent.click(await screen.findByRole('button', { name: 'Generate draft' }));
+        const review = await screen.findByRole('dialog', { name: 'Review generated character' });
+
+        await userEvent.keyboard('{Escape}');
+        expect(confirm).toHaveBeenCalledWith('Discard this generated character?');
+        expect(review).toBeInTheDocument();
+        confirm.mockReturnValue(true);
+        await userEvent.click(within(review).getByRole('button', { name: 'Cancel' }));
+        expect(
+            screen.queryByRole('dialog', { name: 'Review generated character' })
+        ).not.toBeInTheDocument();
+    });
+
     it('uses an in-app publish modal and includes the automatic gallery thumbnail', async () => {
         localStorage.setItem(
             'erochat_data_user_42',

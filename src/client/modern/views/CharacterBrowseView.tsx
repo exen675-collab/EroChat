@@ -147,10 +147,17 @@ function AdminCharacterGeneratorModal({
         draft?.name.trim() && draft.systemPrompt.trim() && validContextCount
     );
 
+    // A generated draft cost a model call and exists only here, so closing the review asks first.
+    const requestClose = () => {
+        if (busy) return;
+        if (draft && !window.confirm('Discard this generated character?')) return;
+        onClose();
+    };
+
     return (
         <Modal
             title={stage === 'configure' ? 'Generate a character' : 'Review generated character'}
-            onClose={busy ? () => undefined : onClose}
+            onClose={requestClose}
             size="large"
         >
             {stage === 'configure' ? (
@@ -244,7 +251,7 @@ function AdminCharacterGeneratorModal({
                     )}
                     <div className="m-modal-actions">
                         <span />
-                        <Button disabled={Boolean(busy)} onClick={onClose}>
+                        <Button disabled={Boolean(busy)} onClick={requestClose}>
                             Cancel
                         </Button>
                         <Button
@@ -378,7 +385,7 @@ function AdminCharacterGeneratorModal({
                                 Back
                             </Button>
                             <span />
-                            <Button disabled={Boolean(busy)} onClick={onClose}>
+                            <Button disabled={Boolean(busy)} onClick={requestClose}>
                                 Cancel
                             </Button>
                             <Button
