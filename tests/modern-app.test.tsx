@@ -1034,6 +1034,45 @@ describe('ModernApp', () => {
         });
     });
 
+    it("keeps a third-party card's own system prompt on import", async () => {
+        const cards = [
+            { name: 'Ash', description: 'A ranger.', system_prompt: 'Never break character.' },
+            {
+                name: 'Bea',
+                description: 'A baker.',
+                system_prompt: 'Rules first.\n{{original}}\nWrite as {{char}}.'
+            }
+        ];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                if (String(input) === '/api/characters/import-card') {
+                    return new Response(
+                        JSON.stringify({ card: { data: cards.shift() }, thumbnailUrl: null }),
+                        { status: 201 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+        await userEvent.upload(input, new File(['{}'], 'a.json', { type: 'application/json' }));
+        await screen.findByRole('heading', { name: 'Ash' });
+        await userEvent.upload(input, new File(['{}'], 'b.json', { type: 'application/json' }));
+        await screen.findByRole('heading', { name: 'Bea' });
+
+        await waitFor(() => expect(savedState?.characters).toHaveLength(3));
+        const [, ash, bea] = savedState.characters;
+        expect(ash.systemPrompt).toBe(
+            'Never break character.\n\nYou are roleplaying as Ash. Stay in character and respond naturally.\n\nDescription:\nA ranger.'
+        );
+        expect(bea.systemPrompt).toBe(
+            'Rules first.\nYou are roleplaying as Bea. Stay in character and respond naturally.\n\nDescription:\nA baker.\nWrite as Bea.'
+        );
+    });
+
     it('imports the same character card file again when chosen twice', async () => {
         let imports = 0;
         vi.stubGlobal(

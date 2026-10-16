@@ -19,6 +19,16 @@ import { Button, Modal } from '../components/ui.js';
 import type { ModernCharacter } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 
+// A V2 card's system_prompt carries its creator's instructions, where {{original}} stands for the
+// default prompt. Here the default is the prompt built from the card's other fields.
+function withCardSystemPrompt(cardPrompt: string, built: string): string {
+    if (!cardPrompt) return built;
+    if (/\{\{\s*original\s*\}\}/i.test(cardPrompt)) {
+        return cardPrompt.replace(/\{\{\s*original\s*\}\}/gi, () => built).trim();
+    }
+    return `${cardPrompt}\n\n${built}`;
+}
+
 export function CharacterEditor({
     controller,
     character,
@@ -288,14 +298,17 @@ export function CharactersView({ controller }: { controller: ModernController })
                 greeting,
                 appearance: '',
                 userInfo: '',
-                systemPrompt: [
-                    `You are roleplaying as ${name}. Stay in character and respond naturally.`,
-                    description && `Description:\n${description}`,
-                    background,
-                    replace(raw.mes_example) && `Example dialogue:\n${replace(raw.mes_example)}`
-                ]
-                    .filter(Boolean)
-                    .join('\n\n'),
+                systemPrompt: withCardSystemPrompt(
+                    replace(raw.system_prompt),
+                    [
+                        `You are roleplaying as ${name}. Stay in character and respond naturally.`,
+                        description && `Description:\n${description}`,
+                        background,
+                        replace(raw.mes_example) && `Example dialogue:\n${replace(raw.mes_example)}`
+                    ]
+                        .filter(Boolean)
+                        .join('\n\n')
+                ),
                 messages: greeting
                     ? [{ id: crypto.randomUUID(), role: 'assistant', content: greeting }]
                     : [],
