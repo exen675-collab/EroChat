@@ -609,6 +609,8 @@ export function useModernController(user: BootstrapUser) {
 
     const regenerateMessageImage = useCallback(
         async (messageId: string) => {
+            // `busy` is one shared slot; starting work here would overwrite a running reply's state.
+            if (busy) return;
             const message = messages.find((item) => item.id === messageId);
             if (!message) return;
             const prompt =
@@ -622,7 +624,7 @@ export function useModernController(user: BootstrapUser) {
                 setBusy(null);
             }
         },
-        [currentCharacter, generateMessageMedia, messages]
+        [busy, currentCharacter, generateMessageMedia, messages]
     );
 
     const upgradeDraft = useCallback(
@@ -677,7 +679,7 @@ export function useModernController(user: BootstrapUser) {
     }, [data.settings, messages, notify]);
 
     const compressMemory = useCallback(async () => {
-        if (!currentCharacter) return;
+        if (busy || !currentCharacter) return;
         const active = messages.filter((message) => !message.archivedFromModelContext);
         const limit = currentCharacter.contextMessageCount || data.settings.contextMessageCount;
         const block = active.slice(0, Math.min(limit, active.length));
@@ -706,7 +708,7 @@ export function useModernController(user: BootstrapUser) {
         } finally {
             setBusy(null);
         }
-    }, [currentCharacter, data.settings, messages, notify]);
+    }, [busy, currentCharacter, data.settings, messages, notify]);
 
     const acceptMemory = useCallback(
         (text: string) => {

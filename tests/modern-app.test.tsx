@@ -832,6 +832,31 @@ describe('ModernApp', () => {
             expect(screen.queryByText('Tell me more.')).not.toBeInTheDocument();
         });
 
+        it('disables memory review regeneration while a reply is streaming', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Hi there.' },
+                { id: 'a1', role: 'assistant', content: 'Hello.' }
+            ]);
+            const summary = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            await userEvent.click(screen.getByRole('menuitem', { name: /Compress memory/ }));
+            await summary.finish(
+                new Response(JSON.stringify({ choices: [{ message: { content: 'Summary.' } }] }))
+            );
+            const review = (await screen.findByRole('button', { name: 'Accept' })).parentElement!;
+
+            const reply = mockPendingReply();
+            await userEvent.type(screen.getByRole('textbox', { name: 'Message' }), 'Next line');
+            await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+            await waitFor(() =>
+                expect(within(review).getByRole('button', { name: /Regenerate/ })).toBeDisabled()
+            );
+            await reply.finish(
+                new Response(JSON.stringify({ choices: [{ message: { content: 'Done.' } }] }))
+            );
+        });
+
         it.each(['failure', 'stop'])(
             'keeps the original reply after regeneration %s',
             async (outcome) => {

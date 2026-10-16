@@ -301,7 +301,10 @@ function MemoryNotice({ controller }: { controller: ModernController }) {
                         <Button variant="primary" onClick={() => controller.acceptMemory(text)}>
                             <Check size={16} /> Accept
                         </Button>
-                        <Button onClick={() => void controller.compressMemory()}>
+                        <Button
+                            disabled={Boolean(controller.busy)}
+                            onClick={() => void controller.compressMemory()}
+                        >
                             <RefreshCw size={16} /> Regenerate
                         </Button>
                         <Button onClick={() => controller.setMemoryDraft(null)}>Reject</Button>
