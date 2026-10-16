@@ -55,6 +55,22 @@ export function registerAuthRoutes(app: Express, db: Database) {
     function clearLoginFailures(key: string) {
         loginFailures.delete(key);
     }
+
+    // A fresh session id on every sign-in means an id planted before login cannot be reused
+    // to read the account that signs in with it.
+    function startSession(req, userId: number, isAdmin: boolean): Promise<void> {
+        return new Promise((resolve, reject) => {
+            req.session.regenerate((regenerateError) => {
+                if (regenerateError) {
+                    reject(regenerateError);
+                    return;
+                }
+                req.session.userId = userId;
+                req.session.isAdmin = isAdmin;
+                req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
+            });
+        });
+    }
     app.post('/api/auth/signup', async (req, res) => {
         const username = sanitizeUsername(req.body?.username);
         const password = req.body?.password;
@@ -78,8 +94,7 @@ export function registerAuthRoutes(app: Express, db: Database) {
                 [username, passwordHash, DEFAULT_USER_CREDITS]
             );
 
-            req.session.userId = result.lastID;
-            req.session.isAdmin = false;
+            await startSession(req, result.lastID, false);
 
             res.status(201).json({
                 ok: true,
@@ -137,14 +152,14 @@ export function registerAuthRoutes(app: Express, db: Database) {
             }
 
             clearLoginFailures(accountKey);
-            req.session.userId = user.id;
-            req.session.isAdmin = Number.parseInt(user.is_admin, 10) === 1;
+            const isAdmin = Number.parseInt(user.is_admin, 10) === 1;
+            await startSession(req, user.id, isAdmin);
 
             res.json({
                 ok: true,
                 username: user.username,
                 credits: user.credits,
-                isAdmin: req.session.isAdmin
+                isAdmin
             });
         } catch (error) {
             console.error('Login failed:', error);
