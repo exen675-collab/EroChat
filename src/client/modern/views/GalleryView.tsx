@@ -1,4 +1,10 @@
-import { CircleUserRound, Download, GalleryHorizontalEnd, Search } from 'lucide-react';
+import {
+    CircleUserRound,
+    Download,
+    GalleryHorizontalEnd,
+    LoaderCircle,
+    Search
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button, Modal } from '../components/ui.js';
 import type { GalleryItem } from '../types.js';
@@ -154,6 +160,20 @@ export function GalleryView({ controller }: { controller: ModernController }) {
                     <GalleryHorizontalEnd size={34} />
                     <h3>No media matches these filters.</h3>
                     <p>Generate an image in chat or the creative suite to start your gallery.</p>
+                </div>
+            )}
+            {controller.hasOlderAssets && (
+                <div className="m-gallery-more">
+                    <p>Filters and sorting apply to the media loaded so far.</p>
+                    <Button
+                        disabled={controller.loadingOlderAssets}
+                        onClick={() => void controller.loadOlderAssets()}
+                    >
+                        {controller.loadingOlderAssets && (
+                            <LoaderCircle className="spin" size={16} />
+                        )}{' '}
+                        Load older media
+                    </Button>
                 </div>
             )}
             {lightbox && (

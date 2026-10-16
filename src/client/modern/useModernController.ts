@@ -3,6 +3,7 @@ import type { BootstrapUser } from '../auth.js';
 import { extractImagePrompt, getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
 import {
     createChatPreview,
+    fetchGeneratorAssets,
     fetchGeneratorHistory,
     generateSpeech,
     sendModernChat,
@@ -116,6 +117,9 @@ export function useModernController(user: BootstrapUser) {
     const { data, setData, persistence } = useDatabaseState(user.id);
     const [generatorJobs, setGeneratorJobs] = useState<any[]>([]);
     const [generatorAssets, setGeneratorAssets] = useState<any[]>([]);
+    // Cursor for the next page of older generated media; null once everything is loaded.
+    const [olderAssetsCursor, setOlderAssetsCursor] = useState<number | null>(null);
+    const [loadingOlderAssets, setLoadingOlderAssets] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
     const [notices, setNotices] = useState<Notice[]>([]);
     const [memoryDraft, setMemoryDraft] = useState<{
@@ -140,9 +144,10 @@ export function useModernController(user: BootstrapUser) {
 
     useEffect(() => {
         void fetchGeneratorHistory()
-            .then(({ jobs, assets }) => {
+            .then(({ jobs, assets, assetsCursor }) => {
                 setGeneratorJobs(jobs);
                 setGeneratorAssets(assets);
+                setOlderAssetsCursor(assetsCursor);
             })
             .catch(() => undefined);
     }, []);
@@ -819,10 +824,28 @@ export function useModernController(user: BootstrapUser) {
             const result = await fetchGeneratorHistory();
             setGeneratorJobs(result.jobs);
             setGeneratorAssets(result.assets);
+            setOlderAssetsCursor(result.assetsCursor);
         } catch (error) {
             notify((error as Error).message, 'error');
         }
     }, [notify]);
+
+    const loadOlderAssets = useCallback(async () => {
+        if (!olderAssetsCursor || loadingOlderAssets) return;
+        setLoadingOlderAssets(true);
+        try {
+            const page = await fetchGeneratorAssets(olderAssetsCursor);
+            setGeneratorAssets((current) => {
+                const known = new Set(current.map((asset) => asset.id));
+                return [...current, ...page.assets.filter((asset) => !known.has(asset.id))];
+            });
+            setOlderAssetsCursor(page.nextCursor);
+        } catch (error) {
+            notify((error as Error).message, 'error');
+        } finally {
+            setLoadingOlderAssets(false);
+        }
+    }, [loadingOlderAssets, notify, olderAssetsCursor]);
 
     const thumbnailImages = useMemo(
         () => [
@@ -886,6 +909,9 @@ export function useModernController(user: BootstrapUser) {
         setGalleryFilters,
         setCharacterThumbnail,
         refreshGenerator,
+        hasOlderAssets: olderAssetsCursor !== null,
+        loadingOlderAssets,
+        loadOlderAssets,
         recordUsage
     };
 }

@@ -810,6 +810,49 @@ describe('ModernApp', () => {
             screen.queryByRole('button', { name: /Load more characters/ })
         ).not.toBeInTheDocument();
     });
+    it('loads older generated media into the gallery on request', async () => {
+        const asset = (id: number) => ({
+            id,
+            jobId: id,
+            mediaType: 'image',
+            url: `/app/media/${id}.png`,
+            source: 'manual',
+            createdAt: `2026-08-0${id}T10:00:00Z`
+        });
+        const assetRequests: string[] = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                const url = String(input);
+                if (url.startsWith('/api/generator/assets')) {
+                    assetRequests.push(url);
+                    const older = url.includes('cursor=5');
+                    return new Response(
+                        JSON.stringify(
+                            older
+                                ? { assets: [asset(2)], nextCursor: null }
+                                : { assets: [asset(5)], nextCursor: 5 }
+                        ),
+                        { status: 200 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
+            })
+        );
+
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Gallery' })[0]);
+        const images = () =>
+            screen
+                .getAllByRole('img', { name: 'Generated media' })
+                .map((img) => img.getAttribute('src'));
+        await waitFor(() => expect(images()).toEqual(['/app/media/5.png']));
+
+        await userEvent.click(screen.getByRole('button', { name: /Load older media/ }));
+        await waitFor(() => expect(images()).toEqual(['/app/media/5.png', '/app/media/2.png']));
+        expect(assetRequests.at(-1)).toBe('/api/generator/assets?limit=100&cursor=5');
+        expect(screen.queryByRole('button', { name: /Load older media/ })).not.toBeInTheDocument();
+    });
     describe('chat conversation', () => {
         function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
             localStorage.setItem(

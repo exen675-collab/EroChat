@@ -582,15 +582,31 @@ function generateWithProvider(settings: ModernSettings, options: GenerateOptions
     return generateSwarm(settings, options);
 }
 
+const GENERATOR_ASSET_PAGE_SIZE = 100;
+
+/** Loads one page of generated media, newest first. Pass the previous page's cursor for older items. */
+export async function fetchGeneratorAssets(
+    cursor: number | null = null
+): Promise<{ assets: GeneratorAsset[]; nextCursor: number | null }> {
+    const params = new URLSearchParams({ limit: String(GENERATOR_ASSET_PAGE_SIZE) });
+    if (cursor) params.set('cursor', String(cursor));
+    const payload = await jsonRequest(`/api/generator/assets?${params}`);
+    return {
+        assets: payload.assets || [],
+        nextCursor: Number.isSafeInteger(payload.nextCursor) ? payload.nextCursor : null
+    };
+}
+
 export async function fetchGeneratorHistory(): Promise<{
     jobs: GeneratorJob[];
     assets: GeneratorAsset[];
+    assetsCursor: number | null;
 }> {
     const [jobs, assets] = await Promise.all([
         jsonRequest('/api/generator/jobs?limit=100'),
-        jsonRequest('/api/generator/assets?limit=100')
+        fetchGeneratorAssets()
     ]);
-    return { jobs: jobs.jobs || [], assets: assets.assets || [] };
+    return { jobs: jobs.jobs || [], assets: assets.assets, assetsCursor: assets.nextCursor };
 }
 
 export async function createGeneratorJob(input: Record<string, unknown>): Promise<GeneratorJob[]> {
