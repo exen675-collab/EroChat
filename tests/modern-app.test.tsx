@@ -73,6 +73,20 @@ describe('ModernApp', () => {
         }
     });
 
+    it('runs when the browser blocks site storage', async () => {
+        vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+            throw new DOMException('The operation is insecure.', 'SecurityError');
+        });
+        await renderApp(<ModernApp user={user} />);
+        expect(
+            screen.getByRole('heading', { name: 'Start a conversation with Default Character' })
+        ).toBeInTheDocument();
+        const toggle = document.querySelector<HTMLButtonElement>('.m-chat__head [aria-pressed]')!;
+        const before = toggle.getAttribute('aria-pressed');
+        await userEvent.click(toggle);
+        expect(toggle.getAttribute('aria-pressed')).not.toBe(before);
+    });
+
     it('shows only the current settings sections', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);

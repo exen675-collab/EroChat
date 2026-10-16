@@ -847,7 +847,12 @@ function ChatPane({
 function initialPanelOpen(): boolean {
     // On narrower screens the panel overlays the chat, so never open it unprompted.
     if (window.innerWidth <= PANEL_OVERLAY_WIDTH) return false;
-    return localStorage.getItem(PANEL_STORAGE_KEY) !== 'closed';
+    try {
+        return localStorage.getItem(PANEL_STORAGE_KEY) !== 'closed';
+    } catch {
+        // Storage can be blocked; the panel then simply starts open.
+        return true;
+    }
 }
 
 export function ChatView({ controller }: { controller: ModernController }) {
@@ -857,7 +862,11 @@ export function ChatView({ controller }: { controller: ModernController }) {
     const [lightbox, setLightbox] = useState<{ url: string; video?: boolean } | null>(null);
     const togglePanel = (open = !panelOpen) => {
         setPanelOpen(open);
-        localStorage.setItem(PANEL_STORAGE_KEY, open ? 'open' : 'closed');
+        try {
+            localStorage.setItem(PANEL_STORAGE_KEY, open ? 'open' : 'closed');
+        } catch {
+            // Remembering the choice is a convenience; blocked storage must not stop the toggle.
+        }
     };
     const openLightbox = (url: string, video?: boolean) => setLightbox({ url, video });
 

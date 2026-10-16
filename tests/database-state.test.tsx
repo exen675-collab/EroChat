@@ -166,3 +166,17 @@ it('still reports a conflict when another tab changed the data', async () => {
         expect(result.current.persistence.error).toBe('Another tab changed your data.')
     );
 });
+
+it('loads from the server when the browser blocks site storage', async () => {
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+    });
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ state: null, revision: 3 })));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+        await expect(loadModernState(7)).resolves.toMatchObject({ revision: 3 });
+        expect(JSON.parse(String((fetchMock.mock.calls[0] as any)[1].body)).localState).toBeNull();
+    } finally {
+        vi.restoreAllMocks();
+    }
+});

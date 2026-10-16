@@ -212,13 +212,26 @@ function normalizeModernState(parsed: any): ModernPersistedState {
     };
 }
 
+// Browsers that block site data throw on any localStorage access. The legacy entry is optional
+// (the server holds the account's data), so blocked storage reads as no entry.
+function readLegacyEntry(
+    userId: number | string,
+    storage?: Pick<Storage, 'getItem'>
+): string | null {
+    try {
+        return (storage ?? window.localStorage).getItem(getModernStorageKey(userId));
+    } catch {
+        return null;
+    }
+}
+
 // Reads this browser's legacy per-user entry. Unreadable data falls back to defaults here, because
 // the server copy is authoritative once a user is signed in.
 export function hydrateModernState(
     userId: number | string,
-    storage: Pick<Storage, 'getItem'> = localStorage
+    storage?: Pick<Storage, 'getItem'>
 ): ModernPersistedState {
-    const raw = storage.getItem(getModernStorageKey(userId));
+    const raw = readLegacyEntry(userId, storage);
     if (!raw) return createModernDefaultState();
 
     try {
@@ -260,13 +273,10 @@ async function stateRequest(path: string, method: string, body: unknown) {
     return result;
 }
 
-export async function loadModernState(
-    userId: number | string,
-    storage: Pick<Storage, 'getItem'> = localStorage
-) {
+export async function loadModernState(userId: number | string, storage?: Pick<Storage, 'getItem'>) {
     // Never clear or rewrite the legacy entry, even after successful migration.
     const result = await stateRequest('/load', 'POST', {
-        localState: storage.getItem(getModernStorageKey(userId))
+        localState: readLegacyEntry(userId, storage)
     });
     const state =
         result.state == null ? createModernDefaultState() : normalizeModernState(result.state);
