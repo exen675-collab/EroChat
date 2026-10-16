@@ -374,7 +374,8 @@ function ChatPane({
     onBack: () => void;
     onLightbox: (url: string, video?: boolean) => void;
 }) {
-    const [drafts, setDrafts] = useState<Record<string, string>>({});
+    // Drafts live in the controller so leaving the chat view does not discard unsent text.
+    const { chatDrafts: drafts, setChatDrafts: setDrafts } = controller;
     // Async handlers read the latest drafts after awaiting, not the values they closed over.
     const latestDrafts = useRef(drafts);
     latestDrafts.current = drafts;

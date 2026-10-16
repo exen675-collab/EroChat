@@ -1039,6 +1039,15 @@ describe('ModernApp', () => {
             expect(await screen.findByText(/upgrade was not applied/)).toBeInTheDocument();
         });
 
+        it('keeps an unsent draft while visiting another view', async () => {
+            seedChat([]);
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.type(screen.getByRole('textbox', { name: 'Message' }), 'Half typed');
+            await userEvent.click(screen.getAllByRole('button', { name: 'Gallery' })[0]);
+            await userEvent.click(screen.getAllByRole('button', { name: 'Chat' })[0]);
+            expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue('Half typed');
+        });
+
         it('keeps the draft when a draft upgrade comes back empty', async () => {
             seedChat([]);
             const reply = mockPendingReply();

@@ -126,6 +126,8 @@ export function useModernController(initialUser: BootstrapUser) {
     const [olderAssetsCursor, setOlderAssetsCursor] = useState<number | null>(null);
     const [loadingOlderAssets, setLoadingOlderAssets] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
+    // Unsent composer text per character, kept here so it outlives the chat view.
+    const [chatDrafts, setChatDrafts] = useState<Record<string, string>>({});
     const [notices, setNotices] = useState<Notice[]>([]);
     const [memoryDraft, setMemoryDraft] = useState<{
         characterId: string;
@@ -886,6 +888,8 @@ export function useModernController(initialUser: BootstrapUser) {
         setGeneratorAssets,
         busy,
         setBusy,
+        chatDrafts,
+        setChatDrafts,
         notices,
         notify,
         dismissNotice,
