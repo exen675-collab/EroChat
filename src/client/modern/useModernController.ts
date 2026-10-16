@@ -12,6 +12,7 @@ import {
 } from './api.js';
 import { runMediaGeneration } from './media-generation.js';
 import { recordPromptUsage } from './stats.js';
+import { selectReplyVersion, succeedingVersion } from './reply-versions.js';
 import { chatMediaPreset } from './media-presets.js';
 import { useDatabaseState } from './useDatabaseState.js';
 import type {
@@ -538,22 +539,41 @@ export function useModernController(initialUser: BootstrapUser) {
         let userIndex = messages.length - 1;
         while (userIndex >= 0 && messages[userIndex].role !== 'user') userIndex -= 1;
         if (userIndex < 0) return false;
-        const assistant: ModernMessage = {
+        const previousReplies = messages.slice(userIndex + 1);
+        const assistant = succeedingVersion(previousReplies.at(-1), {
             id: id(),
             role: 'assistant',
             content: '',
             createdAt: new Date().toISOString(),
             isStreaming: true
-        };
+        });
         setData((current) => syncCurrentMessages(current, [...messages, assistant]));
         return streamReply(
             currentCharacter,
             messages.slice(0, userIndex),
             messages[userIndex].content,
             assistant,
-            messages.slice(userIndex + 1)
+            previousReplies
         );
     }, [busy, currentCharacter, messages, streamReply]);
+
+    const showReplyVersion = useCallback((messageId: string, index: number) => {
+        setData((current) => ({
+            ...current,
+            characters: current.characters.map((character) =>
+                character.id === current.currentCharacterId
+                    ? {
+                          ...character,
+                          messages: character.messages.map((message) =>
+                              message.id === messageId
+                                  ? selectReplyVersion(message, index)
+                                  : message
+                          )
+                      }
+                    : character
+            )
+        }));
+    }, []);
 
     const startWithGreeting = useCallback(() => {
         const greeting = currentCharacter?.greeting?.trim();
@@ -936,6 +956,7 @@ export function useModernController(initialUser: BootstrapUser) {
         sendMessage,
         stopReply,
         regenerateReply,
+        showReplyVersion,
         startWithGreeting,
         editMessage,
         removeMessage,

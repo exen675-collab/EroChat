@@ -1709,5 +1709,51 @@ describe('ModernApp', () => {
             expect(sent).toContain('Say something.');
             expect(sent).not.toContain('First attempt.');
         });
+
+        it('keeps earlier replies as versions the user can page back to', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Say something.' },
+                { id: 'a1', role: 'assistant', content: 'First attempt.' }
+            ]);
+            const chatBodies: any[] = [];
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                    const url = String(input);
+                    if (url.includes('openrouter.ai')) {
+                        chatBodies.push(JSON.parse(String(init?.body)));
+                        return new Response(
+                            JSON.stringify({
+                                choices: [{ message: { content: 'Second attempt.' } }]
+                            })
+                        );
+                    }
+                    if (url.includes('/api/generator/jobs')) {
+                        return new Response(JSON.stringify({ jobs: [] }));
+                    }
+                    if (url.includes('/api/generator/assets')) {
+                        return new Response(JSON.stringify({ assets: [] }));
+                    }
+                    return new Response(JSON.stringify({}));
+                })
+            );
+            await renderApp(<ModernApp user={user} />);
+            expect(screen.queryByLabelText('Reply version')).not.toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+            expect(await within(stream()).findByText('Second attempt.')).toBeInTheDocument();
+            expect(screen.getByLabelText('Reply version')).toHaveTextContent('2/2');
+            expect(screen.getByRole('button', { name: 'Next version' })).toBeDisabled();
+
+            await userEvent.click(screen.getByRole('button', { name: 'Previous version' }));
+            expect(within(stream()).getByText('First attempt.')).toBeInTheDocument();
+            expect(within(stream()).queryByText('Second attempt.')).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Reply version')).toHaveTextContent('1/2');
+
+            await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+            expect(await screen.findByText('3/3')).toBeInTheDocument();
+            const sent = chatBodies[1].messages.map((message: any) => message.content).join('\n');
+            expect(sent).not.toContain('First attempt.');
+            expect(sent).not.toContain('Second attempt.');
+        });
     });
 });

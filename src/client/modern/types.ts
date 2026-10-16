@@ -45,6 +45,16 @@ export interface ModernMessage {
     archivedMemorySnapshotId?: string;
     createdAt?: string;
     isStreaming?: boolean;
+    /** Earlier or later versions of a regenerated reply; only `content` reaches the model. */
+    otherVersions?: ReplyVersion[];
+    /** Position of the shown version among all versions. */
+    versionIndex?: number;
+}
+
+export interface ReplyVersion {
+    content: string;
+    imageUrl?: string | null;
+    videoUrl?: string | null;
 }
 
 export interface MemorySnapshot {

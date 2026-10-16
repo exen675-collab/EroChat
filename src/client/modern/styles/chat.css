@@ -530,6 +530,18 @@
 .m-msg__actions .m-msg__regen {
     color: var(--m-accent-text);
 }
+.m-msg__versions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--m-muted);
+}
+.m-msg__actions .m-msg__versions button {
+    min-width: 26px;
+    padding: 0 4px;
+}
 .m-msg__sep {
     width: 1px;
     margin: 7px 4px;

@@ -6,6 +6,7 @@ import {
     Check,
     ChevronDown,
     ChevronLeft,
+    ChevronRight,
     CodeXml,
     Copy,
     Cpu,
@@ -40,6 +41,7 @@ import { getCharacterThumbnailUrl } from '../character-thumbnails.js';
 import { Portrait } from '../components/character-visuals.js';
 import { Button, Modal } from '../components/ui.js';
 import { parseNarrativeSegments } from '../message-format.js';
+import { replyVersions } from '../reply-versions.js';
 import type { ModernMessage } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 import { CharacterEditor } from './CharactersView.js';
@@ -110,6 +112,12 @@ function MessageItem({
         if (!(event.target as HTMLElement).closest('button, a')) setSelected((value) => !value);
     };
     const flags = message.editedAt && <span className="m-msg__flag">Edited</span>;
+    const versionCount = message.otherVersions?.length ? replyVersions(message).length : 1;
+    const versionIndex = Math.min(message.versionIndex ?? versionCount - 1, versionCount - 1);
+    // A pending scene image belongs to the shown version, so it has to finish first.
+    const canSwitchVersion =
+        canRegenerate &&
+        !['queued', 'starting', 'loading', 'generating'].includes(message.mediaStatus || '');
 
     if (!assistant) {
         return (
@@ -200,6 +208,38 @@ function MessageItem({
             )}
             {!message.isStreaming && (
                 <div className="m-msg__actions">
+                    {versionCount > 1 && (
+                        <>
+                            <span className="m-msg__versions">
+                                <button
+                                    aria-label="Previous version"
+                                    title="Previous version"
+                                    disabled={!canSwitchVersion || versionIndex === 0}
+                                    onClick={() =>
+                                        controller.showReplyVersion(message.id, versionIndex - 1)
+                                    }
+                                >
+                                    <ChevronLeft size={15} />
+                                </button>
+                                <span aria-label="Reply version">
+                                    {versionIndex + 1}/{versionCount}
+                                </span>
+                                <button
+                                    aria-label="Next version"
+                                    title="Next version"
+                                    disabled={
+                                        !canSwitchVersion || versionIndex === versionCount - 1
+                                    }
+                                    onClick={() =>
+                                        controller.showReplyVersion(message.id, versionIndex + 1)
+                                    }
+                                >
+                                    <ChevronRight size={15} />
+                                </button>
+                            </span>
+                            <span className="m-msg__sep" />
+                        </>
+                    )}
                     {canRegenerate && (
                         <>
                             <button
