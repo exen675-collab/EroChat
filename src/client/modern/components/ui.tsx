@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 export function Button({
     children,
@@ -39,11 +39,27 @@ export function Modal({
     onClose: () => void;
     size?: 'small' | 'medium' | 'large';
 }) {
+    const dialogRef = useRef<HTMLElement>(null);
     useEffect(() => {
         const handler = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
+    // Focus moves into the dialog when it opens, so keyboard and screen reader users land in it,
+    // and returns to whatever opened it when it closes.
+    useEffect(() => {
+        const opener = document.activeElement as HTMLElement | null;
+        const dialog = dialogRef.current;
+        if (dialog && !dialog.contains(document.activeElement)) {
+            const field = dialog.querySelector<HTMLElement>(
+                '.m-modal__body input:not([type="hidden"]):not([disabled]), .m-modal__body textarea:not([disabled]), .m-modal__body select:not([disabled])'
+            );
+            (field || dialog).focus();
+        }
+        return () => {
+            if (opener?.isConnected) opener.focus();
+        };
+    }, []);
     return (
         <div
             className="m-modal-backdrop"
@@ -51,6 +67,8 @@ export function Modal({
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
         >
             <section
+                ref={dialogRef}
+                tabIndex={-1}
                 className={`m-modal m-modal--${size}`}
                 role="dialog"
                 aria-modal="true"

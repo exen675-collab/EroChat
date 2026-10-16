@@ -15,6 +15,9 @@
         opacity: 0;
     }
 }
+.m-modal:focus {
+    outline: none;
+}
 .m-modal {
     width: min(100%, 660px);
     max-height: calc(100dvh - 36px);
