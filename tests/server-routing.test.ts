@@ -258,4 +258,52 @@ describe.sequential('server route composition', () => {
         const unchanged = await (await request('/api/admin/users', undefined, 'GET')).json();
         expect(unchanged.users.find((entry) => entry.id === target.id).credits).toBe(321);
     });
+
+    it("lets an administrator remove another user's publication", async () => {
+        const author = await request(
+            '/api/auth/signup',
+            { username: 'moderated_author', password: 'password123' },
+            'POST',
+            ''
+        );
+        const authorCookie = String(author.headers.get('set-cookie')).split(';')[0];
+        const published = await request(
+            '/api/characters/publish',
+            {
+                character: {
+                    sourceCharacterId: 'moderated',
+                    name: 'Moderated',
+                    systemPrompt: 'Hi.'
+                }
+            },
+            'POST',
+            authorCookie
+        );
+        expect(published.status).toBe(201);
+        const { character } = await published.json();
+
+        const denied = await request(
+            `/api/admin/public-characters/${character.id}`,
+            undefined,
+            'DELETE',
+            authorCookie
+        );
+        expect(denied.status).toBe(403);
+
+        const browseFor = async () =>
+            (
+                await (
+                    await request('/api/characters/browse?q=Moderated&sort=name', undefined, 'GET')
+                ).json()
+            ).characters;
+        expect(await browseFor()).toContainEqual(expect.objectContaining({ id: character.id }));
+
+        const removed = await request(
+            `/api/admin/public-characters/${character.id}`,
+            undefined,
+            'DELETE'
+        );
+        expect(removed.status).toBe(200);
+        expect(await browseFor()).not.toContainEqual(expect.objectContaining({ id: character.id }));
+    });
 });

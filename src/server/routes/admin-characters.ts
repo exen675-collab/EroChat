@@ -22,11 +22,47 @@ import {
     readOpenRouterPayload,
     openRouterErrorMessage
 } from '../services/openrouter';
-import { generateId } from '../utils';
+import { generateId, normalizePositiveInt } from '../utils';
 
 export function registerAdminCharacterRoutes(app: Express, db: Database) {
     const { run, get, all } = db;
     const requireAdmin = createAdminMiddleware(db);
+    // Moderation: an administrator can remove any published character, not only their own.
+    app.delete(
+        '/api/admin/public-characters/:id',
+        requireApiAuth,
+        requireAdmin,
+        async (req, res) => {
+            const publicationId = normalizePositiveInt(
+                req.params.id,
+                0,
+                0,
+                Number.MAX_SAFE_INTEGER
+            );
+            if (!publicationId) {
+                res.status(400).json({ error: 'Invalid public character id.' });
+                return;
+            }
+
+            try {
+                const existing = await get('SELECT id FROM public_characters WHERE id = ?', [
+                    publicationId
+                ]);
+                if (!existing) {
+                    res.status(404).json({ error: 'Publication not found.' });
+                    return;
+                }
+                await run('DELETE FROM public_character_imports WHERE publication_id = ?', [
+                    publicationId
+                ]);
+                await run('DELETE FROM public_characters WHERE id = ?', [publicationId]);
+                res.json({ ok: true });
+            } catch (error) {
+                console.error('Failed to remove public character:', error);
+                res.status(500).json({ error: 'Failed to remove public character.' });
+            }
+        }
+    );
     app.post('/api/admin/characters/generate', requireApiAuth, requireAdmin, async (req, res) => {
         const rawApiKey = req.body?.apiKey;
         const rawModel = req.body?.model;
