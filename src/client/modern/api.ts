@@ -714,6 +714,11 @@ export async function unpublishCharacter(publicationId: number): Promise<void> {
     await jsonRequest(`/api/characters/published/${publicationId}`, { method: 'DELETE' });
 }
 
+// Administrator moderation: removes a publication made by any account.
+export async function removePublicCharacter(publicationId: number): Promise<void> {
+    await jsonRequest(`/api/admin/public-characters/${publicationId}`, { method: 'DELETE' });
+}
+
 export async function logout() {
     const response = await fetch('/api/auth/logout', { method: 'POST' });
     if (!response.ok) throw new Error('Could not log out. Your session is still active.');

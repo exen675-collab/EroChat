@@ -16,6 +16,7 @@ import {
     generateAdminCharacter,
     importPublicCharacter,
     publishGeneratedCharacter,
+    removePublicCharacter,
     unpublishCharacter
 } from '../api.js';
 import { Button, Modal } from '../components/ui.js';
@@ -485,6 +486,20 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
         }
     }
 
+    async function handleAdminRemove(publication: PublicCharacter) {
+        if (!window.confirm(`Remove ${publication.name} from the catalog for everyone?`)) return;
+        setBusyId(publication.id);
+        try {
+            await removePublicCharacter(publication.id);
+            controller.notify('Character removed from the catalog.', 'success');
+            setReload((current) => current + 1);
+        } catch (error) {
+            controller.notify((error as Error).message, 'error');
+        } finally {
+            setBusyId(null);
+        }
+    }
+
     async function handleUnpublish(publication: PublicCharacter) {
         if (!window.confirm(`Remove ${publication.name} from Character Browse?`)) return;
         setBusyId(publication.id);
@@ -643,6 +658,15 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
                                                 onClick={() => void handleUnpublish(character)}
                                             >
                                                 <Trash2 size={16} /> Unpublish
+                                            </Button>
+                                        )}
+                                        {isAdmin && !character.isOwner && (
+                                            <Button
+                                                variant="ghost"
+                                                disabled={busyId === character.id}
+                                                onClick={() => void handleAdminRemove(character)}
+                                            >
+                                                <Trash2 size={16} /> Remove from catalog
                                             </Button>
                                         )}
                                         <Button

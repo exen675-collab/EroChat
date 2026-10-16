@@ -5,6 +5,7 @@ import {
     importPublicCharacter,
     publishGeneratedCharacter,
     publishCharacter,
+    removePublicCharacter,
     unpublishCharacter
 } from '../src/client/modern/api.js';
 import type { GeneratedCharacterDraft, ModernCharacter } from '../src/client/modern/types.js';
@@ -91,6 +92,17 @@ describe('character browse API', () => {
         expect(fetchMock.mock.calls[0][0]).toBe('/api/characters/browse/12/import');
         expect(fetchMock.mock.calls[1][0]).toBe('/api/characters/published/12');
         expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'DELETE' });
+    });
+
+    it("lets an administrator remove another account's publication", async () => {
+        const fetchMock = vi.fn<typeof fetch>(
+            async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(removePublicCharacter(12)).resolves.toBeUndefined();
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/public-characters/12');
+        expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
     });
 
     it('sends the exact admin generation inputs and returns an editable draft', async () => {
