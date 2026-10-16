@@ -174,6 +174,14 @@ describe.sequential('server route composition', () => {
             'GET'
         );
         expect((await browse.json()).characters).toHaveLength(1);
+        for (const wildcard of ['%', '_', 'Routing_Test']) {
+            const literal = await request(
+                `/api/characters/browse?q=${encodeURIComponent(wildcard)}`,
+                undefined,
+                'GET'
+            );
+            expect((await literal.json()).characters).toHaveLength(0);
+        }
         const ownImport = await request(`/api/characters/browse/${saved.id}/import`, {});
         expect(ownImport.status).toBe(200);
         expect((await ownImport.json()).character.imports).toBe(0);

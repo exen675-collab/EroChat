@@ -68,8 +68,10 @@ export function registerCharacterRoutes(app: Express, db: Database) {
         let where = '';
 
         if (search) {
-            where = 'WHERE c.name LIKE ? OR c.description LIKE ? OR u.username LIKE ?';
-            const pattern = `%${search}%`;
+            // Searches match literally: % and _ in the query are not wildcards.
+            where =
+                "WHERE c.name LIKE ? ESCAPE '\\' OR c.description LIKE ? ESCAPE '\\' OR u.username LIKE ? ESCAPE '\\'";
+            const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
             params.push(pattern, pattern, pattern);
         }
 
