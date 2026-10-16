@@ -943,7 +943,12 @@ function EditMessageModal({
             </label>
             <div className="m-modal-actions">
                 <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" onClick={() => onSave(content)}>
+                {/* An emptied message would show as a blank bubble; removing it is a separate action. */}
+                <Button
+                    variant="primary"
+                    disabled={!content.trim()}
+                    onClick={() => onSave(content)}
+                >
                     <Save size={17} /> Save changes
                 </Button>
             </div>

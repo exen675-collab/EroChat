@@ -1112,6 +1112,23 @@ describe('ModernApp', () => {
             expect(await screen.findByText(/upgrade was not applied/)).toBeInTheDocument();
         });
 
+        it('edits a message but will not save it empty', async () => {
+            seedChat([{ id: 'a1', role: 'assistant', content: 'Original text.' }]);
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Edit message' }));
+            const dialog = screen.getByRole('dialog', { name: 'Edit assistant message' });
+            const field = within(dialog).getByRole('textbox', { name: 'Message content' });
+            const save = within(dialog).getByRole('button', { name: /Save changes/ });
+
+            await userEvent.clear(field);
+            await userEvent.type(field, '   ');
+            expect(save).toBeDisabled();
+            await userEvent.clear(field);
+            await userEvent.type(field, 'Revised text.');
+            await userEvent.click(save);
+            expect(within(stream()).getByText('Revised text.')).toBeInTheDocument();
+        });
+
         it('keeps an unsent draft while visiting another view', async () => {
             seedChat([]);
             await renderApp(<ModernApp user={user} />);
