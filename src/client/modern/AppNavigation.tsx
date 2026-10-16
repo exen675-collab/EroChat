@@ -61,7 +61,13 @@ export function AppRail({
             <button aria-label="Settings" data-tip="Settings" onClick={onSettings}>
                 <Settings2 size={19} strokeWidth={1.75} />
             </button>
-            <button aria-label="Log out" data-tip="Log out" onClick={() => void logout()}>
+            <button
+                aria-label="Log out"
+                data-tip="Log out"
+                onClick={() =>
+                    void logout().catch((error: Error) => controller.notify(error.message, 'error'))
+                }
+            >
                 <LogOut size={19} strokeWidth={1.75} />
             </button>
             <button

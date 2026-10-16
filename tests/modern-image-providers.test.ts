@@ -65,3 +65,77 @@ describe('OpenRouter image provider', () => {
         });
     });
 });
+
+describe('image generation results', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    });
+
+    it('treats a Swarm response with no images as a failure', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async (input: RequestInfo | URL) =>
+                    new Response(
+                        JSON.stringify(
+                            String(input).endsWith('/API/GetNewSession')
+                                ? { session_id: 'session-empty' }
+                                : { images: [] }
+                        ),
+                        { status: 200 }
+                    )
+            )
+        );
+
+        await expect(
+            generateImages(
+                openRouterSettings({
+                    imageProvider: 'swarm',
+                    swarmUrl: 'http://empty-swarm.test',
+                    swarmModel: 'model-a'
+                }),
+                { prompt: 'A lighthouse', batchCount: 1 }
+            )
+        ).rejects.toThrow('The image provider returned no images.');
+    });
+
+    it('starts a new Swarm session when the server URL changes', async () => {
+        const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+            const url = String(input);
+            if (url.endsWith('/API/GetNewSession')) {
+                return new Response(
+                    JSON.stringify({ session_id: `session-for-${new URL(url).host}` })
+                );
+            }
+            return new Response(JSON.stringify({ images: ['/Output/a.png'] }));
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        await generateImages(
+            openRouterSettings({
+                imageProvider: 'swarm',
+                swarmUrl: 'http://first.test',
+                swarmModel: 'm'
+            }),
+            { prompt: 'First', batchCount: 1 }
+        );
+        await generateImages(
+            openRouterSettings({
+                imageProvider: 'swarm',
+                swarmUrl: 'http://second.test',
+                swarmModel: 'm'
+            }),
+            { prompt: 'Second', batchCount: 1 }
+        );
+
+        const sessionRequests = fetchMock.mock.calls.filter(([url]) =>
+            String(url).endsWith('/API/GetNewSession')
+        );
+        expect(sessionRequests).toHaveLength(2);
+        const sessions = fetchMock.mock.calls
+            .filter(([url]) => String(url).endsWith('/API/GenerateText2Image'))
+            .map(([, init]) => JSON.parse(String(init?.body)).session_id);
+        expect(sessions).toEqual(['session-for-first.test', 'session-for-second.test']);
+    });
+});

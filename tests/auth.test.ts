@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchBootstrapUser } from '../src/client/auth.js';
+import { logout } from '../src/client/modern/api.js';
 
 describe('authenticated app bootstrap', () => {
     afterEach(() => vi.unstubAllGlobals());
@@ -27,5 +28,17 @@ describe('authenticated app bootstrap', () => {
             vi.fn(async () => Promise.reject(new Error('offline')))
         );
         await expect(fetchBootstrapUser()).resolves.toBeNull();
+    });
+
+    it('reports a failed logout instead of treating the session as ended', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                async () =>
+                    new Response(JSON.stringify({ error: 'Failed to log out.' }), { status: 500 })
+            )
+        );
+
+        await expect(logout()).rejects.toThrow('Could not log out');
     });
 });

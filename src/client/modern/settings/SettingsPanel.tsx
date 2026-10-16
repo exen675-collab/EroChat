@@ -534,7 +534,14 @@ export function SettingsPanel({
                                         <small>{controller.user.credits} credits available</small>
                                     </span>
                                 </div>
-                                <Button variant="danger" onClick={() => void logout()}>
+                                <Button
+                                    variant="danger"
+                                    onClick={() =>
+                                        void logout().catch((error: Error) =>
+                                            controller.notify(error.message, 'error')
+                                        )
+                                    }
+                                >
                                     <LogOut size={17} /> Log out
                                 </Button>
                             </SettingsSection>

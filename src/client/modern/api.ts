@@ -245,15 +245,24 @@ function parseModels(payload: any): string[] {
     return [];
 }
 
-let swarmSessionId = '';
+// A SwarmUI session belongs to one server. It is kept with that server's URL, so changing the
+// URL starts a new session, and it is discarded after a failed request.
+let swarmSession: { baseUrl: string; sessionId: string } | null = null;
 
 async function getSwarmSession(settings: ModernSettings): Promise<string> {
-    const payload = await jsonRequest(`${normalizeBaseUrl(settings.swarmUrl)}/API/GetNewSession`, {
+    const baseUrl = normalizeBaseUrl(settings.swarmUrl);
+    const payload = await jsonRequest(`${baseUrl}/API/GetNewSession`, {
         method: 'POST',
         body: '{}'
     });
-    swarmSessionId = payload.session_id;
-    return swarmSessionId;
+    swarmSession = { baseUrl, sessionId: payload.session_id };
+    return swarmSession.sessionId;
+}
+
+async function ensureSwarmSession(settings: ModernSettings): Promise<string> {
+    const baseUrl = normalizeBaseUrl(settings.swarmUrl);
+    if (swarmSession?.baseUrl === baseUrl) return swarmSession.sessionId;
+    return getSwarmSession(settings);
 }
 
 export async function fetchProviderModels(
@@ -286,10 +295,10 @@ export async function fetchProviderModels(
         return parseModels(payload?.data || payload);
     }
 
-    if (!swarmSessionId) await getSwarmSession(settings);
+    const sessionId = await ensureSwarmSession(settings);
     const payload = await jsonRequest(`${normalizeBaseUrl(settings.swarmUrl)}/API/ListModels`, {
         method: 'POST',
-        body: JSON.stringify({ session_id: swarmSessionId, path: '', depth: 2 })
+        body: JSON.stringify({ session_id: sessionId, path: '', depth: 2 })
     });
     return parseModels(payload);
 }
@@ -360,9 +369,9 @@ function seedFor(options: GenerateOptions, index: number): number {
 
 async function generateSwarm(settings: ModernSettings, options: GenerateOptions) {
     if (!options.model && !settings.swarmModel) throw new Error('Select a SwarmUI model first.');
-    if (!swarmSessionId) await getSwarmSession(settings);
+    const sessionId = await ensureSwarmSession(settings);
     const body: Record<string, unknown> = {
-        session_id: swarmSessionId,
+        session_id: sessionId,
         images: options.batchCount || 1,
         batchsize: String(options.batchCount || 1),
         prompt: options.prompt,
@@ -378,10 +387,20 @@ async function generateSwarm(settings: ModernSettings, options: GenerateOptions)
         aspectratio: 'Custom',
         automaticvae: true
     };
-    const payload = await jsonRequest(
-        `${normalizeBaseUrl(settings.swarmUrl)}/API/GenerateText2Image`,
-        { method: 'POST', body: JSON.stringify(body) }
-    );
+    let payload: any;
+    try {
+        payload = await jsonRequest(
+            `${normalizeBaseUrl(settings.swarmUrl)}/API/GenerateText2Image`,
+            {
+                method: 'POST',
+                body: JSON.stringify(body)
+            }
+        );
+    } catch (error) {
+        // The session may have expired on the server, so the next request starts a new one.
+        swarmSession = null;
+        throw error;
+    }
     const images = payload.images || payload.outputs || [];
     const baseUrl = normalizeBaseUrl(settings.swarmUrl);
     return images.map((item: any) => {
@@ -538,6 +557,13 @@ async function generateOpenRouter(settings: ModernSettings, options: GenerateOpt
 }
 
 export async function generateImages(settings: ModernSettings, options: GenerateOptions) {
+    const images = await generateWithProvider(settings, options);
+    // An empty result is a failure. Without this check the job would be saved as completed.
+    if (!images.length) throw new Error('The image provider returned no images.');
+    return images;
+}
+
+function generateWithProvider(settings: ModernSettings, options: GenerateOptions) {
     const provider = settings.imageProvider;
     if (provider === 'comfy') return generateComfy(settings, options);
     if (provider === 'nanogpt') return generateNanoGpt(settings, options);
@@ -682,7 +708,8 @@ export async function unpublishCharacter(publicationId: number): Promise<void> {
 }
 
 export async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    const response = await fetch('/api/auth/logout', { method: 'POST' });
+    if (!response.ok) throw new Error('Could not log out. Your session is still active.');
     window.location.href = '/';
 }
 
