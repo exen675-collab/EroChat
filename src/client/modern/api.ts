@@ -206,7 +206,11 @@ export async function sendUtilityRequest(
         })
     });
     const payload = await responsePayload(response);
-    return String(payload?.choices?.[0]?.message?.content || '').trim();
+    // Callers replace a draft, prompt, or memory with this text, so an empty reply is an error
+    // rather than an empty result that would wipe what the user had.
+    const content = chatContent(payload?.choices?.[0]?.message?.content).trim();
+    if (!content) throw new Error('The model returned an empty response.');
+    return content;
 }
 
 export async function fetchOpenRouterModels(settings: ModernSettings): Promise<string[]> {

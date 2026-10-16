@@ -839,6 +839,22 @@ describe('ModernApp', () => {
             expect(await screen.findByText(/upgrade was not applied/)).toBeInTheDocument();
         });
 
+        it('keeps the draft when a draft upgrade comes back empty', async () => {
+            seedChat([]);
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            const input = screen.getByRole('textbox', { name: 'Message' });
+            await userEvent.type(input, 'My draft');
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            await userEvent.click(screen.getByRole('menuitem', { name: /Polish/ }));
+
+            await reply.finish(
+                new Response(JSON.stringify({ choices: [{ message: { content: '  ' } }] }))
+            );
+            expect(await screen.findByText('The model returned an empty response.')).toBeVisible();
+            expect(input).toHaveValue('My draft');
+        });
+
         it('does not show suggestions requested for one conversation in another', async () => {
             localStorage.setItem(
                 'erochat_data_user_42',
