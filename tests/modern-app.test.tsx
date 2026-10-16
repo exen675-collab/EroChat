@@ -228,6 +228,7 @@ describe('ModernApp', () => {
         const input = await screen.findByRole('spinbutton', { name: 'Credits for member' });
         const row = input.closest('article')!;
         const update = within(row).getByRole('button', { name: 'Update' });
+        expect(update).toBeDisabled();
 
         await userEvent.clear(input);
         expect(update).toBeDisabled();

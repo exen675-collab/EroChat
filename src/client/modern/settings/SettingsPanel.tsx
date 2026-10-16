@@ -595,9 +595,8 @@ export function SettingsPanel({
                                         />
                                         <Button
                                             disabled={
-                                                !isValidCreditAmount(
-                                                    creditEdits[adminUser.id] ?? adminUser.credits
-                                                )
+                                                creditEdits[adminUser.id] === undefined ||
+                                                !isValidCreditAmount(creditEdits[adminUser.id])
                                             }
                                             onClick={async () => {
                                                 try {
