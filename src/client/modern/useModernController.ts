@@ -113,8 +113,13 @@ function syncCurrentMessages(state: ModernPersistedState, messages: ModernMessag
     };
 }
 
-export function useModernController(user: BootstrapUser) {
-    const { data, setData, persistence } = useDatabaseState(user.id);
+export function useModernController(initialUser: BootstrapUser) {
+    const { data, setData, persistence } = useDatabaseState(initialUser.id);
+    // The account can be renamed from Settings, so the signed-in user is kept as state.
+    const [user, setUser] = useState(initialUser);
+    const updateUser = useCallback((patch: Partial<BootstrapUser>) => {
+        setUser((current) => ({ ...current, ...patch, id: current.id }));
+    }, []);
     const [generatorJobs, setGeneratorJobs] = useState<any[]>([]);
     const [generatorAssets, setGeneratorAssets] = useState<any[]>([]);
     // Cursor for the next page of older generated media; null once everything is loaded.
@@ -871,6 +876,7 @@ export function useModernController(user: BootstrapUser) {
         data,
         setData,
         user,
+        updateUser,
         currentCharacter,
         messages,
         generatorJobs,

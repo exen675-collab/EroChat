@@ -520,7 +520,16 @@ export function SettingsPanel({
                                                 'error'
                                             );
                                         try {
-                                            await updateProfile(profile);
+                                            const result = await updateProfile(profile);
+                                            if (result?.user) controller.updateUser(result.user);
+                                            setProfile((current) => ({
+                                                ...current,
+                                                username:
+                                                    result?.user?.username || current.username,
+                                                currentPassword: '',
+                                                newPassword: '',
+                                                confirmPassword: ''
+                                            }));
                                             controller.notify('Profile updated.', 'success');
                                         } catch (error) {
                                             controller.notify((error as Error).message, 'error');

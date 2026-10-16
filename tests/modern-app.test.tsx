@@ -244,6 +244,39 @@ describe('ModernApp', () => {
         expect(JSON.parse(patch.body!)).toEqual({ credits: 55 });
     });
 
+    it('shows a renamed account everywhere and clears the password fields', async () => {
+        let profileBody: any = null;
+        vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+            if (String(input) === '/api/auth/profile') {
+                profileBody = JSON.parse(String(init?.body));
+                return new Response(
+                    JSON.stringify({
+                        ok: true,
+                        user: { id: 42, username: 'renamed', credits: 99, isAdmin: false }
+                    })
+                );
+            }
+            return new Response(JSON.stringify({ jobs: [], assets: [] }));
+        });
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /Account/i }));
+        const username = screen.getByRole('textbox', { name: 'Username' });
+        await userEvent.clear(username);
+        await userEvent.type(username, 'renamed');
+        const current = screen.getByLabelText('Current password');
+        await userEvent.type(current, 'old-secret');
+        await userEvent.type(screen.getByLabelText('New password'), 'new-secret');
+        await userEvent.type(screen.getByLabelText('Confirm new password'), 'new-secret');
+        await userEvent.click(screen.getByRole('button', { name: /Save profile/ }));
+
+        await screen.findByText('Profile updated.');
+        expect(profileBody).toMatchObject({ username: 'renamed', newPassword: 'new-secret' });
+        expect(screen.getByText('Signed in as @renamed.')).toBeInTheDocument();
+        expect(current).toHaveValue('');
+        expect(screen.getByLabelText('New password')).toHaveValue('');
+    });
+
     it('editing a character keeps the active chat character and its messages', async () => {
         localStorage.setItem(
             'erochat_data_user_42',
