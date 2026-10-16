@@ -2,15 +2,12 @@ import {
     ChevronDown,
     Download,
     Film,
-    Image as ImageIcon,
     LoaderCircle,
     RefreshCw,
     Save,
-    Upload,
-    WandSparkles,
-    X
+    WandSparkles
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { fetchProviderModels, sendUtilityRequest } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
 import { runMediaGeneration } from '../media-generation.js';
@@ -32,12 +29,10 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     const [prompt, setPrompt] = useState(prefs.prompt || '');
     const [negative, setNegative] = useState(prefs.negativePrompt || '');
     const [batch, setBatch] = useState(Number(prefs.batchCount) || 1);
-    const [sources, setSources] = useState<string[]>([]);
     const [presetName, setPresetName] = useState('');
     const [models, setModels] = useState<Record<string, string[]>>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [busy, setBusy] = useState(false);
-    const uploadRef = useRef<HTMLInputElement>(null);
     const mediaPresets = prefs.presets || [];
     const selectedPreset = findMediaPreset(prefs, prefs.selectedPresetId);
     function patchPrefs(patch: Record<string, unknown>) {
@@ -140,18 +135,6 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     </Button>
                 </div>
                 <div className="m-generator__controls">
-                    <label className="m-field">
-                        <span>Mode</span>
-                        <select
-                            value={selectedPreset.mediaType}
-                            onChange={(event) =>
-                                patchPreset({ mediaType: event.target.value as 'image' | 'video' })
-                            }
-                        >
-                            <option value="image">Create image</option>
-                            <option value="video">Create video</option>
-                        </select>
-                    </label>
                     <label className="m-field">
                         <span>Provider</span>
                         <select
@@ -390,64 +373,8 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                                 placeholder="portrait-style:0.8, detail:1"
                             />
                         </label>
-                        <label className="m-field">
-                            <span>Execution backend</span>
-                            <select
-                                value={selectedPreset.executionBackend}
-                                onChange={(event) =>
-                                    patchPreset({ executionBackend: event.target.value as any })
-                                }
-                            >
-                                <option value="local">Local / provider API</option>
-                                <option value="runpod">RunPod Serverless</option>
-                            </select>
-                        </label>
                     </div>
                 </details>
-                <section className="m-generator__sources">
-                    <header>
-                        <div>
-                            <span className="m-eyebrow">Source images</span>
-                            <p>Upload or reuse media for future edit-capable modes.</p>
-                        </div>
-                        <input
-                            ref={uploadRef}
-                            hidden
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={async (event) => {
-                                const files = Array.from(event.target.files || []);
-                                const urls = files.map((file) => URL.createObjectURL(file));
-                                setSources((current) => [...current, ...urls]);
-                            }}
-                        />
-                        <Button onClick={() => uploadRef.current?.click()}>
-                            <Upload size={17} /> Upload
-                        </Button>
-                    </header>
-                    {sources.length ? (
-                        <div className="m-source-row">
-                            {sources.map((source) => (
-                                <button
-                                    key={source}
-                                    onClick={() =>
-                                        setSources((current) =>
-                                            current.filter((item) => item !== source)
-                                        )
-                                    }
-                                >
-                                    <img src={source} alt="Source" />
-                                    <X size={16} />
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="m-empty-inline">
-                            <ImageIcon size={22} /> No source images selected
-                        </div>
-                    )}
-                </section>
                 <section className="m-preset-row">
                     <select
                         aria-label="Generation preset"

@@ -151,7 +151,11 @@ function normalizePresets(
                 ...preset,
                 id: String(preset.id || crypto.randomUUID()),
                 name: String(preset.name || 'Untitled preset'),
-                loras: Array.isArray(preset.loras) ? preset.loras : []
+                loras: Array.isArray(preset.loras) ? preset.loras : [],
+                // Video and RunPod could be chosen once but never ran; presets left on them would
+                // fail every generation with no control left to switch back.
+                mediaType: 'image',
+                executionBackend: 'local'
             } as MediaGenerationPreset;
         });
 }

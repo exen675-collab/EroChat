@@ -100,6 +100,31 @@ describe('per-user app storage', () => {
         });
     });
 
+    it('returns presets left on video or RunPod to runnable image settings', () => {
+        localStorage.setItem(
+            'erochat_data_user_10',
+            JSON.stringify({
+                generatorPrefs: {
+                    presets: [
+                        {
+                            id: 'custom',
+                            name: 'Custom',
+                            mediaType: 'video',
+                            executionBackend: 'runpod',
+                            steps: 30
+                        }
+                    ]
+                }
+            })
+        );
+        expect(hydrateModernState(10).generatorPrefs.presets[0]).toMatchObject({
+            id: 'custom',
+            mediaType: 'image',
+            executionBackend: 'local',
+            steps: 30
+        });
+    });
+
     it('migrates legacy chat and generator render settings into shared presets', () => {
         localStorage.setItem(
             getModernStorageKey(8),

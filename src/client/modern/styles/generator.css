@@ -129,53 +129,6 @@
     list-style: none;
     cursor: pointer;
 }
-.m-generator__sources {
-    margin-top: 15px;
-    padding: 14px;
-    border: 1px solid var(--m-border);
-    border-radius: 13px;
-}
-.m-generator__sources header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-}
-.m-generator__sources p {
-    margin-top: 4px;
-    color: var(--m-faint);
-    font-size: 11px;
-}
-.m-source-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    overflow-x: auto;
-}
-.m-source-row button {
-    width: 78px;
-    height: 78px;
-    position: relative;
-    flex: 0 0 auto;
-    padding: 0;
-    overflow: hidden;
-    border: 1px solid var(--m-border);
-    border-radius: 10px;
-    background: var(--m-bg);
-}
-.m-source-row img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.m-source-row svg {
-    position: absolute;
-    right: 4px;
-    top: 4px;
-    padding: 2px;
-    border-radius: 50%;
-    background: #000;
-}
 .m-preset-row {
     display: grid;
     grid-template-columns: 1fr 1fr auto;
