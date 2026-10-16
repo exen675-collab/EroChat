@@ -4,13 +4,16 @@ import { startServerProcess, type ServerProcess } from './helpers/server-process
 
 let server: ServerProcess;
 
-function post(route: string, body: unknown) {
+function post(route: string, body: unknown, cookie = '') {
     return fetch(`${server.base}${route}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify(body)
     });
 }
+
+const sessionCookie = (response: Response) =>
+    String(response.headers.get('set-cookie')).split(';')[0];
 
 describe.sequential('closed account creation', () => {
     beforeAll(async () => {
@@ -37,5 +40,38 @@ describe.sequential('closed account creation', () => {
         expect(login.status).toBe(401);
         const admin = await post('/api/auth/login', { username: 'admin', password: 'admin' });
         expect(admin.status).toBe(200);
+    });
+
+    it('lets an administrator create accounts that can then sign in', async () => {
+        const admin = sessionCookie(
+            await post('/api/auth/login', { username: 'admin', password: 'admin' })
+        );
+        const created = await post(
+            '/api/admin/users',
+            { username: ' invited ', password: 'invited-pass' },
+            admin
+        );
+        expect(created.status).toBe(201);
+        expect((await created.json()).user).toMatchObject({ username: 'invited', isAdmin: false });
+
+        expect(
+            (await post('/api/admin/users', { username: 'invited', password: 'other-pass' }, admin))
+                .status
+        ).toBe(409);
+        const invalid = await post('/api/admin/users', { username: 'x', password: 'pw' }, admin);
+        expect(invalid.status).toBe(400);
+        expect((await invalid.json()).error).toMatch(/Username must be/);
+
+        const invited = await post('/api/auth/login', {
+            username: 'invited',
+            password: 'invited-pass'
+        });
+        expect(invited.status).toBe(200);
+        const forbidden = await post(
+            '/api/admin/users',
+            { username: 'sneaky', password: 'sneaky-pass' },
+            sessionCookie(invited)
+        );
+        expect(forbidden.status).toBe(403);
     });
 });

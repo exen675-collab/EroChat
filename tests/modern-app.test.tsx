@@ -342,6 +342,42 @@ describe('ModernApp', () => {
         expect(JSON.parse(patch.body!)).toEqual({ credits: 55 });
     });
 
+    it('lets an administrator create an account from Settings', async () => {
+        const requests: Array<{ url: string; method: string; body?: string }> = [];
+        vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+            const url = String(input);
+            const method = init?.method ?? 'GET';
+            requests.push({ url, method, body: init?.body as string });
+            if (url === '/api/admin/users' && method === 'POST') {
+                return new Response(
+                    JSON.stringify({ user: { id: 9, username: 'guest', credits: 100 } }),
+                    { status: 201 }
+                );
+            }
+            if (url === '/api/admin/users') return new Response(JSON.stringify({ users: [] }));
+            if (url.startsWith('/api/generator/')) {
+                return new Response(JSON.stringify({ jobs: [], assets: [] }));
+            }
+            return new Response(JSON.stringify({}));
+        });
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /Admin/i }));
+
+        const form = (await screen.findByText('Add an account')).closest('section')!;
+        const create = within(form).getByRole('button', { name: 'Create account' });
+        expect(create).toBeDisabled();
+        await userEvent.type(within(form).getByLabelText('Username'), 'guest');
+        await userEvent.type(within(form).getByLabelText('Password'), 'guest-pass');
+        await userEvent.click(create);
+
+        expect(await screen.findByText('Created @guest.')).toBeInTheDocument();
+        const post = requests.find((request) => request.method === 'POST')!;
+        expect(JSON.parse(post.body!)).toEqual({ username: 'guest', password: 'guest-pass' });
+        expect(within(form).getByLabelText('Username')).toHaveValue('');
+        expect(within(form).getByLabelText('Password')).toHaveValue('');
+    });
+
     it('shows a renamed account everywhere and clears the password fields', async () => {
         let profileBody: any = null;
         vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {

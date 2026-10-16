@@ -113,6 +113,7 @@ describe.sequential('server route composition', () => {
             ['POST', '/api/nanogpt/images'],
             ['POST', '/api/experimental/grok/chat'],
             ['GET', '/api/admin/users'],
+            ['POST', '/api/admin/users'],
             ['PATCH', '/api/admin/users/1/credits'],
             ['GET', '/api/generator/jobs'],
             ['GET', '/api/generator/assets']

@@ -1,6 +1,17 @@
 import type { Express } from 'express';
 import { requireApiAuth, createAdminMiddleware } from '../middleware/auth';
 import type { Database } from '../database';
+import { accountCredentialsError, insertAccount, sanitizeUsername } from './auth';
+
+function mapAdminUserRow(row) {
+    return {
+        id: row.id,
+        username: row.username,
+        credits: Number.isFinite(row.credits) ? row.credits : 0,
+        isAdmin: Number.parseInt(row.is_admin, 10) === 1,
+        createdAt: row.created_at
+    };
+}
 
 export function registerAdminUserRoutes(app: Express, db: Database) {
     const { run, get, all } = db;
@@ -10,18 +21,39 @@ export function registerAdminUserRoutes(app: Express, db: Database) {
             const rows = await all(
                 'SELECT id, username, credits, is_admin, created_at FROM users ORDER BY username COLLATE NOCASE ASC'
             );
-            const users = rows.map((row) => ({
-                id: row.id,
-                username: row.username,
-                credits: Number.isFinite(row.credits) ? row.credits : 0,
-                isAdmin: Number.parseInt(row.is_admin, 10) === 1,
-                createdAt: row.created_at
-            }));
+            const users = rows.map(mapAdminUserRow);
 
             res.json({ users });
         } catch (error) {
             console.error('Failed to list admin users:', error);
             res.status(500).json({ error: 'Failed to load users.' });
+        }
+    });
+
+    // Lets an administrator add accounts, including when public sign-up is turned off.
+    app.post('/api/admin/users', requireApiAuth, requireAdmin, async (req, res) => {
+        const username = sanitizeUsername(req.body?.username);
+        const password = req.body?.password;
+        const invalid = accountCredentialsError(username, password);
+        if (invalid) {
+            res.status(400).json({ error: invalid });
+            return;
+        }
+
+        try {
+            const userId = await insertAccount(db, username, password);
+            const row = await get(
+                'SELECT id, username, credits, is_admin, created_at FROM users WHERE id = ?',
+                [userId]
+            );
+            res.status(201).json({ user: mapAdminUserRow(row) });
+        } catch (error) {
+            if (error && error.code === 'SQLITE_CONSTRAINT') {
+                res.status(409).json({ error: 'Username is already taken.' });
+                return;
+            }
+            console.error('Failed to create user:', error);
+            res.status(500).json({ error: 'Failed to create the account.' });
         }
     });
 

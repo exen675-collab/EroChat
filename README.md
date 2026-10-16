@@ -60,7 +60,7 @@ Open:
 - Set `COOKIE_SECURE=true` only when running behind HTTPS
 - Set `ALLOW_SIGNUP=false` to stop new accounts from being created (for example on a server reachable
   from the internet, where every account can use the shared Grok provider). Existing accounts can
-  still sign in
+  still sign in, and administrators can add accounts under **Settings > Admin**
 - Optional credit environment variable: `DEFAULT_USER_CREDITS` (default: 100)
 
 ## Run without Docker

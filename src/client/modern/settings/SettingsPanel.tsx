@@ -7,6 +7,7 @@ import {
     RefreshCw,
     Save,
     Trash2,
+    UserPlus,
     UserRoundCog,
     Users,
     WandSparkles,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    createAdminUser,
     fetchAdminUsers,
     fetchOpenRouterModels,
     logout,
@@ -54,6 +56,8 @@ export function SettingsPanel({
     const [adminUsers, setAdminUsers] = useState<any[]>([]);
     // Typed but unsaved credit amounts, kept as text so an empty field is not read as 0.
     const [creditEdits, setCreditEdits] = useState<Record<number, string>>({});
+    const [newAccount, setNewAccount] = useState({ username: '', password: '' });
+    const [creatingAccount, setCreatingAccount] = useState(false);
     const panelRef = useRef<HTMLElement>(null);
     // Settings apply only on Save, so closing any other way asks before dropping edits.
     const latestSettings = useRef(settings);
@@ -85,6 +89,19 @@ export function SettingsPanel({
             setAdminUsers(users);
         } catch (error) {
             controller.notify((error as Error).message, 'error');
+        }
+    }
+    async function createAccount() {
+        setCreatingAccount(true);
+        try {
+            const created = await createAdminUser(newAccount.username.trim(), newAccount.password);
+            setNewAccount({ username: '', password: '' });
+            controller.notify(`Created @${created.username}.`, 'success');
+            void loadUsers();
+        } catch (error) {
+            controller.notify((error as Error).message, 'error');
+        } finally {
+            setCreatingAccount(false);
         }
     }
     useEffect(() => {
@@ -645,6 +662,58 @@ export function SettingsPanel({
                                     </article>
                                 ))}
                             </div>
+                        </SettingsSection>
+                    )}
+                    {tab === 'admin' && controller.user.isAdmin && (
+                        <SettingsSection
+                            title="Add an account"
+                            description="Create a regular account, for example while public sign-up is turned off."
+                        >
+                            <form
+                                className="m-admin-create"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void createAccount();
+                                }}
+                            >
+                                <label className="m-field">
+                                    <span>Username</span>
+                                    <input
+                                        autoComplete="off"
+                                        value={newAccount.username}
+                                        onChange={(event) =>
+                                            setNewAccount({
+                                                ...newAccount,
+                                                username: event.target.value
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label className="m-field">
+                                    <span>Password</span>
+                                    <input
+                                        type="password"
+                                        autoComplete="new-password"
+                                        value={newAccount.password}
+                                        onChange={(event) =>
+                                            setNewAccount({
+                                                ...newAccount,
+                                                password: event.target.value
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        creatingAccount ||
+                                        !newAccount.username.trim() ||
+                                        !newAccount.password
+                                    }
+                                >
+                                    <UserPlus size={17} /> Create account
+                                </Button>
+                            </form>
                         </SettingsSection>
                     )}
                 </div>

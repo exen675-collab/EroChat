@@ -11,6 +11,39 @@ import {
 
 const MAX_TRACKED_LOGIN_KEYS = 10000;
 
+export function sanitizeUsername(username) {
+    if (typeof username !== 'string') return '';
+    return username.trim();
+}
+
+function isValidUsername(username) {
+    return /^[a-zA-Z0-9_-]{3,24}$/.test(username);
+}
+
+function isValidPassword(password) {
+    return typeof password === 'string' && password.length >= 6 && password.length <= 128;
+}
+
+export const USERNAME_RULE = 'Username must be 3-24 chars: letters, numbers, _ or -.';
+export const PASSWORD_RULE = 'Password must be between 6 and 128 characters.';
+
+/** Returns why these credentials cannot create an account, or null when they can. */
+export function accountCredentialsError(username: string, password: unknown): string | null {
+    if (!isValidUsername(username)) return USERNAME_RULE;
+    if (!isValidPassword(password)) return PASSWORD_RULE;
+    return null;
+}
+
+/** Inserts a regular user; rejects with code SQLITE_CONSTRAINT when the name is taken. */
+export async function insertAccount(db: Database, username: string, password: string) {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await db.run(
+        'INSERT INTO users (username, password_hash, credits) VALUES (?, ?, ?)',
+        [username, passwordHash, DEFAULT_USER_CREDITS]
+    );
+    return result.lastID as number;
+}
+
 export interface SessionRevoker {
     // Ends every session for the user except the one identified by keepSessionId.
     revokeOtherSessions(userId: number, keepSessionId: string): Promise<void>;
@@ -19,19 +52,6 @@ export interface SessionRevoker {
 export function registerAuthRoutes(app: Express, db: Database, sessions: SessionRevoker) {
     const { run, get } = db;
     const loginFailures = new Map<string, { count: number; resetAt: number }>();
-    function sanitizeUsername(username) {
-        if (typeof username !== 'string') return '';
-        return username.trim();
-    }
-
-    function isValidUsername(username) {
-        return /^[a-zA-Z0-9_-]{3,24}$/.test(username);
-    }
-
-    function isValidPassword(password) {
-        return typeof password === 'string' && password.length >= 6 && password.length <= 128;
-    }
-
     // Failed attempts are counted per client address and per account. The address comes from
     // req.ip, which honors the trust-proxy setting; the raw X-Forwarded-For header is never read
     // here. The per-account count still limits guessing when the address can be rotated.
@@ -91,26 +111,14 @@ export function registerAuthRoutes(app: Express, db: Database, sessions: Session
         const username = sanitizeUsername(req.body?.username);
         const password = req.body?.password;
 
-        if (!isValidUsername(username)) {
-            res.status(400).json({
-                error: 'Username must be 3-24 chars: letters, numbers, _ or -.'
-            });
-            return;
-        }
-
-        if (!isValidPassword(password)) {
-            res.status(400).json({ error: 'Password must be between 6 and 128 characters.' });
+        const invalid = accountCredentialsError(username, password);
+        if (invalid) {
+            res.status(400).json({ error: invalid });
             return;
         }
 
         try {
-            const passwordHash = await bcrypt.hash(password, 12);
-            const result = await run(
-                'INSERT INTO users (username, password_hash, credits) VALUES (?, ?, ?)',
-                [username, passwordHash, DEFAULT_USER_CREDITS]
-            );
-
-            await startSession(req, result.lastID, false);
+            await startSession(req, await insertAccount(db, username, password), false);
 
             res.status(201).json({
                 ok: true,
@@ -244,14 +252,12 @@ export function registerAuthRoutes(app: Express, db: Database, sessions: Session
         const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
 
         if (!isValidUsername(username)) {
-            res.status(400).json({
-                error: 'Username must be 3-24 chars: letters, numbers, _ or -.'
-            });
+            res.status(400).json({ error: USERNAME_RULE });
             return;
         }
 
         if (newPassword && !isValidPassword(newPassword)) {
-            res.status(400).json({ error: 'Password must be between 6 and 128 characters.' });
+            res.status(400).json({ error: PASSWORD_RULE });
             return;
         }
 

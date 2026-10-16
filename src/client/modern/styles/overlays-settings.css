@@ -441,3 +441,14 @@
 .m-mobile-scrim {
     display: none;
 }
+.m-admin-create {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+    gap: 8px;
+}
+@media (max-width: 640px) {
+    .m-admin-create {
+        grid-template-columns: 1fr;
+    }
+}

@@ -706,6 +706,15 @@ export async function fetchAdminUsers() {
     return (await jsonRequest('/api/admin/users')).users || [];
 }
 
+export async function createAdminUser(username: string, password: string) {
+    return (
+        await jsonRequest('/api/admin/users', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        })
+    ).user;
+}
+
 export async function updateAdminCredits(userId: number, credits: number) {
     return jsonRequest(`/api/admin/users/${userId}/credits`, {
         method: 'PATCH',
