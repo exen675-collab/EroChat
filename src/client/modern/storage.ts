@@ -59,7 +59,12 @@ function normalizeCharacter(character: Partial<ModernCharacter>): ModernCharacte
         id: String(character.id || crypto.randomUUID()),
         name: String(character.name || 'Untitled character'),
         isDefault: String(character.id) === 'default',
-        avatar: character.avatar && !character.avatar.includes('ðŸ') ? character.avatar : '✨',
+        avatar:
+            typeof character.avatar === 'string' &&
+            character.avatar &&
+            !character.avatar.includes('ðŸ')
+                ? character.avatar
+                : '✨',
         messages: Array.isArray(character.messages) ? character.messages : [],
         memorySnapshots: Array.isArray(character.memorySnapshots) ? character.memorySnapshots : [],
         contextMessageCount: Number(character.contextMessageCount) || 20
@@ -136,59 +141,71 @@ function normalizePresets(
         });
 }
 
+// Throws when the value is not a usable state object. Server state goes through this directly, so
+// an unreadable row stops the app from loading and saving instead of being replaced by defaults.
+function normalizeModernState(parsed: any): ModernPersistedState {
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Saved state is not an object.');
+    }
+    const defaults = createModernDefaultState();
+    const characters = Array.isArray(parsed.characters)
+        ? parsed.characters
+              .filter((character) => character !== null && typeof character === 'object')
+              .map(normalizeCharacter)
+        : defaults.characters;
+    const currentCharacterId = characters.some(
+        (character: ModernCharacter) => character.id === parsed.currentCharacterId
+    )
+        ? parsed.currentCharacterId
+        : characters[0]?.id || 'default';
+
+    return {
+        ...defaults,
+        ...parsed,
+        settings: {
+            ...defaults.settings,
+            ...(parsed.settings || {}),
+            favoriteOpenRouterModels: Array.isArray(parsed.settings?.favoriteOpenRouterModels)
+                ? parsed.settings.favoriteOpenRouterModels
+                : []
+        },
+        characters: characters.length ? characters : defaults.characters,
+        currentCharacterId,
+        galleryImages: Array.isArray(parsed.galleryImages) ? parsed.galleryImages : [],
+        gallerySourceFilter:
+            parsed.gallerySourceFilter === 'generator'
+                ? 'manual'
+                : parsed.gallerySourceFilter || defaults.gallerySourceFilter,
+        currentView: VIEWS.includes(parsed.currentView) ? parsed.currentView : 'chat',
+        generatorPrefs: {
+            ...defaults.generatorPrefs,
+            ...(parsed.generatorPrefs || {}),
+            promptPresets: Array.isArray(parsed.generatorPrefs?.promptPresets)
+                ? parsed.generatorPrefs.promptPresets
+                : [],
+            presets: normalizePresets(
+                parsed.generatorPrefs?.presets,
+                parsed.settings,
+                parsed.generatorPrefs
+            )
+        },
+        statistics: { ...defaults.statistics, ...(parsed.statistics || {}) }
+    };
+}
+
+// Reads this browser's legacy per-user entry. Unreadable data falls back to defaults here, because
+// the server copy is authoritative once a user is signed in.
 export function hydrateModernState(
     userId: number | string,
     storage: Pick<Storage, 'getItem'> = localStorage
 ): ModernPersistedState {
-    const defaults = createModernDefaultState();
     const raw = storage.getItem(getModernStorageKey(userId));
-    if (!raw) return defaults;
+    if (!raw) return createModernDefaultState();
 
     try {
-        const parsed = JSON.parse(raw);
-        const characters = Array.isArray(parsed.characters)
-            ? parsed.characters.map(normalizeCharacter)
-            : defaults.characters;
-        const currentCharacterId = characters.some(
-            (character: ModernCharacter) => character.id === parsed.currentCharacterId
-        )
-            ? parsed.currentCharacterId
-            : characters[0]?.id || 'default';
-
-        return {
-            ...defaults,
-            ...parsed,
-            settings: {
-                ...defaults.settings,
-                ...(parsed.settings || {}),
-                favoriteOpenRouterModels: Array.isArray(parsed.settings?.favoriteOpenRouterModels)
-                    ? parsed.settings.favoriteOpenRouterModels
-                    : []
-            },
-            characters: characters.length ? characters : defaults.characters,
-            currentCharacterId,
-            galleryImages: Array.isArray(parsed.galleryImages) ? parsed.galleryImages : [],
-            gallerySourceFilter:
-                parsed.gallerySourceFilter === 'generator'
-                    ? 'manual'
-                    : parsed.gallerySourceFilter || defaults.gallerySourceFilter,
-            currentView: VIEWS.includes(parsed.currentView) ? parsed.currentView : 'chat',
-            generatorPrefs: {
-                ...defaults.generatorPrefs,
-                ...(parsed.generatorPrefs || {}),
-                promptPresets: Array.isArray(parsed.generatorPrefs?.promptPresets)
-                    ? parsed.generatorPrefs.promptPresets
-                    : [],
-                presets: normalizePresets(
-                    parsed.generatorPrefs?.presets,
-                    parsed.settings,
-                    parsed.generatorPrefs
-                )
-            },
-            statistics: { ...defaults.statistics, ...(parsed.statistics || {}) }
-        };
+        return normalizeModernState(JSON.parse(raw));
     } catch {
-        return defaults;
+        return createModernDefaultState();
     }
 }
 
@@ -226,11 +243,7 @@ export async function loadModernState(
         localState: storage.getItem(getModernStorageKey(userId))
     });
     const state =
-        result.state == null
-            ? createModernDefaultState()
-            : hydrateModernState(userId, {
-                  getItem: () => JSON.stringify(result.state)
-              });
+        result.state == null ? createModernDefaultState() : normalizeModernState(result.state);
     return { state, revision: result.revision as number };
 }
 

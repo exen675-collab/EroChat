@@ -67,3 +67,34 @@ it('serializes writes and keeps the latest changes pending during a save', async
     expect(writes[1].revision).toBe(1);
     expect(writes[1].state.gallerySearchQuery).toBe('latest');
 });
+
+it('keeps usable characters when a saved character entry is malformed', async () => {
+    const saved = {
+        ...createModernDefaultState(),
+        characters: [null, { id: 'hero', name: 'Hero', avatar: 42 }],
+        currentCharacterId: 'hero'
+    };
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(JSON.stringify({ state: saved, revision: 4 })))
+    );
+
+    const { state, revision } = await loadModernState(7);
+    expect(revision).toBe(4);
+    expect(state.characters.map((character) => character.id)).toEqual(['hero']);
+    expect(state.characters[0].avatar).toBe('✨');
+});
+
+it('leaves an unreadable server state unsaved instead of replacing it with defaults', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+        if (url.endsWith('/load'))
+            return new Response(JSON.stringify({ state: 'corrupt', revision: 4 }));
+        return new Response(JSON.stringify({ revision: 5 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useDatabaseState(7));
+    await waitFor(() => expect(result.current.persistence.error).toMatch(/not an object/));
+    expect(result.current.persistence.loaded).toBe(false);
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(['/api/user-state/load']);
+});
