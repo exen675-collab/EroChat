@@ -774,6 +774,64 @@ describe('ModernApp', () => {
             expect(within(stream()).getByText('Finished reply.')).toBeInTheDocument();
         });
 
+        it('does not apply a draft upgrade over text typed while it was running', async () => {
+            seedChat([]);
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            const input = screen.getByRole('textbox', { name: 'Message' });
+            await userEvent.type(input, 'First draft');
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            await userEvent.click(screen.getByRole('menuitem', { name: /Polish/ }));
+            await userEvent.type(input, ' and more');
+
+            await reply.finish(
+                new Response(JSON.stringify({ choices: [{ message: { content: 'Polished.' } }] }))
+            );
+            expect(input).toHaveValue('First draft and more');
+            expect(await screen.findByText(/upgrade was not applied/)).toBeInTheDocument();
+        });
+
+        it('does not show suggestions requested for one conversation in another', async () => {
+            localStorage.setItem(
+                'erochat_data_user_42',
+                JSON.stringify({
+                    settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                    characters: [
+                        {
+                            id: 'nova',
+                            name: 'Nova',
+                            avatar: 'N',
+                            systemPrompt: 'You are Nova.',
+                            messages: [{ id: 'u1', role: 'user', content: 'Hi.' }]
+                        },
+                        {
+                            id: 'other',
+                            name: 'Other',
+                            avatar: 'O',
+                            systemPrompt: 'You are Other.',
+                            messages: []
+                        }
+                    ],
+                    currentCharacterId: 'nova',
+                    currentView: 'chat'
+                })
+            );
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Message tools' }));
+            await userEvent.click(screen.getByRole('menuitem', { name: /Suggest replies/ }));
+            await userEvent.click(screen.getByRole('button', { name: 'Chat with Other' }));
+
+            await reply.finish(
+                new Response(
+                    JSON.stringify({ choices: [{ message: { content: 'Tell me more.' } }] })
+                )
+            );
+            // Let the late suggestion result settle before asserting it was dropped.
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(screen.queryByText('Tell me more.')).not.toBeInTheDocument();
+        });
+
         it.each(['failure', 'stop'])(
             'keeps the original reply after regeneration %s',
             async (outcome) => {

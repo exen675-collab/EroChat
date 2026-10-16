@@ -372,6 +372,9 @@ function ChatPane({
     onLightbox: (url: string, video?: boolean) => void;
 }) {
     const [drafts, setDrafts] = useState<Record<string, string>>({});
+    // Async handlers read the latest drafts after awaiting, not the values they closed over.
+    const latestDrafts = useRef(drafts);
+    latestDrafts.current = drafts;
     const characterId = controller.currentCharacter?.id || '';
     const draft = drafts[characterId] || '';
     const setDraft = (value: string) =>
@@ -389,6 +392,7 @@ function ChatPane({
     const followBottom = useRef(true);
     const lastScrollTop = useRef(0);
     const character = controller.currentCharacter;
+    const activeCharacterId = useRef(character?.id);
     const messages = controller.messages;
     const maxComposerHeight = Math.max(
         MIN_COMPOSER_HEIGHT,
@@ -402,6 +406,7 @@ function ChatPane({
         lastScrollTop.current = stream.scrollTop;
     };
     useLayoutEffect(() => {
+        activeCharacterId.current = character?.id;
         followBottom.current = true;
         setShowJump(false);
         setSuggestions([]);
@@ -443,7 +448,10 @@ function ChatPane({
 
     async function suggest() {
         setMenuOpen(false);
-        setSuggestions(await controller.fetchSuggestions());
+        const requestedFor = character?.id;
+        const result = await controller.fetchSuggestions();
+        // Suggestions written for a conversation the user has since left must not appear in this one.
+        if (activeCharacterId.current === requestedFor) setSuggestions(result);
     }
     useEffect(() => {
         const shortcut = (event: KeyboardEvent) => {
@@ -466,7 +474,15 @@ function ChatPane({
     }
     async function upgrade(mode: string) {
         setMenuOpen(false);
-        setDraft(await controller.upgradeDraft(draft, mode));
+        const conversationId = characterId;
+        const original = draft;
+        const upgraded = await controller.upgradeDraft(original, mode);
+        // Apply the upgrade only if this conversation's draft is unchanged, so text typed while it ran is kept.
+        if ((latestDrafts.current[conversationId] || '') === original) {
+            setDrafts((current) => ({ ...current, [conversationId]: upgraded }));
+        } else {
+            controller.notify('The upgrade was not applied because the draft changed.', 'info');
+        }
         inputRef.current?.focus();
     }
 
