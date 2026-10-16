@@ -253,6 +253,46 @@ describe('ModernApp', () => {
         expect(screen.queryByRole('button', { name: /Generate/i })).not.toBeInTheDocument();
     });
 
+    it('finds chats by message text as well as by name', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({
+                characters: [
+                    {
+                        id: 'nova',
+                        name: 'Nova',
+                        systemPrompt: 'You are Nova.',
+                        messages: [
+                            {
+                                id: 'a1',
+                                role: 'assistant',
+                                content:
+                                    'We met at the lighthouse.\n---IMAGE_PROMPT START---\nharbor_tag\n---IMAGE_PROMPT END---'
+                            }
+                        ]
+                    },
+                    { id: 'ash', name: 'Ash', systemPrompt: 'You are Ash.', messages: [] }
+                ],
+                currentCharacterId: 'ash'
+            })
+        );
+        await renderApp(<ModernApp user={user} />);
+        const search = screen.getByRole('searchbox', { name: 'Search chats' });
+        const listed = () =>
+            within(screen.getByRole('region', { name: 'Conversations' }))
+                .queryAllByRole('button', { name: /^Chat with/ })
+                .map((button) => button.getAttribute('aria-label'));
+
+        await userEvent.type(search, 'LIGHTHOUSE');
+        expect(listed()).toEqual(['Chat with Nova']);
+        await userEvent.clear(search);
+        await userEvent.type(search, 'harbor_tag');
+        expect(listed()).toEqual([]);
+        await userEvent.clear(search);
+        await userEvent.type(search, 'ash');
+        expect(listed()).toEqual(['Chat with Ash']);
+    });
+
     it('does not save a cleared credit amount as zero', async () => {
         const requests: Array<{ url: string; method: string; body?: string }> = [];
         vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {

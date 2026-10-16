@@ -32,7 +32,12 @@ export function ConversationList({
     const characters = useMemo(() => {
         const needle = query.trim().toLowerCase();
         return sortCharactersByRecentUse(controller.data.characters).filter(
-            (character) => !needle || character.name.toLowerCase().includes(needle)
+            (character) =>
+                !needle ||
+                character.name.toLowerCase().includes(needle) ||
+                character.messages.some((message) =>
+                    getAssistantVisibleText(message.content).toLowerCase().includes(needle)
+                )
         );
     }, [controller.data.characters, query]);
 
@@ -54,7 +59,7 @@ export function ConversationList({
                 <input
                     type="search"
                     aria-label="Search chats"
-                    placeholder="Search chats"
+                    placeholder="Search names and messages"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                 />
