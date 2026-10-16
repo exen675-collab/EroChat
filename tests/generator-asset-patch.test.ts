@@ -64,4 +64,34 @@ describe.sequential('generator asset updates', () => {
         const assets = await (await call('GET', '/api/generator/assets')).json();
         expect(assets.assets.filter((asset) => asset.jobId === jobId)).toHaveLength(2);
     });
+
+    it("removes an asset from its owner's gallery only", async () => {
+        const created = await call('POST', '/api/generator/jobs', {
+            jobs: [{ mode: 'image_generate', provider: 'openrouter', prompt: 'A rooftop' }]
+        });
+        const jobId = (await created.json()).jobs[0].id;
+        const patched = await call('PATCH', `/api/generator/jobs/${jobId}`, {
+            status: 'completed',
+            assets: [{ mediaType: 'image', url: '/app/media/rooftop.png' }]
+        });
+        const [asset] = (await patched.json()).assets;
+
+        const stranger = await fetch(`${server.base}/api/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'asset-stranger', password: 'stranger-pass' })
+        });
+        const strangerCookie = String(stranger.headers.get('set-cookie')).split(';')[0];
+        const foreign = await fetch(`${server.base}/api/generator/assets/${asset.id}`, {
+            method: 'DELETE',
+            headers: { Cookie: strangerCookie }
+        });
+        expect(foreign.status).toBe(404);
+
+        expect((await call('DELETE', `/api/generator/assets/${asset.id}`)).status).toBe(200);
+        expect((await call('DELETE', `/api/generator/assets/${asset.id}`)).status).toBe(404);
+        expect((await call('DELETE', '/api/generator/assets/abc')).status).toBe(400);
+        const assets = await (await call('GET', '/api/generator/assets')).json();
+        expect(assets.assets.some((item) => item.id === asset.id)).toBe(false);
+    });
 });

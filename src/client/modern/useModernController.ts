@@ -3,6 +3,7 @@ import type { BootstrapUser } from '../auth.js';
 import { extractImagePrompt, getAssistantReadableText, getAssistantVisibleText } from '../utils.js';
 import {
     createChatPreview,
+    deleteGeneratorAsset,
     fetchGeneratorAssets,
     fetchGeneratorHistory,
     generateSpeech,
@@ -859,6 +860,33 @@ export function useModernController(initialUser: BootstrapUser) {
         }
     }, [loadingOlderAssets, notify, olderAssetsCursor]);
 
+    // Gallery items are either generated assets ("generator-<id>") or legacy saved images.
+    const removeGalleryItem = useCallback(
+        async (itemId: string) => {
+            const match = /^generator-(\d+)$/.exec(itemId);
+            try {
+                if (match) {
+                    const assetId = Number(match[1]);
+                    await deleteGeneratorAsset(assetId);
+                    setGeneratorAssets((current) =>
+                        current.filter((asset) => asset.id !== assetId)
+                    );
+                } else {
+                    setData((current) => ({
+                        ...current,
+                        galleryImages: current.galleryImages.filter((item) => item.id !== itemId)
+                    }));
+                }
+                notify('Removed from the gallery.', 'success');
+                return true;
+            } catch (error) {
+                notify((error as Error).message, 'error');
+                return false;
+            }
+        },
+        [notify]
+    );
+
     const thumbnailImages = useMemo(
         () => [
             ...data.galleryImages,
@@ -927,6 +955,7 @@ export function useModernController(initialUser: BootstrapUser) {
         hasOlderAssets: olderAssetsCursor !== null,
         loadingOlderAssets,
         loadOlderAssets,
+        removeGalleryItem,
         recordUsage
     };
 }

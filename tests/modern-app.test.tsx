@@ -917,6 +917,63 @@ describe('ModernApp', () => {
         expect(ratio).toHaveValue('16:9');
     });
 
+    it('removes generated and saved items from the gallery', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({
+                galleryImages: [
+                    { id: 'saved-1', imageUrl: '/app/media/saved.png', createdAt: '2026-08-01' }
+                ]
+            })
+        );
+        const deletes: string[] = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                const url = String(input);
+                if (init?.method === 'DELETE') {
+                    deletes.push(url);
+                    return new Response(JSON.stringify({ ok: true }));
+                }
+                if (url.startsWith('/api/generator/assets')) {
+                    return new Response(
+                        JSON.stringify({
+                            assets: [
+                                {
+                                    id: 9,
+                                    mediaType: 'image',
+                                    url: '/app/media/9.png',
+                                    source: 'manual',
+                                    createdAt: '2026-08-09'
+                                }
+                            ],
+                            nextCursor: null
+                        })
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [] }));
+            })
+        );
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Gallery' })[0]);
+        const sources = () =>
+            screen
+                .queryAllByRole('img', { name: 'Generated media' })
+                .map((img) => img.getAttribute('src'));
+        await waitFor(() =>
+            expect(sources()).toEqual(['/app/media/9.png', '/app/media/saved.png'])
+        );
+
+        for (const expected of [['/app/media/saved.png'], []]) {
+            await userEvent.click(screen.getAllByRole('img', { name: 'Generated media' })[0]);
+            await userEvent.click(screen.getByRole('button', { name: /Remove from gallery/ }));
+            await waitFor(() => expect(sources()).toEqual(expected));
+        }
+        expect(deletes).toEqual(['/api/generator/assets/9']);
+        await waitFor(() => expect(savedState?.galleryImages).toEqual([]));
+    });
+
     it('loads older generated media into the gallery on request', async () => {
         const asset = (id: number) => ({
             id,

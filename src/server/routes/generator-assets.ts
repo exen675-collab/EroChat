@@ -5,7 +5,7 @@ import { normalizePositiveInt } from '../utils';
 import { mapGeneratorAssetRow } from '../generator';
 
 export function registerGeneratorAssetRoutes(app: Express, db: Database) {
-    const { all } = db;
+    const { all, run } = db;
     app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
         const userId = req.session.userId;
         const limit = normalizePositiveInt(req.query?.limit, 60, 1, 120);
@@ -45,6 +45,32 @@ export function registerGeneratorAssetRoutes(app: Express, db: Database) {
         } catch (error) {
             console.error('Failed to load generator assets:', error);
             res.status(500).json({ error: 'Failed to load generator assets.' });
+        }
+    });
+
+    // Removes the asset from the user's gallery. The media file is kept: chat messages, character
+    // thumbnails, and published characters can still point at its URL.
+    app.delete('/api/generator/assets/:assetId', requireApiAuth, async (req, res) => {
+        const rawId = String(req.params?.assetId ?? '');
+        const assetId = /^\d+$/.test(rawId) ? Number(rawId) : 0;
+        if (!Number.isSafeInteger(assetId) || assetId <= 0) {
+            res.status(400).json({ error: 'Invalid generator asset ID.' });
+            return;
+        }
+
+        try {
+            const result = await run('DELETE FROM generator_assets WHERE id = ? AND user_id = ?', [
+                assetId,
+                req.session.userId
+            ]);
+            if (!result.changes) {
+                res.status(404).json({ error: 'Generator asset not found.' });
+                return;
+            }
+            res.json({ ok: true });
+        } catch (error) {
+            console.error('Failed to remove generator asset:', error);
+            res.status(500).json({ error: 'Failed to remove the asset.' });
         }
     });
 }

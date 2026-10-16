@@ -3,7 +3,8 @@ import {
     Download,
     GalleryHorizontalEnd,
     LoaderCircle,
-    Search
+    Search,
+    Trash2
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button, Modal } from '../components/ui.js';
@@ -231,6 +232,19 @@ export function GalleryView({ controller }: { controller: ModernController }) {
                             >
                                 <Download size={17} /> Download
                             </a>
+                            <Button
+                                variant="danger"
+                                onClick={async () => {
+                                    if (!window.confirm('Remove this item from the gallery?')) {
+                                        return;
+                                    }
+                                    if (await controller.removeGalleryItem(lightbox.id)) {
+                                        setLightbox(null);
+                                    }
+                                }}
+                            >
+                                <Trash2 size={17} /> Remove from gallery
+                            </Button>
                         </div>
                     </div>
                 </Modal>

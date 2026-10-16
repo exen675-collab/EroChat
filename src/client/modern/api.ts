@@ -641,6 +641,10 @@ export async function fetchGeneratorHistory(): Promise<{
     return { jobs: jobs.jobs || [], assets: assets.assets, assetsCursor: assets.nextCursor };
 }
 
+export async function deleteGeneratorAsset(assetId: number): Promise<void> {
+    await jsonRequest(`/api/generator/assets/${assetId}`, { method: 'DELETE' });
+}
+
 export async function createGeneratorJob(input: Record<string, unknown>): Promise<GeneratorJob[]> {
     const payload = await jsonRequest('/api/generator/jobs', {
         method: 'POST',
