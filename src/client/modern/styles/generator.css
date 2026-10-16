@@ -244,13 +244,19 @@
     border-radius: 50%;
     background: var(--m-faint);
 }
+.m-job-list i.status-completed,
 .m-job-list i.status-succeeded {
     background: var(--m-success);
 }
-.m-job-list i.status-failed {
+.m-job-list i.status-failed,
+.m-job-list i.status-interrupted {
     background: var(--m-danger);
 }
-.m-job-list i.status-running {
+.m-job-list i.status-starting,
+.m-job-list i.status-loading,
+.m-job-list i.status-generating,
+.m-job-list i.status-running,
+.m-job-list i.status-polling {
     background: var(--m-warning);
 }
 .m-job-list span {
