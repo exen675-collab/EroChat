@@ -95,6 +95,24 @@ describe('ModernApp', () => {
         expect(screen.queryByRole('dialog', { name: 'Settings' })).not.toBeInTheDocument();
     });
 
+    it('asks before closing Settings with unsaved changes', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.keyboard('{Escape}');
+        expect(confirm).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.type(screen.getByLabelText('OpenRouter API key'), 'sk-new');
+        await userEvent.keyboard('{Escape}');
+        expect(confirm).toHaveBeenCalledOnce();
+        expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+
+        confirm.mockReturnValue(true);
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+        expect(screen.queryByRole('dialog', { name: 'Settings' })).not.toBeInTheDocument();
+    });
+
     it('shows only the current settings sections', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);

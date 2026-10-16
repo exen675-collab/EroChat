@@ -12,7 +12,7 @@ import {
     WandSparkles,
     X
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     fetchAdminUsers,
     fetchOpenRouterModels,
@@ -55,7 +55,16 @@ export function SettingsPanel({
     // Typed but unsaved credit amounts, kept as text so an empty field is not read as 0.
     const [creditEdits, setCreditEdits] = useState<Record<number, string>>({});
     const panelRef = useRef<HTMLElement>(null);
-    useDialog(panelRef, onClose);
+    // Settings apply only on Save, so closing any other way asks before dropping edits.
+    const latestSettings = useRef(settings);
+    latestSettings.current = settings;
+    const requestClose = useCallback(() => {
+        const changed =
+            JSON.stringify(latestSettings.current) !== JSON.stringify(controller.data.settings);
+        if (changed && !window.confirm('Discard your unsaved settings changes?')) return;
+        onClose();
+    }, [controller.data.settings, onClose]);
+    useDialog(panelRef, requestClose);
     const update = (patch: Partial<ModernSettings>) =>
         setSettings((current) => ({ ...current, ...patch }));
     async function loadTextModels() {
@@ -91,7 +100,7 @@ export function SettingsPanel({
     return (
         <div
             className="m-settings-backdrop"
-            onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+            onMouseDown={(event) => event.target === event.currentTarget && requestClose()}
         >
             <aside
                 ref={panelRef}
@@ -106,7 +115,7 @@ export function SettingsPanel({
                         <span className="m-eyebrow">Workspace</span>
                         <h2>Settings</h2>
                     </div>
-                    <IconButton label="Close settings" onClick={onClose}>
+                    <IconButton label="Close settings" onClick={requestClose}>
                         <X size={20} />
                     </IconButton>
                 </header>
@@ -640,7 +649,7 @@ export function SettingsPanel({
                     )}
                 </div>
                 <footer>
-                    <Button onClick={onClose}>Close</Button>
+                    <Button onClick={requestClose}>Close</Button>
                     <Button
                         variant="primary"
                         onClick={() => {
