@@ -94,4 +94,20 @@ describe.sequential('generator asset updates', () => {
         const assets = await (await call('GET', '/api/generator/assets')).json();
         expect(assets.assets.some((item) => item.id === asset.id)).toBe(false);
     });
+
+    it('summarizes every asset the user has, by media type', async () => {
+        const created = await call('POST', '/api/generator/jobs', {
+            jobs: [{ mode: 'image_generate', provider: 'openrouter', prompt: 'A lighthouse' }]
+        });
+        const jobId = (await created.json()).jobs[0].id;
+        await call('PATCH', `/api/generator/jobs/${jobId}`, {
+            status: 'completed',
+            assets: [{ mediaType: 'video', url: '/app/media/lighthouse.mp4' }]
+        });
+
+        const summary = await (await call('GET', '/api/generator/assets/summary')).json();
+        expect(summary).toEqual({ total: 3, images: 2, videos: 1 });
+        const anonymous = await fetch(`${server.base}/api/generator/assets/summary`);
+        expect(anonymous.status).toBe(401);
+    });
 });

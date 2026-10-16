@@ -1,17 +1,25 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StatsView } from '../src/client/modern/views/StatsView.js';
 import type { ModernController } from '../src/client/modern/useModernController.js';
 
-function createController(statistics = {}, characters: unknown[] = []) {
+function createController(
+    statistics = {},
+    characters: unknown[] = [],
+    galleryImages: unknown[] = [],
+    generatorAssets: unknown[] = []
+) {
     return {
-        data: { statistics, characters, galleryImages: [] },
-        generatorAssets: []
+        data: { statistics, characters, galleryImages },
+        generatorAssets
     } as unknown as ModernController;
 }
 
-afterEach(cleanup);
+afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+});
 
 describe('StatsView', () => {
     it('shows helpful empty states instead of empty rankings', () => {
@@ -47,5 +55,30 @@ describe('StatsView', () => {
         expect(screen.getAllByRole('img')).toHaveLength(14);
         expect(screen.getByRole('img', { name: /5 messages and 1 media/ })).toBeInTheDocument();
         expect(screen.queryByText('Your next idea starts the chart')).not.toBeInTheDocument();
+    });
+
+    it('counts all generated media, not only the loaded gallery page', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                Response.json({ total: 250, images: 248, videos: 2 }, { status: 200 })
+            )
+        );
+        render(
+            <StatsView
+                controller={createController(
+                    {},
+                    [],
+                    [
+                        { id: 'saved', imageUrl: '/app/media/saved.png' },
+                        { id: 'dup', imageUrl: '/app/media/a.png' }
+                    ],
+                    [{ id: 1, url: '/app/media/a.png' }]
+                )}
+            />
+        );
+
+        expect(await screen.findByText('251')).toBeInTheDocument();
+        expect(screen.getByText('248 images generated · 2 videos')).toBeInTheDocument();
     });
 });

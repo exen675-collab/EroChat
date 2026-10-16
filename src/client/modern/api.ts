@@ -641,6 +641,20 @@ export async function fetchGeneratorHistory(): Promise<{
     return { jobs: jobs.jobs || [], assets: assets.assets, assetsCursor: assets.nextCursor };
 }
 
+export async function fetchGeneratorAssetSummary(): Promise<{
+    total: number;
+    images: number;
+    videos: number;
+}> {
+    const payload = await jsonRequest('/api/generator/assets/summary');
+    const count = (value: unknown) => (Number.isSafeInteger(value) ? (value as number) : 0);
+    return {
+        total: count(payload.total),
+        images: count(payload.images),
+        videos: count(payload.videos)
+    };
+}
+
 export async function deleteGeneratorAsset(assetId: number): Promise<void> {
     await jsonRequest(`/api/generator/assets/${assetId}`, { method: 'DELETE' });
 }

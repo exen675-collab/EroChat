@@ -5,7 +5,7 @@ import { normalizePositiveInt } from '../utils';
 import { mapGeneratorAssetRow } from '../generator';
 
 export function registerGeneratorAssetRoutes(app: Express, db: Database) {
-    const { all, run } = db;
+    const { all, get, run } = db;
     app.get('/api/generator/assets', requireApiAuth, async (req, res) => {
         const userId = req.session.userId;
         const limit = normalizePositiveInt(req.query?.limit, 60, 1, 120);
@@ -45,6 +45,23 @@ export function registerGeneratorAssetRoutes(app: Express, db: Database) {
         } catch (error) {
             console.error('Failed to load generator assets:', error);
             res.status(500).json({ error: 'Failed to load generator assets.' });
+        }
+    });
+
+    // Totals across every page, so statistics don't depend on how much of the gallery is loaded.
+    app.get('/api/generator/assets/summary', requireApiAuth, async (req, res) => {
+        try {
+            const row = await get(
+                `SELECT COUNT(*) AS total, COALESCE(SUM(media_type = 'video'), 0) AS videos
+                 FROM generator_assets WHERE user_id = ?`,
+                [req.session.userId]
+            );
+            const total = Number(row?.total) || 0;
+            const videos = Number(row?.videos) || 0;
+            res.json({ total, images: total - videos, videos });
+        } catch (error) {
+            console.error('Failed to summarize generator assets:', error);
+            res.status(500).json({ error: 'Failed to summarize generator assets.' });
         }
     });
 

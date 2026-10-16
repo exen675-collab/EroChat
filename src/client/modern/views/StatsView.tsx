@@ -7,20 +7,36 @@ import {
     TrendingUp,
     Users
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { fetchGeneratorAssetSummary } from '../api.js';
 import { Avatar } from '../components/character-visuals.js';
 import { buildStatsInsights } from '../stats.js';
 import type { ModernController } from '../useModernController.js';
 
 export function StatsView({ controller }: { controller: ModernController }) {
+    const [assetSummary, setAssetSummary] = useState<Awaited<
+        ReturnType<typeof fetchGeneratorAssetSummary>
+    > | null>(null);
+    useEffect(() => {
+        let active = true;
+        fetchGeneratorAssetSummary()
+            .then((summary) => active && setAssetSummary(summary))
+            .catch(() => undefined);
+        return () => {
+            active = false;
+        };
+    }, []);
     const messages = controller.data.characters.flatMap((character) => character.messages || []);
     const userMessages = messages.filter((message) => message.role === 'user').length;
     const assistantMessages = messages.filter((message) => message.role === 'assistant').length;
-    const mediaUrls = new Set(
-        [
-            ...controller.data.galleryImages.map((item) => item.imageUrl || item.videoUrl),
-            ...controller.generatorAssets.map((item) => item.url)
-        ].filter(Boolean)
+    // The gallery loads generated media a page at a time, so the server supplies their total.
+    const assetUrls = new Set(controller.generatorAssets.map((item) => item.url).filter(Boolean));
+    const savedUrls = new Set(
+        controller.data.galleryImages
+            .map((item) => item.imageUrl || item.videoUrl)
+            .filter((url) => url && !assetUrls.has(url))
     );
+    const mediaCount = savedUrls.size + (assetSummary ? assetSummary.total : assetUrls.size);
     const activeCharacters = controller.data.characters.filter(
         (character) => character.messages.length > 0
     ).length;
@@ -51,8 +67,15 @@ export function StatsView({ controller }: { controller: ModernController }) {
         },
         {
             label: 'Media created',
-            value: mediaUrls.size,
-            detail: `${controller.data.galleryImages.length.toLocaleString()} gallery items`,
+            value: mediaCount,
+            detail: assetSummary
+                ? [
+                      `${assetSummary.images.toLocaleString()} images generated`,
+                      assetSummary.videos && `${assetSummary.videos.toLocaleString()} videos`
+                  ]
+                      .filter(Boolean)
+                      .join(' · ')
+                : `${controller.data.galleryImages.length.toLocaleString()} gallery items`,
             icon: ImageIcon
         },
         {
