@@ -1672,7 +1672,10 @@
                 }
             };
 
-            function setActiveTab(activeTab) {
+            let signupEnabled = true;
+
+            function setActiveTab(requestedTab) {
+                const activeTab = signupEnabled ? requestedTab : 'login';
                 const isSignup = activeTab === 'signup';
                 loginForm.classList.toggle('hidden', isSignup);
                 signupForm.classList.toggle('hidden', !isSignup);
@@ -1682,6 +1685,9 @@
                     tab.classList.toggle('is-active', tab.dataset.authTab === activeTab);
                 });
                 authMessage.classList.add('hidden');
+                if (requestedTab === 'signup' && !signupEnabled) {
+                    showMessage('Account creation is turned off on this server.', true);
+                }
             }
 
             function showMessage(text, isError) {
@@ -1783,6 +1789,17 @@
             bindAuthForm(signupForm, '/api/auth/signup');
             setBilling('monthly');
             setActiveTab('login');
+            fetch('/api/auth/options')
+                .then((response) => (response.ok ? response.json() : null))
+                .then((options) => {
+                    if (options?.signupEnabled !== false) return;
+                    signupEnabled = false;
+                    document
+                        .querySelectorAll('[data-auth-tab="signup"]')
+                        .forEach((tab) => tab.classList.add('hidden'));
+                    if (!signupForm.classList.contains('hidden')) setActiveTab('login');
+                })
+                .catch(() => undefined);
         </script>
     </body>
 </html>

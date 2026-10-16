@@ -5,7 +5,8 @@ import bcrypt from 'bcryptjs';
 import {
     DEFAULT_USER_CREDITS,
     LOGIN_RATE_LIMIT_WINDOW_MS,
-    LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+    LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
+    SIGNUP_ENABLED
 } from '../config';
 
 const MAX_TRACKED_LOGIN_KEYS = 10000;
@@ -76,7 +77,17 @@ export function registerAuthRoutes(app: Express, db: Database, sessions: Session
             });
         });
     }
+    app.get('/api/auth/options', (req, res) => {
+        res.json({ signupEnabled: SIGNUP_ENABLED });
+    });
+
     app.post('/api/auth/signup', async (req, res) => {
+        if (!SIGNUP_ENABLED) {
+            res.status(403).json({
+                error: 'Account creation is turned off on this server. Ask its administrator for an account.'
+            });
+            return;
+        }
         const username = sanitizeUsername(req.body?.username);
         const password = req.body?.password;
 

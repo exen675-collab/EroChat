@@ -12,7 +12,8 @@ export interface ServerProcess {
 // listen. Node-environment tests use this to exercise real HTTP routes end to end.
 export async function startServerProcess(
     directoryPrefix: string,
-    sessionSecret: string
+    sessionSecret: string,
+    extraEnv: Record<string, string> = {}
 ): Promise<ServerProcess> {
     const directory = await mkdtemp(path.join(os.tmpdir(), directoryPrefix));
     const child: ChildProcessWithoutNullStreams = spawn(
@@ -24,7 +25,8 @@ export async function startServerProcess(
                 PORT: '0',
                 NODE_ENV: 'test',
                 EROCHAT_TEST_DATA_DIR: directory,
-                SESSION_SECRET: sessionSecret
+                SESSION_SECRET: sessionSecret,
+                ...extraEnv
             },
             stdio: 'pipe'
         }

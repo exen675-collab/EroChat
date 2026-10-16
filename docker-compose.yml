@@ -9,6 +9,7 @@ services:
             SESSION_SECRET: change-this-secret
             COOKIE_SECURE: 'false'
             DEFAULT_USER_CREDITS: 100
+            ALLOW_SIGNUP: 'true'
         env_file:
             - path: .grok-bridge.env
               required: false

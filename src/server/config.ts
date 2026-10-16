@@ -10,6 +10,8 @@ export const DB_PATH = path.join(DATA_DIR, 'erochat.sqlite');
 export const PORT = Number(process.env.PORT || 20121);
 export const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret';
 export const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
+// Anyone who can reach the server may create an account unless this is set to false.
+export const SIGNUP_ENABLED = process.env.ALLOW_SIGNUP !== 'false';
 
 export const MAX_JSON_BODY_BYTES = '25mb';
 export const MAX_INLINE_MEDIA_BYTES = 10 * 1024 * 1024;

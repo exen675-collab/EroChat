@@ -78,6 +78,8 @@ describe.sequential('server route composition', () => {
             expect(response.status).toBe(302);
             expect(response.headers.get('location')).toBe('/');
         }
+        const options = await request('/api/auth/options', undefined, 'GET', '');
+        expect(await options.json()).toEqual({ signupEnabled: true });
         const apiMissing = await request('/api/missing', undefined, 'GET');
         expect(apiMissing.status).toBe(404);
         expect(await apiMissing.json()).toEqual({ error: 'Not found' });

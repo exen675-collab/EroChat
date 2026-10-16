@@ -58,6 +58,9 @@ Open:
 - The first start creates an administrator account `admin` with password `admin`. Sign in and change
   it under **Settings > Account**. The server logs a warning at startup while either default is in use
 - Set `COOKIE_SECURE=true` only when running behind HTTPS
+- Set `ALLOW_SIGNUP=false` to stop new accounts from being created (for example on a server reachable
+  from the internet, where every account can use the shared Grok provider). Existing accounts can
+  still sign in
 - Optional credit environment variable: `DEFAULT_USER_CREDITS` (default: 100)
 
 ## Run without Docker
