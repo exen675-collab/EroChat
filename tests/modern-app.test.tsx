@@ -755,6 +755,28 @@ describe('ModernApp', () => {
             }
         );
 
+        it('keeps the original reply in saved state while a regeneration is still streaming', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Say something.' },
+                { id: 'a1', role: 'assistant', content: 'Original reply.' }
+            ]);
+            const reply = mockPendingReply();
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+
+            // Autosave runs every 500 ms; wait across two ticks while the replacement is pending.
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            const saved = savedState.characters.find((item: any) => item.id === 'nova');
+            expect(saved.messages.map((message: any) => message.id)).toEqual(['u1', 'a1']);
+
+            await reply.finish(
+                new Response(JSON.stringify({ error: { message: 'Unavailable' } }), {
+                    status: 503
+                })
+            );
+            expect(await within(stream()).findByText('Original reply.')).toBeInTheDocument();
+        });
+
         it('keeps streamed text when stopped and prevents tools from replacing the active request', async () => {
             seedChat([]);
             const reply = mockPendingReply();

@@ -62,6 +62,24 @@ function buildUpgradeMessages(draft: string, messages: ModernMessage[], mode: st
     ];
 }
 
+function removeMessages(
+    state: ModernPersistedState,
+    characterId: string,
+    messageIds: Set<string>
+): ModernPersistedState {
+    return {
+        ...state,
+        characters: state.characters.map((character) =>
+            character.id === characterId
+                ? {
+                      ...character,
+                      messages: character.messages.filter((message) => !messageIds.has(message.id))
+                  }
+                : character
+        )
+    };
+}
+
 function syncCurrentMessages(state: ModernPersistedState, messages: ModernMessage[]) {
     return {
         ...state,
@@ -370,6 +388,13 @@ export function useModernController(user: BootstrapUser) {
             const abort = new AbortController();
             chatAbortRef.current = abort;
             let streamed = '';
+            // Earlier replies stay in the chat until their replacement has content, so reloading
+            // mid-regeneration still shows the original reply.
+            const retirePreviousReplies = () => {
+                if (previousReplies.length === 0) return;
+                const retired = new Set(previousReplies.map((message) => message.id));
+                setData((current) => removeMessages(current, characterId, retired));
+            };
             setBusy('chat');
             try {
                 const raw = await sendModernChat(
@@ -390,6 +415,7 @@ export function useModernController(user: BootstrapUser) {
                     content: raw,
                     isStreaming: false
                 });
+                retirePreviousReplies();
                 recordUsage('assistant', {
                     model:
                         data.settings.textProvider === 'grok-cli'
@@ -409,21 +435,11 @@ export function useModernController(user: BootstrapUser) {
                         content: streamed,
                         isStreaming: false
                     });
+                    retirePreviousReplies();
                     return true;
                 }
-                setData((current) => ({
-                    ...current,
-                    characters: current.characters.map((item) =>
-                        item.id === characterId
-                            ? {
-                                  ...item,
-                                  messages: item.messages.flatMap((message) =>
-                                      message.id === assistant.id ? previousReplies : [message]
-                                  )
-                              }
-                            : item
-                    )
-                }));
+                // Nothing usable arrived, so only the placeholder goes and earlier replies remain.
+                setData((current) => removeMessages(current, characterId, new Set([assistant.id])));
                 if (!stopped) notify((error as Error).message, 'error');
                 return stopped;
             } finally {
@@ -474,7 +490,7 @@ export function useModernController(user: BootstrapUser) {
         [busy, currentCharacter, messages, recordUsage, streamReply]
     );
 
-    /** Replaces everything after the last user message with a fresh reply to it. */
+    /** Streams a fresh reply to the last user message; the replies it supersedes are retired on success. */
     const regenerateReply = useCallback(async () => {
         if (busy || !currentCharacter) return false;
         let userIndex = messages.length - 1;
@@ -487,8 +503,7 @@ export function useModernController(user: BootstrapUser) {
             createdAt: new Date().toISOString(),
             isStreaming: true
         };
-        const kept = messages.slice(0, userIndex + 1);
-        setData((current) => syncCurrentMessages(current, [...kept, assistant]));
+        setData((current) => syncCurrentMessages(current, [...messages, assistant]));
         return streamReply(
             currentCharacter,
             messages.slice(0, userIndex),
