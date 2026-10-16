@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildStatsInsights } from '../src/client/modern/stats.js';
+import {
+    buildStatsInsights,
+    PROMPT_USAGE_LIMIT,
+    recordPromptUsage
+} from '../src/client/modern/stats.js';
 
 describe('modern stats insights', () => {
     it('builds a complete 14-day window and useful rankings', () => {
@@ -68,5 +72,34 @@ describe('modern stats insights', () => {
         expect(insights.topModels).toHaveLength(1);
         expect(insights.topPrompts).toEqual([]);
         expect(insights.topViews).toEqual([]);
+    });
+
+    it('counts prompt uses per source', () => {
+        let usage = recordPromptUsage({}, '  continue  ', 'user');
+        usage = recordPromptUsage(usage, 'continue', 'user');
+        usage = recordPromptUsage(usage, 'continue', 'image');
+        expect(usage.continue).toMatchObject({
+            text: 'continue',
+            count: 3,
+            sources: { user: 2, image: 1 }
+        });
+    });
+
+    it('keeps the prompt table bounded, dropping the least used and least recent entries', () => {
+        let usage: Record<string, any> = {
+            favorite: { text: 'favorite', count: 9, sources: { user: 9 }, lastUsedAt: '2026-01-01' }
+        };
+        for (let index = 0; index < PROMPT_USAGE_LIMIT + 50; index += 1) {
+            usage = recordPromptUsage(
+                usage,
+                `message ${index}`,
+                'user',
+                new Date(Date.UTC(2026, 1, 1, 0, index))
+            );
+        }
+        expect(Object.keys(usage)).toHaveLength(PROMPT_USAGE_LIMIT);
+        expect(usage.favorite.count).toBe(9);
+        expect(usage[`message ${PROMPT_USAGE_LIMIT + 49}`]).toBeDefined();
+        expect(usage['message 0']).toBeUndefined();
     });
 });

@@ -168,3 +168,45 @@ export function buildStatsInsights(
                 : null
     };
 }
+
+export const PROMPT_USAGE_LIMIT = 200;
+
+/**
+ * Counts one use of a prompt. Every chat message passes through here, so the table is capped:
+ * past the limit the least used, then least recent, entries are dropped. Without the cap it would
+ * grow with each message and be re-saved with the whole account state on every change.
+ */
+export function recordPromptUsage(
+    promptUsage: Record<string, any> | undefined,
+    prompt: string,
+    source: string,
+    now = new Date()
+): Record<string, any> {
+    const key = prompt.trim().slice(0, 300);
+    const usage = { ...asRecord(promptUsage) };
+    if (!key) return usage;
+    const previous = asRecord(usage[key]);
+    const sources = asRecord(previous.sources);
+    usage[key] = {
+        text: key,
+        count: count(previous.count) + 1,
+        sources: { ...sources, [source]: count(sources[source]) + 1 },
+        lastUsedAt: now.toISOString()
+    };
+
+    const keys = Object.keys(usage);
+    if (keys.length <= PROMPT_USAGE_LIMIT) return usage;
+    const kept = keys
+        .sort((a, b) => {
+            const left = asRecord(usage[a]);
+            const right = asRecord(usage[b]);
+            return (
+                count(right.count) - count(left.count) ||
+                String(right.lastUsedAt || '').localeCompare(String(left.lastUsedAt || ''))
+            );
+        })
+        .slice(0, PROMPT_USAGE_LIMIT);
+    // The prompt just used is always kept, even when it ties at the bottom.
+    if (!kept.includes(key)) kept[kept.length - 1] = key;
+    return Object.fromEntries(kept.map((item) => [item, usage[item]]));
+}

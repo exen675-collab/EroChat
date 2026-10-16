@@ -10,6 +10,7 @@ import {
     sendUtilityRequest
 } from './api.js';
 import { runMediaGeneration } from './media-generation.js';
+import { recordPromptUsage } from './stats.js';
 import { chatMediaPreset } from './media-presets.js';
 import { useDatabaseState } from './useDatabaseState.js';
 import type {
@@ -306,16 +307,11 @@ export function useModernController(initialUser: BootstrapUser) {
                         Number(statistics.modelUsage[usageGroup][details.model] || 0) + count;
                 }
                 if (details.prompt) {
-                    statistics.promptUsage = { ...(statistics.promptUsage || {}) };
-                    const key = details.prompt.trim().slice(0, 300);
-                    statistics.promptUsage[key] = {
-                        text: key,
-                        count: Number(statistics.promptUsage[key]?.count || 0) + 1,
-                        sources: {
-                            ...(statistics.promptUsage[key]?.sources || {}),
-                            [kind]: Number(statistics.promptUsage[key]?.sources?.[kind] || 0) + 1
-                        }
-                    };
+                    statistics.promptUsage = recordPromptUsage(
+                        statistics.promptUsage,
+                        details.prompt,
+                        kind
+                    );
                 }
                 statistics.lastUpdatedAt = new Date().toISOString();
                 return { ...current, statistics };
