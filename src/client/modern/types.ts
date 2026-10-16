@@ -19,7 +19,6 @@ export interface MediaGenerationPreset {
     mediaType: MediaType;
     provider: ImageProvider;
     providerModel: string;
-    workflow?: string;
     loras: Array<{ name: string; weight: number }>;
     width: number;
     height: number;

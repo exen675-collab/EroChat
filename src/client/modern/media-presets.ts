@@ -45,7 +45,6 @@ export function presetRequest(
         scheduler: preset.scheduler,
         seedMode: preset.seedMode,
         baseSeed: preset.baseSeed,
-        workflow: preset.workflow || '',
         loras: preset.loras,
         executionBackend: preset.executionBackend
     };

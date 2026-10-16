@@ -350,14 +350,6 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                             Load models
                         </Button>
                         <label className="m-field">
-                            <span>Workflow</span>
-                            <input
-                                value={selectedPreset.workflow || ''}
-                                onChange={(event) => patchPreset({ workflow: event.target.value })}
-                                placeholder="Optional workflow name"
-                            />
-                        </label>
-                        <label className="m-field">
                             <span>LoRAs</span>
                             <input
                                 value={selectedPreset.loras
