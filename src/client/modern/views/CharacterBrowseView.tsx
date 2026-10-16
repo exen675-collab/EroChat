@@ -486,11 +486,22 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
         }
     }
 
+    // A removed publication cannot be a generation reference; the server rejects the whole
+    // request if any selected reference no longer exists.
+    function forgetReference(publicationId: number) {
+        setSelectedReferences((current) => {
+            const next = new Map(current);
+            next.delete(publicationId);
+            return next;
+        });
+    }
+
     async function handleAdminRemove(publication: PublicCharacter) {
         if (!window.confirm(`Remove ${publication.name} from the catalog for everyone?`)) return;
         setBusyId(publication.id);
         try {
             await removePublicCharacter(publication.id);
+            forgetReference(publication.id);
             controller.notify('Character removed from the catalog.', 'success');
             setReload((current) => current + 1);
         } catch (error) {
@@ -505,11 +516,7 @@ export function CharacterBrowseView({ controller }: { controller: ModernControll
         setBusyId(publication.id);
         try {
             await unpublishCharacter(publication.id);
-            setSelectedReferences((current) => {
-                const next = new Map(current);
-                next.delete(publication.id);
-                return next;
-            });
+            forgetReference(publication.id);
             controller.notify('Character removed from Character Browse.', 'success');
             setReload((current) => current + 1);
         } catch (error) {

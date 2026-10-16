@@ -722,6 +722,49 @@ describe('ModernApp', () => {
             fetchMock.mock.calls.filter(([url]) => String(url) === '/api/admin/characters/publish')
         ).toHaveLength(1);
     });
+    it('drops a catalog character from the generation references when an admin removes it', async () => {
+        const shared = {
+            id: 7,
+            sourceCharacterId: 'authors-copy',
+            creator: 'author',
+            creatorId: 9,
+            isOwner: false,
+            name: 'Seraphine',
+            avatar: '✨',
+            systemPrompt: 'You are Seraphine.',
+            contextMessageCount: 20,
+            imports: 0
+        };
+        let published = [shared];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                const url = String(input);
+                if (url === '/api/admin/public-characters/7' && init?.method === 'DELETE') {
+                    published = [];
+                    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+                }
+                if (url.startsWith('/api/characters/browse?')) {
+                    return new Response(JSON.stringify({ characters: published }), {
+                        status: 200
+                    });
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+        await renderApp(<ModernApp user={{ ...user, isAdmin: true }} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Browse' })[0]);
+        await userEvent.click(
+            await screen.findByRole('checkbox', { name: 'Use Seraphine as a generation reference' })
+        );
+        expect(screen.getByText(/originality reference\s+selected/)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: /Remove from catalog/ }));
+        await screen.findByText('No characters published yet');
+        expect(screen.queryByText(/originality reference/)).not.toBeInTheDocument();
+    });
     describe('chat conversation', () => {
         function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
             localStorage.setItem(
