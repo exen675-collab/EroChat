@@ -93,6 +93,38 @@ describe('server-side character card import parsing', () => {
         expect(parseCharacterCardPngBuffer(pngBuffer)).toEqual(card);
     });
 
+    it('ignores malformed compressed metadata that belongs to other keywords', () => {
+        const card = createCard({ description: 'Found beside unrelated metadata.' });
+        const unrelated = createPngChunk(
+            'zTXt',
+            Buffer.concat([
+                Buffer.from('comment\0', 'latin1'),
+                Buffer.from([0]),
+                Buffer.from('not zlib data')
+            ])
+        );
+
+        expect(
+            parseCharacterCardPngBuffer(
+                createMinimalPng(Buffer.concat([unrelated, createTextMetadataChunk(card)]))
+            )
+        ).toEqual(card);
+    });
+
+    it('rejects character metadata that inflates beyond the size limit', () => {
+        const oversized = zlib.deflateSync(Buffer.alloc(16 * 1024 * 1024 + 1));
+        const pngBuffer = createMinimalPng(
+            createPngChunk(
+                'zTXt',
+                Buffer.concat([Buffer.from('chara\0', 'latin1'), Buffer.from([0]), oversized])
+            )
+        );
+
+        expect(() => parseCharacterCardPngBuffer(pngBuffer)).toThrow(
+            'Compressed PNG metadata is too large.'
+        );
+    });
+
     it('rejects PNG files without character metadata', () => {
         const pngBuffer = createMinimalPng(
             createPngChunk('tEXt', Buffer.from('note\0hello', 'latin1'))

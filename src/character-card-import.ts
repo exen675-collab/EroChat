@@ -31,6 +31,10 @@ interface CharacterCardImportFile {
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const CHARACTER_CARD_KEYWORD = 'chara';
 const CHARACTER_CARD_SPEC = 'chara_card_v2';
+const TEXT_CHUNK_TYPES = new Set(['tEXt', 'zTXt', 'iTXt']);
+// Upper bound on decompressed PNG text. Small deflate streams can expand to gigabytes, and an
+// unbounded inflate would block the single server thread and exhaust memory.
+const MAX_PNG_TEXT_BYTES = 16 * 1024 * 1024;
 
 function createImportError(message: string, statusCode = 400): ImportError {
     const error = new Error(message) as ImportError;
@@ -119,6 +123,23 @@ function decodeTextChunk(data: Buffer): TextChunk | null {
     };
 }
 
+function getChunkKeyword(data: Buffer): string {
+    const separatorIndex = data.indexOf(0);
+    if (separatorIndex <= 0) return '';
+    return data.subarray(0, separatorIndex).toString('latin1').trim().toLowerCase();
+}
+
+function inflateMetadata(compressed: Buffer): Buffer {
+    try {
+        return zlib.inflateSync(compressed, { maxOutputLength: MAX_PNG_TEXT_BYTES });
+    } catch (error) {
+        if (error?.code === 'ERR_BUFFER_TOO_LARGE') {
+            throw createImportError('Compressed PNG metadata is too large.');
+        }
+        throw createImportError('Compressed PNG metadata could not be decoded.');
+    }
+}
+
 function decodeCompressedTextChunk(data: Buffer): TextChunk | null {
     const separatorIndex = data.indexOf(0);
     if (separatorIndex <= 0 || separatorIndex + 2 > data.length) return null;
@@ -128,16 +149,10 @@ function decodeCompressedTextChunk(data: Buffer): TextChunk | null {
         throw createImportError('Unsupported compressed PNG metadata format.');
     }
 
-    const compressed = data.subarray(separatorIndex + 2);
-    try {
-        const text = zlib.inflateSync(compressed).toString('latin1');
-        return {
-            keyword: data.subarray(0, separatorIndex).toString('latin1'),
-            text
-        };
-    } catch {
-        throw createImportError('Compressed PNG metadata could not be decoded.');
-    }
+    return {
+        keyword: data.subarray(0, separatorIndex).toString('latin1'),
+        text: inflateMetadata(data.subarray(separatorIndex + 2)).toString('latin1')
+    };
 }
 
 function decodeInternationalTextChunk(data: Buffer): TextChunk | null {
@@ -158,14 +173,10 @@ function decodeInternationalTextChunk(data: Buffer): TextChunk | null {
         if (compressionMethod !== 0) {
             throw createImportError('Unsupported compressed PNG metadata format.');
         }
-        try {
-            return {
-                keyword: data.subarray(0, keywordEnd).toString('latin1'),
-                text: zlib.inflateSync(textBuffer).toString('utf8')
-            };
-        } catch {
-            throw createImportError('Compressed PNG metadata could not be decoded.');
-        }
+        return {
+            keyword: data.subarray(0, keywordEnd).toString('latin1'),
+            text: inflateMetadata(textBuffer).toString('utf8')
+        };
     }
 
     return {
@@ -212,8 +223,11 @@ function extractCardPayloadFromPng(buffer: Buffer): string {
     const chunks = parsePngChunks(buffer);
 
     for (const chunk of chunks) {
-        let entry: TextChunk | null = null;
+        // Check the keyword before decoding so unrelated metadata is never decompressed.
+        if (!TEXT_CHUNK_TYPES.has(chunk.type)) continue;
+        if (getChunkKeyword(chunk.data) !== CHARACTER_CARD_KEYWORD) continue;
 
+        let entry: TextChunk | null = null;
         if (chunk.type === 'tEXt') {
             entry = decodeTextChunk(chunk.data);
         } else if (chunk.type === 'zTXt') {
@@ -223,13 +237,6 @@ function extractCardPayloadFromPng(buffer: Buffer): string {
         }
 
         if (!entry) continue;
-        if (
-            String(entry.keyword || '')
-                .trim()
-                .toLowerCase() !== CHARACTER_CARD_KEYWORD
-        ) {
-            continue;
-        }
 
         const text = String(entry.text || '').trim();
         if (!text) {
