@@ -152,7 +152,7 @@ export function useDatabaseState(userId: number | string) {
         );
         const link = document.createElement('a');
         link.href = url;
-        link.download = `erochat-user-${userId}-recovery.json`;
+        link.download = `wink-backup-${new Date().toISOString().slice(0, 10)}.json`;
         link.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };

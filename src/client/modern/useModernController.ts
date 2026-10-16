@@ -985,12 +985,23 @@ export function useModernController(initialUser: BootstrapUser) {
         [data.galleryImages, generatorAssets]
     );
 
+    // Replaces everything this account has saved with a backup; it syncs like any other change.
+    const restoreState = useCallback(
+        (state: ModernPersistedState) => {
+            setData(() => state);
+            setMemoryDraft(null);
+            notify('Backup restored.', 'success');
+        },
+        [notify, setData]
+    );
+
     // A draft is shown only in the chat it summarizes, and waits there while the user is elsewhere.
     const visibleMemoryDraft =
         memoryDraft && memoryDraft.characterId === currentCharacter?.id ? memoryDraft : null;
 
     return {
         persistence,
+        restoreState,
         data,
         setData,
         user,

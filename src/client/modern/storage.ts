@@ -241,6 +241,20 @@ export function hydrateModernState(
     }
 }
 
+/** Reads a file saved with "Download a backup" (or the recovery download after a save error). */
+export function parseModernBackup(text: string): ModernPersistedState {
+    let parsed: any;
+    try {
+        parsed = JSON.parse(text);
+    } catch {
+        throw new Error('This file is not a Wink backup.');
+    }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.characters)) {
+        throw new Error('This file is not a Wink backup.');
+    }
+    return normalizeModernState(parsed);
+}
+
 export function serializeModernState(state: ModernPersistedState): string {
     return JSON.stringify({
         ...state,

@@ -1,12 +1,14 @@
 import {
     Bot,
     CircleUserRound,
+    Download,
     Heart,
     LoaderCircle,
     LogOut,
     RefreshCw,
     Save,
     Trash2,
+    Upload,
     UserPlus,
     UserRoundCog,
     Users,
@@ -23,6 +25,7 @@ import {
     updateProfile
 } from '../api.js';
 import { Button, IconButton, useDialog } from '../components/ui.js';
+import { parseModernBackup } from '../storage.js';
 import type { ModernSettings } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 import { ProviderSettings } from './ProviderSettings.js';
@@ -59,6 +62,7 @@ export function SettingsPanel({
     const [newAccount, setNewAccount] = useState({ username: '', password: '' });
     const [creatingAccount, setCreatingAccount] = useState(false);
     const panelRef = useRef<HTMLElement>(null);
+    const backupInputRef = useRef<HTMLInputElement>(null);
     // Settings apply only on Save, so closing any other way asks before dropping edits.
     const latestSettings = useRef(settings);
     latestSettings.current = settings;
@@ -87,6 +91,24 @@ export function SettingsPanel({
         try {
             const users = await fetchAdminUsers();
             setAdminUsers(users);
+        } catch (error) {
+            controller.notify((error as Error).message, 'error');
+        }
+    }
+    async function restoreBackup(file: File) {
+        try {
+            const state = parseModernBackup(await file.text());
+            const count = state.characters.length;
+            if (
+                !window.confirm(
+                    `Replace all of your characters, chats, and settings with this backup (${count} ${count === 1 ? 'character' : 'characters'})? This cannot be undone.`
+                )
+            ) {
+                return;
+            }
+            controller.restoreState(state);
+            // The panel's unsaved copy of the old settings must not be saved over the backup.
+            onClose();
         } catch (error) {
             controller.notify((error as Error).message, 'error');
         }
@@ -573,6 +595,31 @@ export function SettingsPanel({
                                 >
                                     <Save size={17} /> Save profile
                                 </Button>
+                            </SettingsSection>
+                            <SettingsSection
+                                title="Your data"
+                                description="Download everything this account has saved — characters, chats, memories, and settings including API keys — or restore it from such a file."
+                            >
+                                <input
+                                    ref={backupInputRef}
+                                    hidden
+                                    type="file"
+                                    accept=".json,application/json"
+                                    aria-label="Backup file"
+                                    onChange={(event) => {
+                                        const file = event.target.files?.[0];
+                                        event.target.value = '';
+                                        if (file) void restoreBackup(file);
+                                    }}
+                                />
+                                <div className="m-settings-actions">
+                                    <Button onClick={controller.persistence.download}>
+                                        <Download size={17} /> Download a backup
+                                    </Button>
+                                    <Button onClick={() => backupInputRef.current?.click()}>
+                                        <Upload size={17} /> Restore from a backup
+                                    </Button>
+                                </div>
                             </SettingsSection>
                             <SettingsSection
                                 title="Session"

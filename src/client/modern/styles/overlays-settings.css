@@ -452,3 +452,8 @@
         grid-template-columns: 1fr;
     }
 }
+.m-settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

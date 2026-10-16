@@ -342,6 +342,44 @@ describe('ModernApp', () => {
         expect(JSON.parse(patch.body!)).toEqual({ credits: 55 });
     });
 
+    it('restores a downloaded backup after confirmation', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Settings/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /Account/i }));
+        const backup = (text: string) =>
+            userEvent.upload(
+                screen.getByLabelText('Backup file'),
+                new File([text], 'wink-backup.json', { type: 'application/json' })
+            );
+
+        await backup('{"not":"a backup"}');
+        expect(await screen.findByText('This file is not a Wink backup.')).toBeInTheDocument();
+
+        const state = JSON.stringify({
+            characters: [
+                {
+                    id: 'restored',
+                    name: 'Restored',
+                    systemPrompt: 'You are Restored.',
+                    messages: [{ id: 'm1', role: 'user', content: 'From the backup.' }]
+                }
+            ],
+            currentCharacterId: 'restored'
+        });
+        await backup(state);
+        expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('(1 character)'));
+        expect(screen.getByRole('dialog', { name: /Settings/i })).toBeInTheDocument();
+
+        confirm.mockReturnValue(true);
+        await backup(state);
+        expect(await screen.findByText('Backup restored.')).toBeInTheDocument();
+        await waitFor(() =>
+            expect(savedState?.characters.map((item: any) => item.name)).toEqual(['Restored'])
+        );
+        expect(screen.queryByLabelText('Backup file')).not.toBeInTheDocument();
+    });
+
     it('lets an administrator create an account from Settings', async () => {
         const requests: Array<{ url: string; method: string; body?: string }> = [];
         vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
