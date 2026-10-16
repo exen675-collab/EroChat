@@ -30,10 +30,12 @@ export function registerAdminUserRoutes(app: Express, db: Database) {
         requireApiAuth,
         requireAdmin,
         async (req, res) => {
-            const userId = Number.parseInt(String(req.params?.userId), 10);
-            const credits = Number(req.body?.credits);
+            const rawUserId = String(req.params?.userId ?? '');
+            const userId = /^\d+$/.test(rawUserId) ? Number(rawUserId) : 0;
+            // Number() would accept null, booleans, and numeric strings, and quietly set a balance.
+            const credits = typeof req.body?.credits === 'number' ? req.body.credits : Number.NaN;
 
-            if (!Number.isFinite(userId) || userId <= 0) {
+            if (!Number.isSafeInteger(userId) || userId <= 0) {
                 res.status(400).json({ error: 'Invalid user ID.' });
                 return;
             }

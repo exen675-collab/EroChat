@@ -216,4 +216,23 @@ describe.sequential('server route composition', () => {
         expect((await request('/api/auth/logout', {}, 'POST', userCookie)).status).toBe(200);
         expect((await request('/api/auth/me', undefined, 'GET', userCookie)).status).toBe(401);
     });
+
+    it('rejects credit values that are not whole numbers', async () => {
+        const users = await (await request('/api/admin/users', undefined, 'GET')).json();
+        const target = users.users.find((entry) => entry.username === 'routing_renamed');
+        for (const credits of [null, true, '250', '', 1.5]) {
+            const response = await request(
+                `/api/admin/users/${target.id}/credits`,
+                { credits },
+                'PATCH'
+            );
+            expect(response.status, JSON.stringify(credits)).toBe(400);
+        }
+        expect(
+            (await request('/api/admin/users/not-a-number/credits', { credits: 5 }, 'PATCH')).status
+        ).toBe(400);
+
+        const unchanged = await (await request('/api/admin/users', undefined, 'GET')).json();
+        expect(unchanged.users.find((entry) => entry.id === target.id).credits).toBe(321);
+    });
 });
