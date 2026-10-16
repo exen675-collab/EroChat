@@ -37,6 +37,8 @@ export function useDatabaseState(userId: number | string) {
         revision: 0,
         saved: '',
         pending: null as ModernPersistedState | null,
+        // The last state object known to match `saved`, so unchanged ticks skip serializing.
+        settled: null as ModernPersistedState | null,
         running: false,
         stopped: false
     });
@@ -49,6 +51,7 @@ export function useDatabaseState(userId: number | string) {
             revision: 0,
             saved: '',
             pending: null as ModernPersistedState | null,
+            settled: null as ModernPersistedState | null,
             running: false,
             stopped: false
         };
@@ -84,18 +87,25 @@ export function useDatabaseState(userId: number | string) {
         const current = session.current;
         if (current.running || current.stopped || !current.pending) return;
         const next = current.pending;
+        // State is replaced, never mutated, so the same object cannot hold unsaved changes.
+        if (next === current.settled) return;
         const serialized = serializeModernState(next);
-        if (serialized === current.saved) return;
+        if (serialized === current.saved) {
+            current.settled = next;
+            return;
+        }
         current.running = true;
         setSaving(true);
         try {
             current.revision = await persistModernState(next, current.revision);
             current.saved = serialized;
+            current.settled = next;
             if (!current.stopped) setError('');
         } catch (reason) {
             const committed =
                 (reason as { status?: number }).status === 409 &&
                 (await adoptCommittedWrite(current, serialized));
+            if (committed) current.settled = next;
             if (!current.stopped) setError(committed ? '' : (reason as Error).message);
         } finally {
             current.running = false;

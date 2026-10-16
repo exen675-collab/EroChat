@@ -188,3 +188,30 @@ it('reports the status when a save is answered with a non-JSON error page', asyn
     );
     await expect(loadModernState(7)).rejects.toThrow('Database request failed (502).');
 });
+
+it('does not re-serialize the state on save ticks when nothing changed', async () => {
+    const writes: any[] = [];
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit) => {
+            if (url.endsWith('/load'))
+                return new Response(JSON.stringify({ state: null, revision: 0 }));
+            writes.push(JSON.parse(String(init.body)));
+            return new Response(JSON.stringify({ revision: writes.length }));
+        })
+    );
+    const { result } = renderHook(() => useDatabaseState(7));
+    await waitFor(() => expect(result.current.persistence.loaded).toBe(true));
+    act(() => result.current.setData((state) => ({ ...state, gallerySearchQuery: 'saved' })));
+    await waitFor(() => expect(writes.length).toBe(1));
+    await waitFor(() => expect(result.current.persistence.saving).toBe(false));
+
+    const stringify = vi.spyOn(JSON, 'stringify');
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    const stateSerializations = stringify.mock.calls.filter(
+        ([value]) => value && typeof value === 'object' && 'characters' in (value as object)
+    );
+    stringify.mockRestore();
+    expect(stateSerializations).toHaveLength(0);
+    expect(writes).toHaveLength(1);
+});
