@@ -8,19 +8,32 @@ type Database = {
     all: (sql: string, params?: any[]) => Promise<any[]>;
 };
 
+// Records with an id match by id; records without one match by exact content.
+function matchKey(item: any): string {
+    return item?.id != null ? `id:${String(item.id)}` : `json:${JSON.stringify(item)}`;
+}
+
 // Existing database values win conflicts; missing local records are recovered.
 // The exact local payload is also retained in user_state_imports for recovery.
 export function mergeImportedState(local: any, saved: any): any {
     if (Array.isArray(local) && Array.isArray(saved)) {
         const result = [...saved];
+        // Index once so a large payload merges in linear time. This runs on the request path, so
+        // a scan per local record would let one migration stall every other request.
+        const indexByKey = new Map<string, number>();
+        result.forEach((other, index) => {
+            const key = matchKey(other);
+            if (!indexByKey.has(key)) indexByKey.set(key, index);
+        });
         for (const item of local) {
-            const index = result.findIndex((other) =>
-                item?.id != null && other?.id != null
-                    ? String(item.id) === String(other.id)
-                    : JSON.stringify(item) === JSON.stringify(other)
-            );
-            if (index < 0) result.push(item);
-            else result[index] = mergeImportedState(item, result[index]);
+            const key = matchKey(item);
+            const index = indexByKey.get(key);
+            if (index === undefined) {
+                indexByKey.set(key, result.length);
+                result.push(item);
+            } else {
+                result[index] = mergeImportedState(item, result[index]);
+            }
         }
         return result;
     }
