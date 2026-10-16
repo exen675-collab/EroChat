@@ -16,9 +16,9 @@ async function ensureDefaultAdminAccount(db: Database) {
     const existingAdmin = await get('SELECT id FROM users WHERE username = ? COLLATE NOCASE', [
         DEFAULT_ADMIN_USERNAME
     ]);
-    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
 
     if (!existingAdmin) {
+        const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
         await run(
             'INSERT INTO users (username, password_hash, credits, is_admin) VALUES (?, ?, ?, 1)',
             [DEFAULT_ADMIN_USERNAME, passwordHash, DEFAULT_USER_CREDITS]
@@ -26,10 +26,9 @@ async function ensureDefaultAdminAccount(db: Database) {
         return;
     }
 
-    await run('UPDATE users SET password_hash = ?, is_admin = 1 WHERE id = ?', [
-        passwordHash,
-        existingAdmin.id
-    ]);
+    // Only the privilege is repaired on boot. The password is set once, when the account is
+    // created; rewriting it here would revert any password the admin changed on every restart.
+    await run('UPDATE users SET is_admin = 1 WHERE id = ? AND is_admin <> 1', [existingAdmin.id]);
 }
 
 export async function initDb(db: Database) {
