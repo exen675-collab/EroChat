@@ -857,6 +857,37 @@ describe('ModernApp', () => {
         expect(assetRequests.at(-1)).toBe('/api/generator/assets?limit=100&cursor=5');
         expect(screen.queryByRole('button', { name: /Load older media/ })).not.toBeInTheDocument();
     });
+    it('imports the same character card file again when chosen twice', async () => {
+        let imports = 0;
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                if (String(input) === '/api/characters/import-card') {
+                    imports += 1;
+                    return new Response(
+                        JSON.stringify({
+                            card: { data: { name: 'Carded', description: 'From a card.' } },
+                            thumbnailUrl: null
+                        }),
+                        { status: 201 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+        const card = new File(['{}'], 'card.json', { type: 'application/json' });
+
+        await userEvent.upload(input, card);
+        await screen.findByRole('heading', { name: 'Carded' });
+        await userEvent.upload(input, card);
+        await waitFor(() => expect(imports).toBe(2));
+        await waitFor(() =>
+            expect(screen.getAllByRole('heading', { name: 'Carded' })).toHaveLength(2)
+        );
+    });
     describe('chat conversation', () => {
         function seedChat(messages: any[], extra: Record<string, unknown> = {}) {
             localStorage.setItem(

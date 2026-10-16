@@ -290,7 +290,12 @@ export function CharactersView({ controller }: { controller: ModernController })
                         hidden
                         type="file"
                         accept=".json,.png,application/json,image/png"
-                        onChange={(event) => void handleImport(event.target.files?.[0])}
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            // Cleared so choosing the same file again still triggers an import.
+                            event.target.value = '';
+                            void handleImport(file);
+                        }}
                     />
                     <Button onClick={() => inputRef.current?.click()}>
                         <Upload size={17} /> Import card
