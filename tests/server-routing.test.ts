@@ -214,6 +214,22 @@ describe.sequential('server route composition', () => {
         expect((await request(`/api/characters/browse/${saved.id}/import`, {})).status).toBe(404);
     });
 
+    it('answers malformed and oversized API bodies with JSON errors', async () => {
+        const send = (body: string) =>
+            fetch(`${base}/api/user-state`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Cookie: cookie },
+                body
+            });
+        const malformed = await send('{"state":');
+        expect(malformed.status).toBe(400);
+        expect(await malformed.json()).toEqual({ error: 'The request body is not valid JSON.' });
+
+        const oversized = await send(JSON.stringify({ padding: 'x'.repeat(26 * 1024 * 1024) }));
+        expect(oversized.status).toBe(413);
+        expect(await oversized.json()).toEqual({ error: 'The request is too large.' });
+    });
+
     it('pages through the public catalog without repeats or gaps', async () => {
         for (let index = 0; index < 62; index += 1) {
             const character = {

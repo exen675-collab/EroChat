@@ -180,3 +180,11 @@ it('loads from the server when the browser blocks site storage', async () => {
         vi.restoreAllMocks();
     }
 });
+
+it('reports the status when a save is answered with a non-JSON error page', async () => {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('<html>Bad Gateway</html>', { status: 502 }))
+    );
+    await expect(loadModernState(7)).rejects.toThrow('Database request failed (502).');
+});

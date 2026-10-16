@@ -102,6 +102,29 @@ export function createApp(db: Database) {
         next(error);
     });
 
+    // API clients read every response as JSON. Body parser failures (malformed or oversized JSON)
+    // and unexpected errors would otherwise get Express's HTML page, which includes a stack trace
+    // outside production.
+    app.use((error, req, res, next) => {
+        if (!req.path.startsWith('/api/') || res.headersSent) {
+            next(error);
+            return;
+        }
+        if (error?.type === 'entity.too.large') {
+            res.status(413).json({ error: 'The request is too large.' });
+            return;
+        }
+        if (error?.type === 'entity.parse.failed') {
+            res.status(400).json({ error: 'The request body is not valid JSON.' });
+            return;
+        }
+        console.error('Unhandled API error:', error);
+        const status = Number(error?.status || error?.statusCode);
+        res.status(status >= 400 && status < 600 ? status : 500).json({
+            error: 'The request could not be completed.'
+        });
+    });
+
     app.use((req, res) => {
         if (req.path.startsWith('/api/')) {
             res.status(404).json({ error: 'Not found' });

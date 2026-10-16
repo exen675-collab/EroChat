@@ -260,7 +260,8 @@ async function stateRequest(path: string, method: string, body: unknown) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    const result = await response.json();
+    // A proxy in front of the server can answer with an HTML error page; the status still applies.
+    const result = await response.json().catch(() => ({}));
     if (!response.ok) {
         const error = new Error(
             result.error || `Database request failed (${response.status}).`
