@@ -62,6 +62,29 @@ function buildUpgradeMessages(draft: string, messages: ModernMessage[], mode: st
     ];
 }
 
+const EDITABLE_CHARACTER_FIELDS = [
+    'name',
+    'avatar',
+    'thumbnail',
+    'description',
+    'appearance',
+    'background',
+    'greeting',
+    'userInfo',
+    'systemPrompt',
+    'contextMessageCount'
+] as const;
+
+function editableCharacterFields(character: ModernCharacter): Partial<ModernCharacter> {
+    const fields: Partial<ModernCharacter> = {};
+    for (const field of EDITABLE_CHARACTER_FIELDS) {
+        if (field in character) {
+            (fields as Record<string, unknown>)[field] = character[field];
+        }
+    }
+    return fields;
+}
+
 function removeMessages(
     state: ModernPersistedState,
     characterId: string,
@@ -173,21 +196,30 @@ export function useModernController(user: BootstrapUser) {
         setMemoryDraft(null);
     }, []);
 
+    // Saving a new character makes it the active one (branching relies on this). Editing an
+    // existing character changes only the fields the editor owns, because the editor's copy can be
+    // stale: replies may have streamed in, and the active character must not change.
     const saveCharacter = useCallback(
         (character: ModernCharacter) => {
             setData((current) => {
                 const exists = current.characters.some((item) => item.id === character.id);
-                const savedCharacter = exists
-                    ? character
-                    : { ...character, createdAt: character.createdAt || new Date().toISOString() };
+                if (exists) {
+                    return {
+                        ...current,
+                        characters: current.characters.map((item) =>
+                            item.id === character.id
+                                ? { ...item, ...editableCharacterFields(character) }
+                                : item
+                        )
+                    };
+                }
                 return {
                     ...current,
                     currentCharacterId: character.id,
-                    characters: exists
-                        ? current.characters.map((item) =>
-                              item.id === character.id ? { ...item, ...savedCharacter } : item
-                          )
-                        : [...current.characters, savedCharacter]
+                    characters: [
+                        ...current.characters,
+                        { ...character, createdAt: character.createdAt || new Date().toISOString() }
+                    ]
                 };
             });
             notify('Character saved.', 'success');

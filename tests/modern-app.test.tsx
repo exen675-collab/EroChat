@@ -196,6 +196,52 @@ describe('ModernApp', () => {
         expect(screen.queryByRole('button', { name: /Generate/i })).not.toBeInTheDocument();
     });
 
+    it('editing a character keeps the active chat character and its messages', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({
+                settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                characters: [
+                    {
+                        id: 'nova',
+                        name: 'Nova',
+                        avatar: 'N',
+                        description: 'Nova.',
+                        systemPrompt: 'You are Nova.',
+                        messages: [{ id: 'u1', role: 'user', content: 'Hello Nova.' }]
+                    },
+                    {
+                        id: 'other',
+                        name: 'Other',
+                        avatar: 'O',
+                        description: 'Other.',
+                        systemPrompt: 'You are Other.',
+                        messages: []
+                    }
+                ],
+                currentCharacterId: 'nova',
+                currentView: 'characters'
+            })
+        );
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+
+        const otherCard = screen.getByRole('button', { name: 'Select Other' }).closest('article');
+        await userEvent.click(within(otherCard!).getByRole('button', { name: 'Edit' }));
+        const dialog = screen.getByRole('dialog', { name: 'Edit Other' });
+        await userEvent.click(within(dialog).getByRole('button', { name: /Save character/ }));
+
+        const novaCard = screen.getByRole('button', { name: 'Select Nova' }).closest('article');
+        expect(novaCard).toHaveTextContent('Active now');
+        expect(otherCard).not.toHaveTextContent('Active now');
+
+        // Autosave runs every 500 ms; wait across two ticks so the saved state reflects the edit.
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        expect(savedState.currentCharacterId).toBe('nova');
+        const saved = savedState.characters.find((item: any) => item.id === 'nova');
+        expect(saved.messages.map((message: any) => message.id)).toEqual(['u1']);
+    });
+
     it('browses a community character, imports a private copy, and opens chat', async () => {
         const shared = {
             id: 7,
