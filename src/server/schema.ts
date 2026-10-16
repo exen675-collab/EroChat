@@ -146,5 +146,16 @@ export async function initDb(db: Database) {
         'CREATE INDEX IF NOT EXISTS idx_public_characters_popular ON public_characters(import_count DESC, updated_at DESC)'
     );
 
+    await run(`
+    CREATE TABLE IF NOT EXISTS public_character_imports (
+      publication_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (publication_id, user_id),
+      FOREIGN KEY (publication_id) REFERENCES public_characters(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
     await ensureDefaultAdminAccount(db);
 }

@@ -174,9 +174,32 @@ describe.sequential('server route composition', () => {
             'GET'
         );
         expect((await browse.json()).characters).toHaveLength(1);
-        const imported = await request(`/api/characters/browse/${saved.id}/import`, {});
+        const ownImport = await request(`/api/characters/browse/${saved.id}/import`, {});
+        expect(ownImport.status).toBe(200);
+        expect((await ownImport.json()).character.imports).toBe(0);
+
+        const importer = await request(
+            '/api/auth/signup',
+            { username: 'importer_one', password: 'password123' },
+            'POST',
+            ''
+        );
+        const importerCookie = String(importer.headers.get('set-cookie')).split(';')[0];
+        const imported = await request(
+            `/api/characters/browse/${saved.id}/import`,
+            {},
+            'POST',
+            importerCookie
+        );
         expect(imported.status).toBe(200);
         expect((await imported.json()).character.imports).toBe(1);
+        const repeated = await request(
+            `/api/characters/browse/${saved.id}/import`,
+            {},
+            'POST',
+            importerCookie
+        );
+        expect((await repeated.json()).character.imports).toBe(1);
         expect(
             (await request(`/api/characters/published/${saved.id}`, undefined, 'DELETE')).status
         ).toBe(200);

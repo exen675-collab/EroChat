@@ -180,10 +180,22 @@ export function registerCharacterRoutes(app: Express, db: Database) {
                 return;
             }
 
-            await run('UPDATE public_characters SET import_count = import_count + 1 WHERE id = ?', [
-                publicationId
-            ]);
-            row.import_count = Number(row.import_count || 0) + 1;
+            // Each person counts once, and the publisher's own imports do not count, so repeating a
+            // request cannot inflate the popularity ranking.
+            const claimed =
+                row.user_id === userId
+                    ? { changes: 0 }
+                    : await run(
+                          'INSERT OR IGNORE INTO public_character_imports (publication_id, user_id) VALUES (?, ?)',
+                          [publicationId, userId]
+                      );
+            if (claimed.changes) {
+                await run(
+                    'UPDATE public_characters SET import_count = import_count + 1 WHERE id = ?',
+                    [publicationId]
+                );
+                row.import_count = Number(row.import_count || 0) + 1;
+            }
             res.json({ character: mapPublicCharacterRow(row, userId) });
         } catch (error) {
             console.error('Failed to import public character:', error);
@@ -200,14 +212,21 @@ export function registerCharacterRoutes(app: Express, db: Database) {
         }
 
         try {
-            const result = await run('DELETE FROM public_characters WHERE id = ? AND user_id = ?', [
-                publicationId,
-                userId
-            ]);
-            if (!result.changes) {
+            const owned = await get(
+                'SELECT id FROM public_characters WHERE id = ? AND user_id = ?',
+                [publicationId, userId]
+            );
+            if (!owned) {
                 res.status(404).json({ error: 'Publication not found.' });
                 return;
             }
+            await run('DELETE FROM public_character_imports WHERE publication_id = ?', [
+                publicationId
+            ]);
+            await run('DELETE FROM public_characters WHERE id = ? AND user_id = ?', [
+                publicationId,
+                userId
+            ]);
             res.json({ ok: true });
         } catch (error) {
             console.error('Failed to unpublish character:', error);
