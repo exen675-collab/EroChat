@@ -76,8 +76,9 @@ export function CharacterPanel({
                     title="Clear chat"
                     disabled={!messages.length}
                     onClick={() =>
-                        window.confirm(`Clear the whole conversation with ${character.name}?`) &&
-                        controller.clearChat()
+                        window.confirm(
+                            `Clear the whole conversation with ${character.name}, including its memories?`
+                        ) && controller.clearChat()
                     }
                 >
                     <Eraser size={15} />

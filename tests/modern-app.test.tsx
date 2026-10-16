@@ -1112,6 +1112,26 @@ describe('ModernApp', () => {
             expect(await screen.findByText(/upgrade was not applied/)).toBeInTheDocument();
         });
 
+        it('clears the conversation together with its memories', async () => {
+            seedChat([{ id: 'u1', role: 'user', content: 'Remember me.' }], {
+                memorySnapshots: [{ id: 'm1', finalText: 'They met at dawn.', createdAt: '2026' }]
+            });
+            vi.spyOn(window, 'confirm').mockReturnValue(true);
+            await renderApp(<ModernApp user={user} />);
+            const toggle = document.querySelector<HTMLButtonElement>(
+                '.m-chat__head [aria-pressed]'
+            )!;
+            if (toggle.getAttribute('aria-pressed') !== 'true') await userEvent.click(toggle);
+            await userEvent.click(screen.getByRole('button', { name: 'Clear chat' }));
+
+            await waitFor(() =>
+                expect(savedState.characters[0]).toMatchObject({
+                    messages: [],
+                    memorySnapshots: []
+                })
+            );
+        });
+
         it('edits a message but will not save it empty', async () => {
             seedChat([{ id: 'a1', role: 'assistant', content: 'Original text.' }]);
             await renderApp(<ModernApp user={user} />);

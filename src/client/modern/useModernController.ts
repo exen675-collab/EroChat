@@ -777,8 +777,17 @@ export function useModernController(initialUser: BootstrapUser) {
         }));
     }, []);
 
+    // Memories summarize the cleared messages and are sent with every request, so they go too;
+    // otherwise the fresh conversation would still recall the old one.
     const clearChat = useCallback(() => {
-        setData((current) => syncCurrentMessages(current, []));
+        setData((current) => ({
+            ...current,
+            characters: current.characters.map((character) =>
+                character.id === current.currentCharacterId
+                    ? { ...character, messages: [], memorySnapshots: [] }
+                    : character
+            )
+        }));
         setMemoryDraft(null);
         notify('Chat cleared.', 'success');
     }, [notify]);
