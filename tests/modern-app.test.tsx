@@ -868,6 +868,21 @@ describe('ModernApp', () => {
         );
     });
 
+    it('reshapes the preset size when an aspect ratio is chosen', async () => {
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: 'Create' })[0]);
+        const ratio = screen.getByRole('combobox', { name: 'Aspect ratio' });
+        await userEvent.selectOptions(ratio, '16:9');
+        const width = Number(
+            (screen.getByRole('spinbutton', { name: 'Width' }) as HTMLInputElement).value
+        );
+        const height = Number(
+            (screen.getByRole('spinbutton', { name: 'Height' }) as HTMLInputElement).value
+        );
+        expect(width / height).toBeCloseTo(16 / 9, 1);
+        expect(ratio).toHaveValue('16:9');
+    });
+
     it('loads older generated media into the gallery on request', async () => {
         const asset = (id: number) => ({
             id,

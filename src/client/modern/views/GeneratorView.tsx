@@ -11,7 +11,12 @@ import { useState } from 'react';
 import { fetchProviderModels, sendUtilityRequest } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
 import { runMediaGeneration } from '../media-generation.js';
-import { findMediaPreset } from '../media-presets.js';
+import {
+    ASPECT_RATIOS,
+    dimensionsForAspectRatio,
+    findMediaPreset,
+    matchingAspectRatio
+} from '../media-presets.js';
 import type { MediaGenerationPreset } from '../types.js';
 import type { ModernController } from '../useModernController.js';
 
@@ -171,15 +176,22 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                     <label className="m-field">
                         <span>Aspect ratio</span>
                         <select
-                            value={String(prefs.aspectRatio)}
-                            onChange={(event) => patchPrefs({ aspectRatio: event.target.value })}
+                            value={matchingAspectRatio(selectedPreset.width, selectedPreset.height)}
+                            onChange={(event) => {
+                                if (event.target.value === 'auto') return;
+                                patchPreset(
+                                    dimensionsForAspectRatio(
+                                        selectedPreset.width,
+                                        selectedPreset.height,
+                                        event.target.value
+                                    )
+                                );
+                            }}
                         >
                             <option value="auto">Custom</option>
-                            <option>1:1</option>
-                            <option>16:9</option>
-                            <option>9:16</option>
-                            <option>4:3</option>
-                            <option>3:4</option>
+                            {ASPECT_RATIOS.map((ratio) => (
+                                <option key={ratio}>{ratio}</option>
+                            ))}
                         </select>
                     </label>
                 </div>
