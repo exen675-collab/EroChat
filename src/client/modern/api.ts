@@ -733,6 +733,9 @@ export async function generateSpeech(
     settings: ModernSettings,
     text: string
 ): Promise<HTMLAudioElement> {
+    if (!settings.openrouterKey) {
+        throw new Error('Read aloud uses OpenRouter. Enter your OpenRouter API key in Settings.');
+    }
     const response = await fetch('https://openrouter.ai/api/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -746,8 +749,23 @@ export async function generateSpeech(
             response_format: 'mp3'
         })
     });
-    if (!response.ok) throw new Error('Text-to-speech generation failed.');
-    const audio = new Audio(URL.createObjectURL(await response.blob()));
-    await audio.play();
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(
+            payload?.error?.message || `Text-to-speech generation failed (${response.status}).`
+        );
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const audio = new Audio(url);
+    // The clip is played once, so its blob is released when playback ends or is replaced.
+    const release = () => URL.revokeObjectURL(url);
+    audio.addEventListener('ended', release, { once: true });
+    audio.addEventListener('pause', release, { once: true });
+    try {
+        await audio.play();
+    } catch (error) {
+        release();
+        throw error;
+    }
     return audio;
 }
