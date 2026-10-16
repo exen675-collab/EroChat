@@ -1,4 +1,5 @@
 import {
+    Download,
     Edit3,
     LoaderCircle,
     MessageCircle,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { importCharacterCard, publishCharacter } from '../api.js';
+import { downloadCharacterCard, readWinkCardExtension } from '../character-card-export.js';
 import { sortCharactersByRecentUse } from '../character-sort.js';
 import { getCharacterThumbnailUrl } from '../character-thumbnails.js';
 import { CharacterVisual } from '../components/character-visuals.js';
@@ -123,6 +125,14 @@ export function CharacterEditor({
                         <Trash2 size={17} /> Delete
                     </Button>
                 )}
+                {character && (
+                    <Button
+                        variant="ghost"
+                        onClick={() => downloadCharacterCard(character, controller.user.username)}
+                    >
+                        <Download size={17} /> Export card
+                    </Button>
+                )}
                 <span />
                 <Button onClick={onClose}>Cancel</Button>
                 <Button
@@ -228,6 +238,31 @@ export function CharactersView({ controller }: { controller: ModernController })
             const raw = result.card?.data;
             if (!raw?.name) throw new Error('The character card payload was malformed.');
             const name = String(raw.name).trim();
+            // A card exported from Wink carries the exact profile; restore it as it was.
+            const wink = readWinkCardExtension(raw);
+            if (wink) {
+                controller.saveCharacter({
+                    id: crypto.randomUUID(),
+                    name,
+                    avatar: wink.avatar || '✨',
+                    thumbnail: result.thumbnailUrl || undefined,
+                    description: wink.description,
+                    appearance: wink.appearance,
+                    background: wink.background,
+                    greeting: wink.greeting,
+                    userInfo: '',
+                    systemPrompt: wink.systemPrompt,
+                    messages: wink.greeting
+                        ? [{ id: crypto.randomUUID(), role: 'assistant', content: wink.greeting }]
+                        : [],
+                    memorySnapshots: [],
+                    contextMessageCount:
+                        wink.contextMessageCount || controller.data.settings.contextMessageCount,
+                    openrouterSessionId: null
+                });
+                controller.notify('Character imported.', 'success');
+                return;
+            }
             // Replacer functions keep "$&"-style sequences in a name or username literal.
             const replace = (value: unknown) =>
                 String(value || '')

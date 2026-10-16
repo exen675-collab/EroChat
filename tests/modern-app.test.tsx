@@ -964,6 +964,76 @@ describe('ModernApp', () => {
         expect(assetRequests.at(-1)).toBe('/api/generator/assets?limit=100&cursor=5');
         expect(screen.queryByRole('button', { name: /Load older media/ })).not.toBeInTheDocument();
     });
+    it('exports a character card that imports back with the same profile', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({
+                characters: [
+                    {
+                        id: 'nova',
+                        name: 'Nova',
+                        avatar: '🌙',
+                        description: 'A night courier.',
+                        appearance: 'Silver jacket.',
+                        background: 'The old city.',
+                        greeting: 'Got a delivery?',
+                        systemPrompt: 'You are Nova.',
+                        contextMessageCount: 32,
+                        messages: []
+                    }
+                ],
+                currentCharacterId: 'nova',
+                currentView: 'characters'
+            })
+        );
+        let exported: Blob | null = null;
+        vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+            exported = blob as Blob;
+            return 'blob:card';
+        });
+        vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: RequestInfo | URL) => {
+                if (String(input) === '/api/characters/import-card') {
+                    return new Response(
+                        JSON.stringify({
+                            card: JSON.parse(await exported!.text()),
+                            thumbnailUrl: null
+                        }),
+                        { status: 201 }
+                    );
+                }
+                return new Response(JSON.stringify({ jobs: [], assets: [] }), { status: 200 });
+            })
+        );
+
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /Edit/ }));
+        await userEvent.click(screen.getByRole('button', { name: /Export card/ }));
+        expect(exported).not.toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+        await userEvent.upload(
+            input,
+            new File(['{}'], 'nova.card.json', { type: 'application/json' })
+        );
+        await waitFor(() => expect(savedState?.characters).toHaveLength(2));
+        expect(savedState.characters[1]).toMatchObject({
+            name: 'Nova',
+            avatar: '🌙',
+            description: 'A night courier.',
+            appearance: 'Silver jacket.',
+            background: 'The old city.',
+            greeting: 'Got a delivery?',
+            systemPrompt: 'You are Nova.',
+            contextMessageCount: 32
+        });
+    });
+
     it('imports the same character card file again when chosen twice', async () => {
         let imports = 0;
         vi.stubGlobal(

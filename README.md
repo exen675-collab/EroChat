@@ -21,7 +21,7 @@ The Express backend provides:
 - Generate an image for each AI response (optional toggle)
 - Run standalone image-generation jobs and keep their history
 - Assign uploaded or generated media as character thumbnails
-- Import Character Card V2 JSON and PNG files
+- Import Character Card V2 JSON and PNG files, and export characters as V2 JSON
 - Publish characters to a shared Character Browse catalog
 - Search, sort, import, and chat with community characters
 - Let administrators generate and publish new catalog characters with OpenRouter
@@ -158,7 +158,9 @@ You can create multiple characters with their own:
 - separate conversation and memory state;
 - optional uploaded, imported, or gallery-derived thumbnail.
 
-The Characters view can also import Character Card V2 JSON and PNG files.
+The Characters view can also import Character Card V2 JSON and PNG files. **Export card** in a
+character's editor downloads its profile as a Character Card V2 JSON file (no conversation, memories,
+or user information). Importing that file into Wink restores the profile exactly.
 
 Use **Publish** on a character to share its profile, prompt, greeting, and thumbnail in **Character
 Browse**. Conversation history, memory snapshots, user information, and provider session data are
