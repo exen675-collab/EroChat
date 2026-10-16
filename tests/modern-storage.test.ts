@@ -3,6 +3,7 @@ import {
     createModernDefaultState,
     getModernStorageKey,
     hydrateModernState,
+    INTERRUPTED_MEDIA_ERROR,
     serializeModernState
 } from '../src/client/modern/storage.js';
 
@@ -59,6 +60,44 @@ describe('per-user app storage', () => {
         expect(stored.characters[0].messages).toEqual([
             { id: 'u1', role: 'user', content: 'Hello' }
         ]);
+    });
+
+    it('stores scene media still generating as interrupted', () => {
+        const state = createModernDefaultState();
+        state.characters[0].messages = [
+            { id: 'a1', role: 'assistant', content: 'Reply', mediaStatus: 'generating' },
+            { id: 'a2', role: 'assistant', content: 'Done', mediaStatus: 'completed' }
+        ];
+
+        const [pending, done] = JSON.parse(serializeModernState(state)).characters[0].messages;
+        expect(pending).toMatchObject({
+            mediaStatus: 'failed',
+            mediaError: INTERRUPTED_MEDIA_ERROR
+        });
+        expect(done.mediaStatus).toBe('completed');
+        // The live page keeps its own status until the job settles.
+        expect(state.characters[0].messages[0].mediaStatus).toBe('generating');
+    });
+
+    it('settles scene media saved mid-generation by an earlier version', () => {
+        localStorage.setItem(
+            'erochat_data_user_9',
+            JSON.stringify({
+                characters: [
+                    {
+                        id: 'hero',
+                        name: 'Hero',
+                        messages: [
+                            { id: 'a1', role: 'assistant', content: 'Hi', mediaStatus: 'queued' }
+                        ]
+                    }
+                ]
+            })
+        );
+        expect(hydrateModernState(9).characters[0].messages[0]).toMatchObject({
+            mediaStatus: 'failed',
+            mediaError: INTERRUPTED_MEDIA_ERROR
+        });
     });
 
     it('migrates legacy chat and generator render settings into shared presets', () => {
