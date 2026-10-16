@@ -1710,6 +1710,60 @@ describe('ModernApp', () => {
             expect(sent).not.toContain('First attempt.');
         });
 
+        it('continues the last reply in place without saving the instruction', async () => {
+            seedChat([
+                { id: 'u1', role: 'user', content: 'Open the door.' },
+                { id: 'a1', role: 'assistant', content: 'The door creaks' }
+            ]);
+            const chatBodies: any[] = [];
+            let fail = false;
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+                    const url = String(input);
+                    if (url.includes('openrouter.ai')) {
+                        chatBodies.push(JSON.parse(String(init?.body)));
+                        if (fail) {
+                            return new Response(JSON.stringify({ error: { message: 'Down.' } }), {
+                                status: 500
+                            });
+                        }
+                        return new Response(
+                            JSON.stringify({ choices: [{ message: { content: 'open slowly.' } }] })
+                        );
+                    }
+                    if (url.includes('/api/generator/jobs')) {
+                        return new Response(JSON.stringify({ jobs: [] }));
+                    }
+                    if (url.includes('/api/generator/assets')) {
+                        return new Response(JSON.stringify({ assets: [] }));
+                    }
+                    return new Response(JSON.stringify({}));
+                })
+            );
+            await renderApp(<ModernApp user={user} />);
+            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+            expect(
+                await within(stream()).findByText('The door creaks open slowly.')
+            ).toBeInTheDocument();
+            const sent = chatBodies[0].messages.map((message: any) => message.content);
+            expect(sent.at(-2)).toBe('The door creaks');
+            expect(sent.at(-1)).toMatch(/^\[Continue your last reply/);
+            expect(
+                within(stream()).queryByText(/Continue your last reply/)
+            ).not.toBeInTheDocument();
+
+            fail = true;
+            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+            await waitFor(() => expect(chatBodies).toHaveLength(2));
+            expect(
+                await within(stream()).findByText('The door creaks open slowly.')
+            ).toBeInTheDocument();
+            await waitFor(() =>
+                expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+            );
+        });
+
         it('keeps earlier replies as versions the user can page back to', async () => {
             seedChat([
                 { id: 'u1', role: 'user', content: 'Say something.' },

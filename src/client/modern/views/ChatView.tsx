@@ -11,6 +11,7 @@ import {
     Copy,
     Cpu,
     Download,
+    FastForward,
     GitBranch,
     ImagePlus,
     Image as ImageIcon,
@@ -85,6 +86,7 @@ function MessageItem({
     controller,
     isLast,
     canRegenerate,
+    canContinue,
     onEdit,
     onLightbox
 }: {
@@ -92,6 +94,7 @@ function MessageItem({
     controller: ModernController;
     isLast: boolean;
     canRegenerate: boolean;
+    canContinue: boolean;
     onEdit: (message: ModernMessage) => void;
     onLightbox: (url: string, video?: boolean) => void;
 }) {
@@ -241,16 +244,23 @@ function MessageItem({
                         </>
                     )}
                     {canRegenerate && (
-                        <>
-                            <button
-                                className="m-msg__regen"
-                                onClick={() => void controller.regenerateReply()}
-                            >
-                                <RefreshCw size={15} /> Regenerate
-                            </button>
-                            <span className="m-msg__sep" />
-                        </>
+                        <button
+                            className="m-msg__regen"
+                            onClick={() => void controller.regenerateReply()}
+                        >
+                            <RefreshCw size={15} /> Regenerate
+                        </button>
                     )}
+                    {canContinue && (
+                        <button
+                            className="m-msg__regen"
+                            title="Continue this reply where it ends"
+                            onClick={() => void controller.continueReply()}
+                        >
+                            <FastForward size={15} /> Continue
+                        </button>
+                    )}
+                    {(canRegenerate || canContinue) && <span className="m-msg__sep" />}
                     <button
                         aria-label="Read aloud"
                         title="Read aloud"
@@ -695,6 +705,12 @@ function ChatPane({
                                         message.id === lastAssistantId &&
                                         messages.at(-1)?.id === message.id &&
                                         messages.some((item) => item.role === 'user') &&
+                                        !controller.busy
+                                    }
+                                    canContinue={
+                                        message.role === 'assistant' &&
+                                        messages.at(-1)?.id === message.id &&
+                                        !!message.content.trim() &&
                                         !controller.busy
                                     }
                                     onEdit={setEditing}

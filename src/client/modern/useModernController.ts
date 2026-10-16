@@ -42,6 +42,16 @@ function viewFromHash(): ViewId | null {
         : null;
 }
 
+// Sent with the request only; it never becomes a chat message.
+const CONTINUE_INSTRUCTION =
+    '[Continue your last reply from exactly where it ends. Do not repeat what you already wrote, and do not write for me.]';
+
+function textModelLabel(settings: ModernSettings): string {
+    return settings.textProvider === 'grok-cli'
+        ? `grok-cli/${settings.grokModel || 'default'}`
+        : settings.openrouterModel;
+}
+
 const TEXT_UPGRADE_MODEL = 'deepseek/deepseek-v4-flash';
 const UPGRADE_INSTRUCTIONS: Record<string, string> = {
     minimal: 'Fix grammar, spelling, punctuation, and obvious wording errors only.',
@@ -459,12 +469,7 @@ export function useModernController(initialUser: BootstrapUser) {
                     isStreaming: false
                 });
                 retirePreviousReplies();
-                recordUsage('assistant', {
-                    model:
-                        data.settings.textProvider === 'grok-cli'
-                            ? `grok-cli/${data.settings.grokModel || 'default'}`
-                            : data.settings.openrouterModel
-                });
+                recordUsage('assistant', { model: textModelLabel(data.settings) });
                 const imagePrompt = extractImagePrompt(raw);
                 if (data.settings.enableImageGeneration && imagePrompt) {
                     void generateMessageMedia(character, assistant.id, imagePrompt, 'chat');
@@ -532,6 +537,69 @@ export function useModernController(initialUser: BootstrapUser) {
         },
         [busy, currentCharacter, messages, recordUsage, streamReply]
     );
+
+    /** Extends the last reply where it ends, e.g. after it was cut off or stopped. */
+    const continueReply = useCallback(async () => {
+        const last = messages.at(-1);
+        if (busy || !currentCharacter || last?.role !== 'assistant' || !last.content.trim()) {
+            return false;
+        }
+        const character = currentCharacter;
+        const original = last.content;
+        const extended = (addition: string) =>
+            addition
+                ? `${original.trimEnd()}${/^\s/.test(addition) ? '' : ' '}${addition}`
+                : original;
+        const abort = new AbortController();
+        chatAbortRef.current = abort;
+        let streamed = '';
+        setBusy('chat');
+        try {
+            const raw = await sendModernChat(
+                data.settings,
+                character,
+                messages,
+                CONTINUE_INSTRUCTION,
+                (streamedContent) => {
+                    streamed = streamedContent;
+                    updateMessageMedia(character.id, last.id, {
+                        content: extended(streamedContent)
+                    });
+                },
+                abort.signal
+            );
+            updateMessageMedia(character.id, last.id, { content: extended(raw) });
+            recordUsage('assistant', { model: textModelLabel(data.settings) });
+            const imagePrompt = extractImagePrompt(raw);
+            if (
+                data.settings.enableImageGeneration &&
+                imagePrompt &&
+                !last.imageUrl &&
+                !last.videoUrl
+            ) {
+                void generateMessageMedia(character, last.id, imagePrompt, 'chat');
+            }
+            return true;
+        } catch (error) {
+            const stopped = abort.signal.aborted;
+            if (stopped && streamed.trim()) return true;
+            updateMessageMedia(character.id, last.id, { content: original });
+            if (!stopped) notify((error as Error).message, 'error');
+            return stopped;
+        } finally {
+            if (chatAbortRef.current === abort) chatAbortRef.current = null;
+            setBusy(null);
+        }
+    }, [
+        busy,
+        currentCharacter,
+        data.settings,
+        generateMessageMedia,
+        messages,
+        notify,
+        recordUsage,
+        updateMessageMedia
+    ]);
 
     /** Streams a fresh reply to the last user message; the replies it supersedes are retired on success. */
     const regenerateReply = useCallback(async () => {
@@ -956,6 +1024,7 @@ export function useModernController(initialUser: BootstrapUser) {
         sendMessage,
         stopReply,
         regenerateReply,
+        continueReply,
         showReplyVersion,
         startWithGreeting,
         editMessage,
