@@ -258,6 +258,8 @@ export function registerGeneratorJobRoutes(app: Express, db: Database) {
 
             const assetInputs = Array.isArray(req.body?.assets) ? req.body.assets : [];
             const insertedAssetIds = [];
+            // Validate every asset before writing any, so a rejected request stores nothing.
+            const preparedAssets = [];
 
             for (const assetInput of assetInputs) {
                 const mediaType =
@@ -298,6 +300,19 @@ export function registerGeneratorJobRoutes(app: Express, db: Database) {
                     ? assetInput.source
                     : existing.source || 'manual';
 
+                preparedAssets.push({
+                    mediaType,
+                    url,
+                    thumbnailUrl,
+                    width,
+                    height,
+                    durationSeconds,
+                    source,
+                    metadata
+                });
+            }
+
+            for (const asset of preparedAssets) {
                 const result = await run(
                     `
           INSERT INTO generator_assets (
@@ -316,14 +331,14 @@ export function registerGeneratorJobRoutes(app: Express, db: Database) {
                     [
                         jobId,
                         userId,
-                        mediaType,
-                        url,
-                        thumbnailUrl,
-                        width,
-                        height,
-                        durationSeconds,
-                        source,
-                        stringifyJson(metadata, {})
+                        asset.mediaType,
+                        asset.url,
+                        asset.thumbnailUrl,
+                        asset.width,
+                        asset.height,
+                        asset.durationSeconds,
+                        asset.source,
+                        stringifyJson(asset.metadata, {})
                     ]
                 );
 
