@@ -136,6 +136,9 @@ textarea:focus-visible {
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
+.m-muted {
+    color: var(--m-muted);
+}
 .spin {
     animation: m-spin 0.8s linear infinite;
 }
