@@ -73,6 +73,47 @@ describe('ModernApp', () => {
         }
     });
 
+    it('keeps prompt edits made while the prompt helper runs', async () => {
+        localStorage.setItem(
+            'erochat_data_user_42',
+            JSON.stringify({
+                settings: { openrouterKey: 'sk-test', openrouterModel: 'test/model' },
+                generatorPrefs: { prompt: 'a castle' }
+            })
+        );
+        window.location.hash = '#generator';
+        const replies: Array<(response: Response) => void> = [];
+        const fallback = globalThis.fetch;
+        await renderApp(<ModernApp user={user} />);
+        vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
+            String(input).includes('openrouter.ai')
+                ? new Promise<Response>((resolve) => replies.push(resolve))
+                : fallback(input, init)
+        );
+        const prompt = screen.getByRole('textbox', { name: 'Prompt' });
+        const refine = screen.getByRole('button', { name: 'Refine' });
+
+        await userEvent.click(refine);
+        expect(screen.getByRole('button', { name: 'Expand' })).toBeDisabled();
+        const reply = (content: string) =>
+            act(async () =>
+                replies.shift()!(
+                    new Response(JSON.stringify({ choices: [{ message: { content } }] }))
+                )
+            );
+        await reply('a misty castle at dawn');
+        await waitFor(() => expect(prompt).toHaveValue('a misty castle at dawn'));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
+        await userEvent.type(prompt, ', ruins');
+        await reply('an overwritten prompt');
+        expect(await screen.findByText(/your edits were kept/)).toBeInTheDocument();
+        expect(prompt).toHaveValue('a misty castle at dawn, ruins');
+
+        await userEvent.clear(prompt);
+        expect(screen.getByRole('button', { name: 'Refine' })).toBeDisabled();
+    });
+
     it('runs when the browser blocks site storage', async () => {
         vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
             throw new DOMException('The operation is insecure.', 'SecurityError');

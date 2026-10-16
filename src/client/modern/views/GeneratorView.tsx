@@ -7,7 +7,7 @@ import {
     Save,
     WandSparkles
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { fetchProviderModels, sendUtilityRequest } from '../api.js';
 import { Button, IconButton } from '../components/ui.js';
 import { runMediaGeneration } from '../media-generation.js';
@@ -31,6 +31,12 @@ const PROMPT_CHIPS = [
     'dynamic composition'
 ];
 
+const PROMPT_HELPERS = [
+    ['Refine', 'Refine'],
+    ['Expand', 'Expand with rich visual detail'],
+    ['Variation', 'Create a compelling variation of']
+] as const;
+
 export function GeneratorView({ controller }: { controller: ModernController }) {
     const prefs = controller.data.generatorPrefs;
     const [presetName, setPresetName] = useState('');
@@ -39,6 +45,7 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     const [models, setModels] = useState<Record<string, string[]>>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [helping, setHelping] = useState('');
     const mediaPresets = prefs.presets || [];
     const selectedPreset = findMediaPreset(prefs, prefs.selectedPresetId);
     function patchPrefs(patch: Record<string, unknown>) {
@@ -52,6 +59,8 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
     const prompt = prefs.prompt || '';
     const negative = prefs.negativePrompt || '';
     const batch = Math.min(4, Math.max(1, Math.trunc(Number(prefs.batchCount)) || 1));
+    const latestPrompt = useRef(prompt);
+    latestPrompt.current = prompt;
     const setPrompt = (value: string) => patchPrefs({ prompt: value });
     const setNegative = (value: string) => patchPrefs({ negativePrompt: value });
     const setBatch = (value: number) => patchPrefs({ batchCount: value });
@@ -74,18 +83,25 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
             setLoadingModels(false);
         }
     }
-    async function helper(action: string) {
+    async function helper(label: string, action: string) {
+        const original = prompt;
+        if (!original.trim() || helping) return;
+        setHelping(label);
         try {
             const text = await sendUtilityRequest(controller.data.settings, [
                 {
                     role: 'system',
                     content: `You are an image prompt editor. ${action} the prompt. Return only the revised prompt.`
                 },
-                { role: 'user', content: prompt }
+                { role: 'user', content: original }
             ]);
-            setPrompt(text);
+            if (latestPrompt.current === original) setPrompt(text);
+            else
+                controller.notify('The prompt changed while the helper ran; your edits were kept.');
         } catch (error) {
             controller.notify((error as Error).message, 'error');
+        } finally {
+            setHelping('');
         }
     }
     async function run() {
@@ -229,13 +245,16 @@ export function GeneratorView({ controller }: { controller: ModernController }) 
                 </label>
                 <div className="m-generator__helper">
                     <span>Prompt helper</span>
-                    <Button onClick={() => void helper('Refine')}>Refine</Button>
-                    <Button onClick={() => void helper('Expand with rich visual detail')}>
-                        Expand
-                    </Button>
-                    <Button onClick={() => void helper('Create a compelling variation of')}>
-                        Variation
-                    </Button>
+                    {PROMPT_HELPERS.map(([label, action]) => (
+                        <Button
+                            key={label}
+                            disabled={!prompt.trim() || Boolean(helping)}
+                            onClick={() => void helper(label, action)}
+                        >
+                            {helping === label && <LoaderCircle className="spin" size={15} />}
+                            {label}
+                        </Button>
+                    ))}
                 </div>
                 <details className="m-advanced" open>
                     <summary>
