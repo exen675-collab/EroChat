@@ -219,6 +219,23 @@ describe('ModernApp', () => {
         expect(stream.scrollTop).toBe(2200);
     });
 
+    it('asks before discarding edits in the character editor', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        await renderApp(<ModernApp user={user} />);
+        await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);
+        await userEvent.click(screen.getByRole('button', { name: /New character/i }));
+        const dialog = screen.getByRole('dialog', { name: 'Create character' });
+        await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name *' }), 'Draft');
+        await userEvent.keyboard('{Escape}');
+        expect(confirm).toHaveBeenCalledOnce();
+        expect(dialog).toBeInTheDocument();
+
+        await userEvent.clear(within(dialog).getByRole('textbox', { name: 'Name *' }));
+        await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+        expect(confirm).toHaveBeenCalledOnce();
+        expect(screen.queryByRole('dialog', { name: 'Create character' })).not.toBeInTheDocument();
+    });
+
     it('keeps character creation manual and limited to the supported fields', async () => {
         await renderApp(<ModernApp user={user} />);
         await userEvent.click(screen.getAllByRole('button', { name: /Characters/i })[0]);

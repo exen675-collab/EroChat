@@ -54,10 +54,19 @@ export function CharacterEditor({
     );
     const update = (patch: Partial<ModernCharacter>) =>
         setDraft((current) => ({ ...current, ...patch }));
+    // Edits apply only on Save, so closing any other way asks before dropping them.
+    const [initialDraft] = useState(draft);
+    const requestClose = () => {
+        const changed = (
+            ['name', 'avatar', 'description', 'systemPrompt', 'generationPresetId'] as const
+        ).some((field) => (draft[field] || '') !== (initialDraft[field] || ''));
+        if (changed && !window.confirm('Discard your changes to this character?')) return;
+        onClose();
+    };
     return (
         <Modal
             title={character ? `Edit ${character.name}` : 'Create character'}
-            onClose={onClose}
+            onClose={requestClose}
             size="large"
         >
             <div className="m-character-editor">
@@ -144,7 +153,7 @@ export function CharacterEditor({
                     </Button>
                 )}
                 <span />
-                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={requestClose}>Cancel</Button>
                 <Button
                     variant="primary"
                     disabled={
